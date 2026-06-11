@@ -5,13 +5,7 @@ import { eq } from "drizzle-orm";
 import { signJwt } from "@/lib/jwt";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
-
-const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
-  password: z.string().min(1, { message: "Password is required" }),
-  expectedRole: z.enum(["STUDENT", "TEACHER", "ADMIN"]).optional(),
-});
+import { loginSchema } from "@/lib/validations";
 
 export async function POST(req: Request) {
   try {

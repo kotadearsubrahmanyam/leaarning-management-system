@@ -1,20 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { User, Mail, Save, ShieldCheck } from "lucide-react";
-import { AnimatedInput } from "@/components/ui/animated-input";
-import { AnimatedButton } from "@/components/ui/animated-button";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
+import { User, BookOpen, Trophy, Award, CalendarCheck, ShieldCheck, Activity } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+
+const TABS = ["Overview", "Courses", "Activities", "Results", "Attendance"];
 
 export default function ProfilePage() {
-  const queryClient = useQueryClient();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("Overview");
 
-  const { data: authData, isLoading } = useQuery({
+  const { data: authData, isLoading: authLoading } = useQuery({
     queryKey: ["authMe"],
     queryFn: async () => {
       const res = await fetch("/api/auth/me");
@@ -23,258 +20,219 @@ export default function ProfilePage() {
     },
   });
 
-  useEffect(() => {
-    if (authData?.data?.user) {
-      setName(authData.data.user.name);
-      setEmail(authData.data.user.email);
-    }
-  }, [authData]);
-
-  const updateMutation = useMutation({
-    mutationFn: async (payload: { name: string; email: string }) => {
-      const res = await fetch("/api/users/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update profile");
-      return data;
-    },
-    onSuccess: () => {
-      setSuccess("Profile updated successfully!");
-      setError(null);
-      queryClient.invalidateQueries({ queryKey: ["authMe"] });
-      
-      setTimeout(() => setSuccess(null), 3000);
-    },
-    onError: (err: Error) => {
-      setError(err.message);
-      setSuccess(null);
-    },
-  });
-
-  const { data: paymentsData } = useQuery({
-    queryKey: ["payments", "STUDENT"],
+  const { data: activitiesData } = useQuery({
+    queryKey: ["studentActivities"],
     queryFn: async () => {
-      const res = await fetch("/api/student/payments");
+      const res = await fetch("/api/student/activities");
       if (!res.ok) return null;
       return res.json();
     },
-    enabled: !!authData?.data?.user && authData.data.user.role === "STUDENT",
-  });
-
-  const { data: coursesData } = useQuery({
-    queryKey: ["courses"],
-    queryFn: async () => {
-      const res = await fetch("/api/courses");
-      if (!res.ok) return null;
-      return res.json();
-    },
-    enabled: !!authData?.data?.user && authData.data.user.role === "STUDENT",
   });
 
   const { data: resultsData } = useQuery({
-    queryKey: ["results"],
+    queryKey: ["studentResults"],
     queryFn: async () => {
       const res = await fetch("/api/student/results");
       if (!res.ok) return null;
       return res.json();
     },
-    enabled: !!authData?.data?.user && authData.data.user.role === "STUDENT",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateMutation.mutate({ name, email });
-  };
+  const { data: attendanceData } = useQuery({
+    queryKey: ["studentAttendance"],
+    queryFn: async () => {
+      const res = await fetch("/api/student/attendance");
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
       </div>
     );
   }
 
-  const role = authData?.data?.user?.role || "USER";
+  const user = authData?.data?.user;
+  const activities = activitiesData?.data?.activities || [];
+  const results = resultsData?.data?.results || [];
+  const attendance = attendanceData?.data?.attendance || [];
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 relative z-10">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
-        <h1 className="text-3xl font-bold text-primary mb-2">My Profile</h1>
-        <p className="text-foreground/70">Manage your account details and personal information.</p>
+    <div className="max-w-6xl mx-auto pb-12 relative z-10">
+      {/* Profile Header */}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="glass p-8 rounded-3xl border border-white/10 mb-8 flex items-center gap-8 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-accent p-1 shadow-[0_15px_30px_rgba(16,185,129,0.15)] relative z-10">
+          <div className="w-full h-full bg-background rounded-full flex items-center justify-center">
+            <User size={48} className="text-accent/60" />
+          </div>
+        </div>
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold text-foreground mb-2">{user?.name}</h1>
+          <div className="flex items-center gap-4 text-foreground/60">
+            <span>{user?.rollNumber || "ID Pending"}</span>
+            <span className="w-1 h-1 bg-white/20 rounded-full" />
+            <span>{user?.departmentId || "Dept Unassigned"}</span>
+            <span className="w-1 h-1 bg-white/20 rounded-full" />
+            <span>Semester {user?.semester || 1}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 mt-4 rounded-full bg-accent/10 text-accent border border-accent/20 text-sm font-semibold">
+            <ShieldCheck size={16} /> Student
+          </div>
+        </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="lg:col-span-1"
-        >
-          <div className="glass p-8 rounded-3xl border border-white/10 flex flex-col items-center text-center">
-            <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-orange-500 p-1 mb-4 shadow-[0_0_30px_rgba(153,27,27,0.3)]">
-              <div className="w-full h-full bg-background rounded-full flex items-center justify-center overflow-hidden">
-                <User size={48} className="text-primary/50" />
-              </div>
-            </div>
-            <h2 className="text-xl font-bold text-foreground">{authData?.data?.user?.name}</h2>
-            <p className="text-foreground/60 mb-4">{authData?.data?.user?.email}</p>
-            
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-semibold">
-              <ShieldCheck size={16} />
-              {role}
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="lg:col-span-2"
-        >
-          <div className="glass p-8 rounded-3xl border border-white/10">
-            <h3 className="text-xl font-bold text-foreground mb-6">Edit Details</h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <AnimatedInput
-                  id="name"
-                  type="text"
-                  label="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  icon={<User size={18} />}
-                  required
-                />
-                
-                <AnimatedInput
-                  id="email"
-                  type="email"
-                  label="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  icon={<Mail size={18} />}
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-sm">
-                  {success}
-                </div>
-              )}
-
-              <div className="flex justify-end pt-4">
-                <AnimatedButton 
-                  type="submit" 
-                  className="flex items-center gap-2"
-                  isLoading={updateMutation.isPending}
-                >
-                  <Save size={18} />
-                  Save Changes
-                </AnimatedButton>
-              </div>
-            </form>
-          </div>
-        </motion.div>
+      {/* Custom Tabs */}
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+        {TABS.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-3 rounded-2xl font-bold transition-all whitespace-nowrap ${
+              activeTab === tab ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(16,185,129,0.25)]" : "bg-white/5 text-foreground/60 hover:bg-white/10"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
-      {role === "STUDENT" && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-8 space-y-8"
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
         >
-          <div className="glass p-8 rounded-3xl border border-white/10">
-            <h3 className="text-2xl font-bold text-foreground mb-6">Academic Record</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                <p className="text-sm text-foreground/50 mb-1">Roll Number</p>
-                <p className="text-xl font-bold text-primary">{authData?.data?.user?.rollNumber || "N/A"}</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                <p className="text-sm text-foreground/50 mb-1">Semester</p>
-                <p className="text-xl font-bold text-primary">{authData?.data?.user?.semester || "N/A"}</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                <p className="text-sm text-foreground/50 mb-1">Resident Status</p>
-                <p className="text-xl font-bold text-primary">{authData?.data?.user?.residentStatus?.replace("_", " ") || "N/A"}</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/5">
-                <p className="text-sm text-foreground/50 mb-1">Enrolled Courses</p>
-                <p className="text-xl font-bold text-primary">{coursesData?.data?.courses?.length || 0}</p>
-              </div>
-            </div>
+          {activeTab === "Overview" && <OverviewTab activities={activities} results={results} attendance={attendance} />}
+          {activeTab === "Courses" && <CoursesTab user={user} />}
+          {activeTab === "Activities" && <ActivitiesTab activities={activities} />}
+          {activeTab === "Results" && <ResultsTab results={results} />}
+          {activeTab === "Attendance" && <AttendanceTab attendance={attendance} />}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <h4 className="text-lg font-bold mb-4">Fee Breakdown</h4>
-                {paymentsData?.data?.payments ? (
-                  <div className="space-y-3">
-                    {paymentsData.data.payments.map((p: any) => (
-                      <div key={p.id} className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                        <div>
-                          <p className="font-bold">{p.feeType}</p>
-                          <p className="text-xs text-foreground/50">{p.status}</p>
-                        </div>
-                        <p className="font-bold">${p.amount}</p>
-                      </div>
-                    ))}
-                    <div className="flex justify-between items-center p-3 bg-primary/10 rounded-xl border border-primary/20 mt-4">
-                      <p className="font-bold text-primary">Total Paid</p>
-                      <p className="font-bold text-primary">
-                        ${paymentsData.data.payments.filter((p: any) => p.status === "PAID" || p.status === "VERIFIED" || p.status === "COMPLETED").reduce((acc: number, p: any) => acc + p.amount, 0)}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-foreground/50">Loading fees...</p>
-                )}
-              </div>
+function OverviewTab({ activities, results, attendance }: any) {
+  // Chart Data Preparation
+  const chartData = results.slice(0, 5).map((r: any) => ({ name: r.courseName.substring(0, 10) + '...', marks: r.marks }));
+  const presentCount = attendance.filter((a: any) => a.status === 'PRESENT').length;
+  const totalAtt = attendance.length;
+  const attPercent = totalAtt === 0 ? 0 : Math.round((presentCount / totalAtt) * 100);
 
-              <div>
-                <h4 className="text-lg font-bold mb-4">Latest Results</h4>
-                {resultsData?.data?.results ? (
-                  <div className="space-y-3">
-                    {resultsData.data.results.slice(0, 5).map((r: any) => (
-                      <div key={r.id} className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                        <div>
-                          <p className="font-bold truncate max-w-[200px]">{r.courseName}</p>
-                          <p className="text-xs text-foreground/50">Marks: {r.marks}/100</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-primary/20 text-primary font-bold flex items-center justify-center shrink-0">
-                          {r.grade}
-                        </div>
-                      </div>
-                    ))}
-                    {resultsData.data.results.length === 0 && (
-                      <p className="text-sm text-foreground/50">No results published yet.</p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-foreground/50">Loading results...</p>
-                )}
-              </div>
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="glass p-6 rounded-3xl border border-white/10 lg:col-span-2">
+        <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Activity className="text-accent" /> Performance Overview</h3>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <XAxis dataKey="name" stroke="#94A3B8" fontSize={12} />
+              <YAxis stroke="#94A3B8" fontSize={12} />
+              <Tooltip cursor={{fill: 'rgba(16,185,129,0.08)'}} contentStyle={{ backgroundColor: '#0F172A', border: '1px solid rgba(226,232,240,0.1)', borderRadius: '12px', color: '#fff' }} />
+              <Bar dataKey="marks" fill="#10B981" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 text-white/5 group-hover:text-primary/10 transition-colors">
+            <Trophy size={100} />
+          </div>
+          <h4 className="text-sm text-foreground/50 mb-1">Total Activities</h4>
+          <p className="text-4xl font-black text-foreground">{activities.length}</p>
+        </div>
+
+        <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 text-white/5 group-hover:text-primary/10 transition-colors">
+            <CalendarCheck size={100} />
+          </div>
+          <h4 className="text-sm text-foreground/50 mb-1">Overall Attendance</h4>
+          <p className="text-4xl font-black text-foreground">{attPercent}%</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CoursesTab({ user }: any) {
+  return (
+    <div className="glass p-12 rounded-3xl border border-white/10 text-center">
+      <BookOpen size={48} className="mx-auto text-foreground/20 mb-4" />
+      <h3 className="text-xl font-bold text-foreground mb-2">My Courses</h3>
+      <p className="text-foreground/50">Visit the "My Courses" page to view detailed syllabus and materials.</p>
+    </div>
+  );
+}
+
+function ActivitiesTab({ activities }: any) {
+  if (activities.length === 0) return <div className="glass p-8 rounded-3xl text-center text-foreground/50">No activities logged yet.</div>;
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {activities.map((act: any) => (
+        <div key={act.id} className="glass p-5 rounded-2xl border border-white/10 hover:border-accent/50 transition-colors">
+          <div className="flex justify-between items-start mb-2">
+            <h4 className="font-bold">{act.title}</h4>
+            <span className="text-xs bg-white/10 px-2 py-1 rounded-full">{act.type}</span>
+          </div>
+          <p className="text-sm text-foreground/60 line-clamp-2">{act.description}</p>
+          <p className="text-xs text-foreground/40 mt-3">{new Date(act.date).toLocaleDateString()}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ResultsTab({ results }: any) {
+  if (results.length === 0) return <div className="glass p-8 rounded-3xl text-center text-foreground/50">No exam results published yet.</div>;
+  return (
+    <div className="glass rounded-3xl border border-white/10 overflow-hidden">
+      <div className="grid grid-cols-4 bg-white/5 p-4 font-bold text-sm">
+        <div className="col-span-2">Course</div>
+        <div>Marks</div>
+        <div>Grade</div>
+      </div>
+      <div className="divide-y divide-white/5">
+        {results.map((r: any) => (
+          <div key={r.id} className="grid grid-cols-4 p-4 text-sm hover:bg-white/5 transition-colors">
+            <div className="col-span-2">{r.courseName || 'Course'}</div>
+            <div className="font-medium text-accent font-bold">{r.marks}/100</div>
+            <div className="font-bold">{r.grade}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AttendanceTab({ attendance }: any) {
+  if (attendance.length === 0) return <div className="glass p-8 rounded-3xl text-center text-foreground/50">No attendance records found.</div>;
+  return (
+    <div className="glass rounded-3xl border border-white/10 overflow-hidden max-h-[500px] overflow-y-auto">
+      <div className="grid grid-cols-3 bg-white/5 p-4 font-bold text-sm sticky top-0 backdrop-blur-md">
+        <div>Date</div>
+        <div>Course</div>
+        <div>Status</div>
+      </div>
+      <div className="divide-y divide-white/5">
+        {attendance.map((a: any) => (
+          <div key={a.id} className="grid grid-cols-3 p-4 text-sm hover:bg-white/5 transition-colors">
+            <div>{new Date(a.date).toLocaleDateString()}</div>
+            <div>{a.courseName || 'Class'}</div>
+            <div className={a.status === 'PRESENT' ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}>
+              {a.status}
             </div>
           </div>
-        </motion.div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }

@@ -5,21 +5,12 @@ import { eq, sql, and } from "drizzle-orm";
 import { signJwt } from "@/lib/jwt";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
-
-const signupSchema = z.object({
-  name: z.string().min(2, { message: "Name is required" }),
-  email: z.string().email({ message: "Invalid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  role: z.enum(["ADMIN", "TEACHER", "STUDENT"]).optional().default("STUDENT"),
-  departmentId: z.string().optional(),
-  semester: z.number().int().min(1).max(8).optional(),
-});
+import { registerSchema } from "@/lib/validations";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const result = signupSchema.safeParse(body);
+    const result = registerSchema.safeParse(body);
 
     if (!result.success) {
       return errorResponse("Validation error", 400, result.error.flatten().fieldErrors);

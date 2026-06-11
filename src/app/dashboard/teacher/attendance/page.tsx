@@ -12,6 +12,13 @@ export default function TeacherAttendancePage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [attendanceState, setAttendanceState] = useState<Record<string, string>>({});
 
+  const isLocked = React.useMemo(() => {
+    if (!selectedDate) return false;
+    const targetDate = new Date(selectedDate);
+    const timeDiffMs = new Date().getTime() - targetDate.getTime();
+    return timeDiffMs > 24 * 60 * 60 * 1000;
+  }, [selectedDate]);
+
   const { data: coursesData } = useQuery({
     queryKey: ["teacherCourses"],
     queryFn: async () => {
@@ -69,7 +76,7 @@ export default function TeacherAttendancePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacherAttendance", selectedCourse, selectedDate] });
-      alert("Attendance saved successfully! It is now locked for 24 hours.");
+      alert("Attendance updated successfully!");
     },
     onError: (err: any) => {
       alert(err.message);
@@ -77,17 +84,16 @@ export default function TeacherAttendancePage() {
   });
 
   const handleStatusChange = (userId: string, status: string) => {
-    if (isAlreadySaved) return;
     setAttendanceState(prev => ({ ...prev, [userId]: status }));
   };
 
-  const isAlreadySaved = students.some((s: any) => s.status !== null);
+  const isUpdating = students.some((s: any) => s.status !== null);
 
   return (
     <div className="max-w-5xl mx-auto pb-12 relative z-10">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-3">
-          <Calendar size={32} /> Attendance Tracking
+          <Calendar size={32} /> Attendance Posting
         </h1>
         <p className="text-foreground/70">Mark attendance for your enrolled students.</p>
       </motion.div>
@@ -121,16 +127,19 @@ export default function TeacherAttendancePage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-3xl border border-white/10 overflow-hidden">
           <div className="p-4 bg-white/5 border-b border-white/10 flex justify-between items-center">
             <h2 className="font-bold">Student Roster</h2>
-            {isAlreadySaved ? (
-              <span className="text-sm font-semibold text-green-500 bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20">
-                Attendance Saved & Locked
-              </span>
-            ) : (
+            {!isLocked && (
               <AnimatedButton onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>
-                <Save size={18} className="mr-2 inline" /> Save Attendance
+                <Save size={18} className="mr-2 inline" /> {isUpdating ? "Update Attendance" : "Save Attendance"}
               </AnimatedButton>
             )}
           </div>
+          
+          {isLocked && (
+            <div className="p-4 bg-red-500/10 border-b border-red-500/20 text-red-400 text-sm font-semibold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse animate-delay-1000" />
+              This attendance sheet is locked. Attendance can only be modified within 24 hours of the class date.
+            </div>
+          )}
           
           {isLoading ? (
             <div className="p-6 space-y-4">
@@ -150,24 +159,24 @@ export default function TeacherAttendancePage() {
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleStatusChange(student.id, "PRESENT")}
-                      disabled={isAlreadySaved}
+                      onClick={() => !isLocked && handleStatusChange(student.id, "PRESENT")}
+                      disabled={isLocked}
                       className={`px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-all ${
                         attendanceState[student.id] === "PRESENT" 
-                          ? "bg-green-500/20 text-green-500 border border-green-500/50" 
+                          ? "bg-green-500/20 text-green-500 border border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.15)]" 
                           : "bg-white/5 text-foreground/50 hover:bg-white/10"
-                      } ${isAlreadySaved ? "opacity-50 cursor-not-allowed" : ""}`}
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <CheckCircle size={16} /> Present
                     </button>
                     <button
-                      onClick={() => handleStatusChange(student.id, "ABSENT")}
-                      disabled={isAlreadySaved}
+                      onClick={() => !isLocked && handleStatusChange(student.id, "ABSENT")}
+                      disabled={isLocked}
                       className={`px-4 py-2 rounded-xl flex items-center gap-2 font-semibold transition-all ${
                         attendanceState[student.id] === "ABSENT" 
-                          ? "bg-red-500/20 text-red-500 border border-red-500/50" 
+                          ? "bg-red-500/20 text-red-500 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.15)]" 
                           : "bg-white/5 text-foreground/50 hover:bg-white/10"
-                      } ${isAlreadySaved ? "opacity-50 cursor-not-allowed" : ""}`}
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       <XCircle size={16} /> Absent
                     </button>

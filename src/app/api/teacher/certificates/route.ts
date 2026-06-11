@@ -18,7 +18,12 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
 
-    let query = db.select({
+    const conditions = [eq(courses.teacherId, payload.id as string)];
+    if (courseId) {
+      conditions.push(eq(courses.id, courseId));
+    }
+
+    const data = await db.select({
       id: certificates.id,
       studentName: users.name,
       studentEmail: users.email,
@@ -29,13 +34,8 @@ export async function GET(req: Request) {
     .from(certificates)
     .innerJoin(courses, eq(certificates.courseId, courses.id))
     .innerJoin(users, eq(certificates.studentId, users.id))
-    .where(eq(courses.teacherId, payload.id as string));
-
-    if (courseId) {
-      query = query.where(eq(courses.id, courseId)) as any;
-    }
-
-    const data = await query.orderBy(desc(certificates.issuedDate));
+    .where(and(...conditions))
+    .orderBy(desc(certificates.issuedDate));
 
     return successResponse({ certificates: data }, "Fetched certificates", 200);
   } catch (error) {

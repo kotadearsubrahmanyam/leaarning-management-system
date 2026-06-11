@@ -106,7 +106,12 @@ export default function TeacherAssignmentsPage() {
                   </span>
                 </div>
                 <h3 className="text-xl font-bold text-foreground mb-2">{a.title}</h3>
-                <p className="text-sm text-foreground/70 line-clamp-3 mb-4">{a.description}</p>
+                {a.description && (
+                  <div className="text-sm text-foreground/80 mb-4 whitespace-pre-wrap border-l-2 border-primary/40 pl-3 bg-white/5 py-2.5 rounded-r-xl">
+                    <strong className="text-xs text-primary block mb-1">Question / Instructions:</strong>
+                    {a.description}
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

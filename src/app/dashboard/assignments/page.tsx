@@ -80,7 +80,12 @@ export default function AssignmentsPage() {
                     </span>
                   </div>
                   <h3 className="text-xl font-bold text-foreground mb-1">{a.title}</h3>
-                  <p className="text-sm text-foreground/70 line-clamp-2">{a.description}</p>
+                  {a.description && (
+                    <div className="text-sm text-foreground/80 mt-3 whitespace-pre-wrap border-l-2 border-primary/40 pl-3 bg-white/5 py-2.5 rounded-r-xl">
+                      <strong className="text-xs text-primary block mb-1">Question / Instructions:</strong>
+                      {a.description}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="shrink-0 flex flex-col items-end gap-3">
@@ -122,8 +127,15 @@ export default function AssignmentsPage() {
                 <button onClick={() => setSelectedAssignment(null)} className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
                   <X size={20} />
                 </button>
-                <h2 className="text-2xl font-bold mb-2">Submit Assignment</h2>
-                <p className="text-primary font-medium mb-6">{selectedAssignment.title}</p>
+                <h2 className="text-2xl font-bold mb-1">Submit Assignment</h2>
+                <p className="text-primary font-semibold mb-4">{selectedAssignment.title}</p>
+                
+                {selectedAssignment.description && (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-sm text-foreground/80 max-h-40 overflow-y-auto whitespace-pre-wrap">
+                    <strong className="text-primary block mb-1.5">Assignment Details / Question:</strong>
+                    {selectedAssignment.description}
+                  </div>
+                )}
                 
                 <textarea
                   value={submissionContent}

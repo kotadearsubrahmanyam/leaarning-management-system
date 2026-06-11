@@ -4,27 +4,27 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover-foreground: 222 47% 11%;
 
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 215 16% 90%;
+    --muted-foreground: 215 16% 47%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 162 76% 40%;
 
     --radius: 0.5rem;
   }
@@ -59,27 +59,45 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground bg-[#fff7ed];
+    @apply bg-background text-foreground bg-[#F8FAFC];
+  }
+  h1, h2, h3, h4, h5, h6,
+  h1.text-primary, h2.text-primary, h3.text-primary, h4.text-primary, h5.text-primary, h6.text-primary {
+    color: #0F172A !important;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-white/30 backdrop-blur-md border border-white/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
+    @apply bg-white rounded-[20px] border border-[#CBD5E1] shadow-[0_8px_30px_rgba(15,23,42,0.03),0_0_15px_rgba(16,185,129,0.02)] transition-all duration-300 hover:shadow-[0_20px_40px_rgba(15,23,42,0.06),0_0_30px_rgba(16,185,129,0.12)] hover:-translate-y-1 hover:scale-[1.005];
   }
   .glass-dark {
-    @apply bg-black/30 backdrop-blur-md border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.6)];
+    @apply bg-black/30 backdrop-blur-md border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)];
   }
   .glow {
-    @apply shadow-[0_0_15px_rgba(153,27,27,0.5)];
+    @apply shadow-[0_0_20px_rgba(16,185,129,0.25)];
   }
   .glow-focus:focus-within {
-    @apply shadow-[0_0_10px_rgba(153,27,27,0.4)] border-[#991b1b];
+    @apply shadow-[0_0_10px_rgba(16,185,129,0.3)] border-[#10B981];
   }
   .animation-delay-2000 {
     animation-delay: 2s;
   }
   .animation-delay-4000 {
     animation-delay: 4s;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
   }
 }

@@ -1,6 +1,6 @@
 # ================== EXISTING IMPORTS ==================
 import random
-from typing import List, Optional
+from typing import List, Optional, Any
 
 from fastapi import FastAPI # type: ignore
 from pydantic import BaseModel, Field
@@ -124,7 +124,7 @@ def generate_chat_reply(request: ChatRequest) -> str:
             return "⚠️ API key missing. Add GROQ_API_KEY in .env"
 
 
-        api_messages = [
+        api_messages: List[Any] = [
             {
                 "role": "system",
                 "content": "You are a powerful AI mentor. Give practical, real-world learning guidance. Avoid generic replies."
@@ -149,7 +149,12 @@ def generate_chat_reply(request: ChatRequest) -> str:
             max_tokens=4000
         )
 
-        reply = response.choices[0].message.content.strip()
+        reply = response.choices[0].message.content
+        if reply:
+            reply = reply.strip()
+        else:
+            reply = ""
+        
         print("AI:", reply)
 
         return reply

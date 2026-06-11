@@ -23,7 +23,10 @@ export async function GET() {
         name: users.name,
         email: users.email,
         role: users.role,
+        departmentId: users.departmentId,
         departmentName: departments.name,
+        totalSemesters: departments.totalSemesters,
+        typeOfEducation: departments.typeOfEducation,
         semester: users.semester,
         createdAt: users.createdAt,
       })

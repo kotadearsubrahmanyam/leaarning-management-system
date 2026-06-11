@@ -14,7 +14,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!payload || payload.role !== "STUDENT") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { content, fileUrl } = body;
+    const { content, fileUrl, fileName, fileSize } = body;
+
+    if (fileUrl) {
+      const allowedExtensions = ['.pdf', '.docx', '.doc', '.zip', '.rar'];
+      const ext = fileName ? fileName.slice(fileName.lastIndexOf('.')).toLowerCase() : fileUrl.slice(fileUrl.lastIndexOf('.')).toLowerCase();
+      if (!allowedExtensions.includes(ext)) {
+        return errorResponse("Invalid file type. Only PDF, DOCX, and ZIP files are allowed.", 400);
+      }
+    }
+
+    if (fileSize && fileSize > 10 * 1024 * 1024) {
+      return errorResponse("File size exceeds 10MB limit.", 400);
+    }
 
     const [submission] = await db.insert(submissions).values({
       assignmentId: params.id,

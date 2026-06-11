@@ -105,7 +105,7 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
               <h3 className="text-lg font-semibold text-foreground">Chat</h3>
               <p className="text-sm text-foreground/70">Ask anything and get a human-style reply.</p>
             </div>
-            <span className="text-xs uppercase tracking-[0.2em] text-primary">AI Chat</span>
+             <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">AI Chat</span>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-4 pr-2" ref={scrollRef}>
@@ -117,14 +117,14 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
                 <div
                   className={`max-w-[85%] rounded-3xl p-4 text-sm leading-6 ${
                     item.sender === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-white/10 text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "bg-slate-800 text-slate-100"
                   }`}
                 >
                   {item.sender === "user" ? (
                     item.text
                   ) : (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="prose prose-sm prose-invert max-w-none">
                       <ReactMarkdown>
                         {item.text}
                       </ReactMarkdown>
@@ -147,7 +147,7 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
               }}
               rows={3}
               placeholder="Type your question here..."
-              className="w-full rounded-3xl border border-input bg-white/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+               className="w-full rounded-3xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
             />
             <div className="mt-4 flex items-center justify-between gap-4">
               <p className="text-xs text-foreground/60">Tip: ask about course choices, study plans, or which topic is best next.</p>

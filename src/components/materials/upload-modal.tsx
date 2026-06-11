@@ -212,7 +212,7 @@ export function UploadModal({ isOpen, onClose, courseId, onSuccess }: UploadModa
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
-                        className="h-full bg-gradient-to-r from-red-600 to-orange-500"
+                        className="h-full bg-gradient-to-r from-primary to-accent"
                       />
                     </div>
                   </div>

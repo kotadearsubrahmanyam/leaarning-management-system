@@ -7,15 +7,19 @@ const routeRoles: Record<string, string[]> = {
   "/api/admin": ["ADMIN"],
   "/api/teacher": ["ADMIN", "TEACHER"],
   "/api/student": ["ADMIN", "TEACHER", "STUDENT"],
+  "/dashboard/admin": ["ADMIN"],
+  "/dashboard/teacher": ["ADMIN", "TEACHER"],
+  "/dashboard/activities": ["STUDENT"],
   "/dashboard": ["ADMIN", "TEACHER", "STUDENT"],
-  // Add more protected routes here
 };
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Find if the current path matches any protected route
-  const protectedRoute = Object.keys(routeRoles).find((route) => path.startsWith(route));
+  // Find if the current path matches any protected route, matching longest path first
+  const protectedRoute = Object.keys(routeRoles)
+    .sort((a, b) => b.length - a.length)
+    .find((route) => path.startsWith(route));
 
   if (!protectedRoute) {
     return NextResponse.next();

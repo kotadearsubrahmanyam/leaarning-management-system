@@ -14,7 +14,7 @@ import { AnimatedButton } from "@/components/ui/animated-button";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 
 const loginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
+  email: z.string().trim().toLowerCase().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
@@ -65,15 +65,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <AnimatedBackground />
+      <AnimatedBackground isDark={true} />
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md z-10 mt-16"
-      >
+      <div className="w-full max-w-md z-10 mt-16">
         <AuthCard>
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-primary mb-2">Welcome Back</h1>
@@ -86,14 +80,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="flex bg-white/5 p-1 rounded-xl mb-6 relative border border-white/10">
+          <div className="flex bg-primary/10 p-1 rounded-xl mb-6 relative border border-primary/20">
             {["STUDENT", "TEACHER", "ADMIN"].map((role) => (
               <button
                 key={role}
                 type="button"
                 onClick={() => setSelectedRole(role as any)}
                 className={`flex-1 py-2 text-sm font-semibold rounded-lg z-10 transition-colors ${
-                  selectedRole === role ? "text-white" : "text-foreground/50 hover:text-foreground"
+                  selectedRole === role ? "text-white" : "text-primary/70 hover:text-primary"
                 }`}
               >
                 {role.charAt(0) + role.slice(1).toLowerCase()}
@@ -146,7 +140,7 @@ export default function LoginPage() {
             </Link>
           </div>
         </AuthCard>
-      </motion.div>
+      </div>
     </div>
   );
 }

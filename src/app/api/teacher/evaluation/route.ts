@@ -18,7 +18,12 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
 
-    let query = db.select({
+    const conditions = [eq(courses.teacherId, payload.id as string)];
+    if (courseId) {
+      conditions.push(eq(courses.id, courseId));
+    }
+
+    const data = await db.select({
       id: submissions.id,
       assignmentTitle: assignments.title,
       courseName: courses.title,
@@ -34,13 +39,8 @@ export async function GET(req: Request) {
     .innerJoin(assignments, eq(submissions.assignmentId, assignments.id))
     .innerJoin(courses, eq(assignments.courseId, courses.id))
     .innerJoin(users, eq(submissions.userId, users.id))
-    .where(eq(courses.teacherId, payload.id as string));
-
-    if (courseId) {
-       query = query.where(eq(courses.id, courseId)) as any;
-    }
-
-    const data = await query.orderBy(desc(submissions.createdAt));
+    .where(and(...conditions))
+    .orderBy(desc(submissions.createdAt));
 
     return successResponse({ evaluations: data }, "Fetched evaluations successfully", 200);
   } catch (error) {

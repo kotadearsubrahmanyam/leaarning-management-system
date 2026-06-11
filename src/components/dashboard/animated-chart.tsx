@@ -3,8 +3,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -20,17 +20,18 @@ interface AnimatedChartProps {
   dataKey: string;
   xAxisKey?: string;
   delay?: number;
+  unit?: string;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, unit }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="glass p-3 rounded-xl border border-white/20 shadow-xl bg-black/80 text-white min-w-[120px]">
-        <p className="text-sm font-bold text-foreground mb-1">{label}</p>
+      <div className="p-3 rounded-xl border border-slate-800/60 shadow-xl bg-[#0F172A] text-white min-w-[120px]">
+        <p className="text-xs text-slate-400 font-semibold mb-1">{label}</p>
         <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 rounded-full bg-primary" />
-          <p className="text-sm text-foreground/80 font-medium">
-            <span className="text-primary font-bold">{payload[0].value}</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+          <p className="text-sm text-white font-bold">
+            {payload[0].value}{unit || ""}
           </p>
         </div>
       </div>
@@ -39,7 +40,21 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function AnimatedChart({ data, type = "line", dataKey, xAxisKey = "name", delay = 0 }: AnimatedChartProps) {
+export function AnimatedChart({ data, type = "line", dataKey, xAxisKey = "name", delay = 0, unit }: AnimatedChartProps) {
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="glass w-full p-6 rounded-2xl h-[300px] flex items-center justify-center">
+        <div className="animate-pulse text-xs text-foreground/40 font-medium">Loading analysis chart...</div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -49,27 +64,41 @@ export function AnimatedChart({ data, type = "line", dataKey, xAxisKey = "name",
     >
       <ResponsiveContainer width="100%" height="100%">
         {type === "line" ? (
-          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" vertical={false} />
-            <XAxis dataKey={xAxisKey} stroke="rgba(255,255,255,0.4)" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} tickLine={false} axisLine={false} />
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(153,27,27,0.2)", strokeWidth: 2 }} />
-            <Line
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
+                <stop offset="95%" stopColor="#10B981" stopOpacity={0.01}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
+            <XAxis dataKey={xAxisKey} stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <Tooltip content={<CustomTooltip unit={unit} />} cursor={{ stroke: "rgba(16,185,129,0.2)", strokeWidth: 2 }} />
+            <Area
               type="monotone"
               dataKey={dataKey}
-              stroke="#991b1b"
+              stroke="#10B981"
               strokeWidth={3}
-              dot={{ r: 4, fill: "#991b1b", strokeWidth: 2, stroke: "#fff" }}
-              activeDot={{ r: 6, fill: "#991b1b" }}
+              fillOpacity={1}
+              fill="url(#colorValue)"
+              dot={{ r: 4, fill: "#10B981", strokeWidth: 2, stroke: "#fff" }}
+              activeDot={{ r: 6, fill: "#10B981", strokeWidth: 2, stroke: "#fff" }}
             />
-          </LineChart>
+          </AreaChart>
         ) : (
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" vertical={false} />
-            <XAxis dataKey={xAxisKey} stroke="rgba(255,255,255,0.4)" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} tickLine={false} axisLine={false} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(153,27,27,0.1)" }} />
-            <Bar dataKey={dataKey} fill="#991b1b" radius={[4, 4, 0, 0]} />
+            <defs>
+              <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10B981"/>
+                <stop offset="100%" stopColor="#059669"/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
+            <XAxis dataKey={xAxisKey} stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <Tooltip content={<CustomTooltip unit={unit} />} cursor={{ fill: "rgba(16,185,129,0.08)" }} />
+            <Bar dataKey={dataKey} fill="url(#colorBar)" radius={[6, 6, 0, 0]} />
           </BarChart>
         )}
       </ResponsiveContainer>

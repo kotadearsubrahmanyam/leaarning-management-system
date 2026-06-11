@@ -47,9 +47,11 @@ export default function CoursesPage() {
 
   // Enroll Mutation
   const enrollMutation = useMutation({
-    mutationFn: async (courseId: string) => {
+    mutationFn: async ({ courseId, courseFacultyId }: { courseId: string; courseFacultyId: string }) => {
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseFacultyId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to enroll");
@@ -104,8 +106,20 @@ export default function CoursesPage() {
     );
   }
 
+  const enrolledCount = courses.filter(c => c.isEnrolled).length;
+
   return (
     <div className="max-w-7xl mx-auto pb-12">
+      {role === "STUDENT" && enrolledCount < 4 && (
+        <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-4 rounded-xl mb-8 flex items-center shadow-sm">
+          <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <p className="font-medium">
+            Attention: You are currently enrolled in {enrolledCount} course(s). University policy requires a minimum of 4 courses per semester. Please enroll in {4 - enrolledCount} more course(s) to meet the requirement.
+          </p>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -142,7 +156,7 @@ export default function CoursesPage() {
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         course={selectedCourse}
-        onEnroll={(id) => enrollMutation.mutate(id)}
+        onEnroll={(id, facultyId) => enrollMutation.mutate({ courseId: id, courseFacultyId: facultyId })}
         isEnrolling={enrollMutation.isPending}
         userRole={role}
       />

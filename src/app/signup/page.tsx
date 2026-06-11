@@ -15,7 +15,7 @@ import { AnimatedBackground } from "@/components/ui/animated-background";
 
 const signupSchema = z.object({
   name: z.string().min(2, { message: "Name is required" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
+  email: z.string().trim().toLowerCase().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   role: z.enum(["ADMIN", "TEACHER", "STUDENT"]).default("STUDENT"),
   departmentId: z.string().optional(),
@@ -94,15 +94,9 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <AnimatedBackground />
+      <AnimatedBackground isDark={true} />
       
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-md z-10 mt-16"
-      >
+      <div className="w-full max-w-md z-10 mt-16">
         <AuthCard>
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-primary mb-2">Create Account</h1>
@@ -204,7 +198,7 @@ export default function SignupPage() {
             </Link>
           </div>
         </AuthCard>
-      </motion.div>
+      </div>
     </div>
   );
 }

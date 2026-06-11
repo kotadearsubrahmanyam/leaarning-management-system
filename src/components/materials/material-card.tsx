@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { FileText, Video, Download, CheckCircle } from "lucide-react";
+import { FileText, Video, Download, CheckCircle, Eye } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 
 export interface Material {
@@ -35,20 +35,25 @@ export function MaterialCard({ material, index, onToggleComplete }: MaterialCard
     }
   });
 
+  const handleView = () => {
+    window.open(material.fileUrl, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
       whileHover={{ scale: 1.02 }}
-      className="glass p-4 rounded-xl flex items-center justify-between group hover:shadow-[0_0_15px_rgba(153,27,27,0.2)] transition-all cursor-pointer border border-white/5"
+      onClick={handleView}
+      className="glass p-4 rounded-xl flex items-center justify-between group hover:shadow-[0_15px_30px_rgba(16,185,129,0.1)] transition-all cursor-pointer border border-white/5"
     >
       <div className="flex items-center space-x-4">
-        <div className={`p-3 rounded-lg ${isVideo ? "bg-orange-500/20 text-orange-400" : "bg-red-500/20 text-red-400"}`}>
+        <div className={`p-3 rounded-lg ${isVideo ? "bg-accent/20 text-accent" : "bg-sky-500/20 text-sky-400"}`}>
           {isVideo ? <Video size={24} /> : <FileText size={24} />}
         </div>
         <div>
-          <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+          <h4 className="font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-1">
             {material.title}
           </h4>
           <div className="flex items-center space-x-3 text-xs text-foreground/50 mt-1">
@@ -77,12 +82,29 @@ export function MaterialCard({ material, index, onToggleComplete }: MaterialCard
             <CheckCircle size={20} />
           </button>
         )}
+        
+        {/* View Button */}
+        <a 
+          href={material.fileUrl} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          title="View Material"
+          className="p-2 rounded-full bg-white/5 hover:bg-sky-500/20 text-foreground/70 hover:text-sky-400 transition-all md:opacity-0 md:group-hover:opacity-100 opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <Eye size={20} />
+        </a>
+
+        {/* Download Button */}
         <a 
           href={material.fileUrl} 
           target="_blank" 
           rel="noopener noreferrer"
           download
-          className="p-2 rounded-full bg-white/5 hover:bg-primary/20 text-foreground/70 hover:text-primary transition-all opacity-0 group-hover:opacity-100"
+          title="Download Material"
+          className="p-2 rounded-full bg-white/5 hover:bg-accent/20 text-foreground/70 hover:text-accent transition-all md:opacity-0 md:group-hover:opacity-100 opacity-100"
           onClick={(e) => {
             e.stopPropagation();
             trackDownload.mutate();

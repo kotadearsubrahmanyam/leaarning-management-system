@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { courses, users, enrollments } from "@/db/schema";
+import { courses, users, enrollments, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 const createCourseSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   description: z.string().optional(),
-  level: z.string().optional(),
+  level: z.string().default("Beginner"),
   imageUrl: z.string().url().optional().or(z.literal("")),
 });
 
@@ -29,19 +29,30 @@ export async function GET(req: Request) {
     let fetchedCourses;
 
     if (payload.role === "TEACHER" && filterTeacher) {
-      fetchedCourses = await db
-        .select({
-          id: courses.id,
-          title: courses.title,
-          description: courses.description,
-          level: courses.level,
-          imageUrl: courses.imageUrl,
-          createdAt: courses.createdAt,
-          teacherName: users.name,
-        })
-        .from(courses)
-        .innerJoin(users, eq(courses.teacherId, users.id))
-        .where(eq(courses.teacherId, payload.id as string));
+      const teacherCourseIds = await db
+        .select({ courseId: courseFaculty.courseId })
+        .from(courseFaculty)
+        .where(eq(courseFaculty.teacherId, payload.id as string));
+        
+      const ids = teacherCourseIds.map(t => t.courseId);
+      
+      if (ids.length > 0) {
+        fetchedCourses = await db
+          .select({
+            id: courses.id,
+            title: courses.title,
+            description: courses.description,
+            level: courses.level,
+            imageUrl: courses.imageUrl,
+            createdAt: courses.createdAt,
+            teacherName: users.name,
+          })
+          .from(courses)
+          .innerJoin(users, eq(courses.teacherId, users.id))
+          .where(inArray(courses.id, ids));
+      } else {
+        fetchedCourses = [];
+      }
     } else if (payload.role === "STUDENT") {
       // Fetch student's specific dept and semester
       const studentData = await db.query.users.findFirst({

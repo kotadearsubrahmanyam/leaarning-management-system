@@ -21,8 +21,10 @@ export async function GET() {
         amount: payments.amount,
         status: payments.status,
         receiptUrl: payments.receiptUrl,
+        feeType: payments.feeType,
         date: payments.date,
         studentName: users.name,
+        studentRollNumber: users.rollNumber,
       })
       .from(payments)
       .innerJoin(users, eq(payments.userId, users.id))

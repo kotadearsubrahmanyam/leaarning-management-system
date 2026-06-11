@@ -4,7 +4,7 @@ import { assignments, courses } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 async function isTeacherOfCourse(teacherId: string, courseId: string) {
   const course = await db.query.courses.findFirst({
@@ -25,6 +25,11 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
 
+    const conditions = [eq(courses.teacherId, payload.id as string)];
+    if (courseId) {
+       conditions.push(eq(assignments.courseId, courseId));
+    }
+
     let query = db.select({
       id: assignments.id,
       title: assignments.title,
@@ -34,12 +39,7 @@ export async function GET(req: Request) {
     })
     .from(assignments)
     .innerJoin(courses, eq(assignments.courseId, courses.id))
-    .where(eq(courses.teacherId, payload.id as string));
-
-    if (courseId) {
-       // Only filter if requested
-       query = query.where(eq(assignments.courseId, courseId)) as any;
-    }
+    .where(and(...conditions));
 
     const data = await query.orderBy(desc(assignments.createdAt));
 

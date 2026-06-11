@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Check, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 interface Notification {
   id: string;
@@ -13,7 +14,11 @@ interface Notification {
   createdAt: string;
 }
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  isSidebarCollapsed?: boolean;
+}
+
+export function DashboardHeader({ isSidebarCollapsed }: DashboardHeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -58,7 +63,10 @@ export function DashboardHeader() {
   }, []);
 
   return (
-    <div className="absolute top-0 right-0 left-0 md:left-[256px] h-24 z-40 flex justify-end items-center px-8 bg-transparent pointer-events-none">
+    <div className={cn(
+      "absolute top-0 right-0 left-0 h-16 z-40 flex justify-end items-center px-8 bg-transparent pointer-events-none transition-all duration-300",
+      isSidebarCollapsed ? "md:left-[80px]" : "md:left-[256px]"
+    )}>
       <div ref={dropdownRef} className="relative pointer-events-auto">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -83,7 +91,7 @@ export function DashboardHeader() {
                 <h3 className="font-bold text-foreground">Notifications</h3>
                 {unreadCount > 0 && (
                   <button 
-                    onClick={() => markAsReadMutation.mutate()}
+                    onClick={() => markAsReadMutation.mutate(undefined)}
                     className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
                   >
                     <Check size={14} /> Mark all read
@@ -105,7 +113,7 @@ export function DashboardHeader() {
                       className={`p-4 rounded-xl cursor-pointer transition-all ${
                         n.isRead 
                           ? "opacity-60 hover:bg-white/5" 
-                          : "bg-white/10 hover:bg-white/15 border-l-2 border-primary shadow-[inset_2px_0_10px_rgba(153,27,27,0.1)]"
+                          : "bg-white/10 hover:bg-white/15 border-l-2 border-primary shadow-[inset_2px_0_10px_rgba(16,185,129,0.1)]"
                       }`}
                     >
                       <h4 className={`text-sm ${!n.isRead ? "font-bold text-primary" : "font-medium text-foreground"}`}>

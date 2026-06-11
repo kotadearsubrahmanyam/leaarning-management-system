@@ -51,6 +51,15 @@ export async function POST(req: Request) {
 
     if (!title || !teacherId) return errorResponse("Title and Teacher are required", 400);
 
+    // Faculty Overload Check
+    const existingAssignments = await db.select()
+      .from(courses)
+      .where(eq(courses.teacherId, teacherId));
+      
+    if (existingAssignments.length >= 4) {
+      return errorResponse("Faculty Teaching Load Exceeded. A faculty member can only be assigned to a maximum of 4 courses per semester.", 403);
+    }
+
     const [course] = await db.insert(courses).values({
       title,
       description,

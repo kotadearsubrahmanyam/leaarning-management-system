@@ -50,9 +50,9 @@ export default function AttendancePage() {
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <div className="glass p-8 rounded-3xl border border-white/10 flex flex-col items-center text-center justify-center">
+        <div className="glass p-8 rounded-3xl border border-slate-300 flex flex-col items-center text-center justify-center">
           <h2 className="text-xl font-bold text-foreground mb-4">Semester Progress</h2>
-          <div className="w-full bg-white/10 rounded-full h-4 mb-2 overflow-hidden border border-white/5">
+          <div className="w-full bg-slate-100 rounded-full h-4 mb-2 overflow-hidden border border-slate-300">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${semesterProgress}%` }}
@@ -70,10 +70,10 @@ export default function AttendancePage() {
           </p>
         </div>
 
-        <div className="glass p-8 rounded-3xl border border-white/10 flex items-center gap-8 justify-center">
+        <div className="glass p-8 rounded-3xl border border-slate-300 flex items-center gap-8 justify-center">
           <div className="relative w-32 h-32 flex items-center justify-center shrink-0">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="40" fill="none" className="stroke-white/10" strokeWidth="10" />
+              <circle cx="50" cy="50" r="40" fill="none" className="stroke-slate-200" strokeWidth="10" />
               <motion.circle
                 initial={{ strokeDashoffset: 251 }}
                 animate={{ strokeDashoffset: 251 - (251 * percentage) / 100 }}
@@ -95,7 +95,7 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      <div className="glass p-6 rounded-3xl border border-white/10 mb-8">
+      <div className="glass p-6 rounded-3xl border border-slate-300 mb-8">
         <h2 className="text-xl font-bold text-foreground mb-6">Subject Breakdown</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Object.entries(courseStats).map(([course, stats]: [string, any], index) => {
@@ -106,15 +106,15 @@ export default function AttendancePage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white/5 p-4 rounded-2xl border border-white/5"
+                className="bg-slate-50 p-4 rounded-2xl border border-slate-300"
               >
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold text-sm truncate pr-4">{course}</span>
-                  <span className={`font-bold text-sm ${coursePercent >= 75 ? 'text-green-500' : 'text-orange-500'}`}>
+                  <span className={`font-bold text-sm ${coursePercent >= 75 ? 'text-green-600' : 'text-orange-600'}`}>
                     {coursePercent}%
                   </span>
                 </div>
-                <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${coursePercent}%` }}
@@ -136,8 +136,8 @@ export default function AttendancePage() {
 
       <h2 className="text-xl font-bold text-foreground mb-4 pl-2">Detailed Log</h2>
 
-      <div className="glass rounded-3xl border border-white/10 overflow-hidden">
-        <div className="grid grid-cols-3 bg-white/5 p-4 font-semibold text-foreground/80 border-b border-white/10">
+      <div className="glass rounded-3xl border border-slate-300 overflow-hidden">
+        <div className="grid grid-cols-3 bg-slate-50 p-4 font-semibold text-foreground/80 border-b border-slate-300">
           <div>Course</div>
           <div>Date</div>
           <div>Status</div>
@@ -149,11 +149,11 @@ export default function AttendancePage() {
         ) : attendance.length === 0 ? (
           <div className="p-8 text-center text-foreground/50">No attendance records found.</div>
         ) : (
-          <div className="divide-y divide-white/5 max-h-[400px] overflow-y-auto">
+          <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
             {attendance.map((record: any, i: number) => (
               <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                key={record.id} className="grid grid-cols-3 p-4 items-center hover:bg-white/5 transition-colors"
+                key={record.id} className="grid grid-cols-3 p-4 items-center hover:bg-slate-50 transition-colors"
               >
                 <div className="font-medium">{record.courseName}</div>
                 <div className="text-sm text-foreground/60">{new Date(record.date).toLocaleDateString()}</div>

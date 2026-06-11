@@ -1,10 +1,21 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { results, courses } from "@/db/schema";
+import { results, studentSemesterSummary } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
+
+const getGradePoints = (grade: string): number => {
+  const g = grade.toUpperCase().trim();
+  if (["A+", "O"].includes(g)) return 10;
+  if (g === "A") return 9;
+  if (g === "B+") return 8;
+  if (g === "B") return 7;
+  if (g === "C") return 6;
+  if (g === "D") return 5;
+  return 0; // F
+};
 
 export async function GET() {
   try {
@@ -14,27 +25,93 @@ export async function GET() {
     const payload = await verifyJwt(token);
     if (!payload || payload.role !== "STUDENT") return errorResponse("Forbidden", 403);
 
-    const data = await db
-      .select({
-        id: results.id,
-        marks: results.marks,
-        grade: results.grade,
-        courseName: courses.title,
-        semester: courses.semester,
-      })
+    const userId = payload.id as string;
+
+    // 1. Fetch only published subject results for this student
+    const dbResults = await db
+      .select()
       .from(results)
-      .innerJoin(courses, eq(results.courseId, courses.id))
-      .where(eq(results.userId, payload.id as string))
+      .where(and(eq(results.userId, userId), eq(results.published, true)))
       .orderBy(desc(results.createdAt));
 
-    const mappedData = data.map(r => ({
-      ...r,
-      isPass: r.marks >= 40
+    // 2. Fetch all published semester summaries for this student
+    const dbSummaries = await db
+      .select()
+      .from(studentSemesterSummary)
+      .where(and(
+        eq(studentSemesterSummary.userId, userId),
+        eq(studentSemesterSummary.published, true)
+      ));
+
+    // 3. Find which semesters have published results
+    const uniqueSemesters = Array.from(new Set(dbResults.map(r => r.semester))).sort((a, b) => a - b);
+
+    // 4. Build summaries (calculating or overriding SGPA / CGPA) for each semester
+    const summaries: Record<number, { sgpa: string; cgpa: string; totalCredits: number; passedCount: number; failedCount: number; status: string }> = {};
+
+    // Helper to calculate GPA for a list of results
+    const calculateGpaForResults = (items: typeof dbResults) => {
+      const totalCredits = items.reduce((sum, item) => sum + (item.credits || 0), 0);
+      if (totalCredits === 0) return "0.00";
+      const totalPoints = items.reduce((sum, item) => sum + (getGradePoints(item.grade) * (item.credits || 0)), 0);
+      return (totalPoints / totalCredits).toFixed(2);
+    };
+
+    for (const sem of uniqueSemesters) {
+      // Find all results for this semester
+      const semResults = dbResults.filter(r => r.semester === sem);
+      const totalCredits = semResults.reduce((sum, r) => sum + (r.credits || 0), 0);
+      const passedCount = semResults.filter(r => r.status === "PASS").length;
+      const failedCount = semResults.filter(r => r.status === "FAIL").length;
+      const status = failedCount === 0 && semResults.length > 0 ? "PASS" : "FAIL";
+
+      // Check if there is an admin override for SGPA/CGPA
+      const summaryOverride = dbSummaries.find(s => s.semester === sem);
+
+      // SGPA: Use override if present, otherwise calculate
+      let sgpa = summaryOverride?.sgpa || "";
+      if (!sgpa) {
+        sgpa = calculateGpaForResults(semResults);
+      }
+
+      // CGPA: Use override if present, otherwise calculate cumulatively (all published semesters <= current semester)
+      let cgpa = summaryOverride?.cgpa || "";
+      if (!cgpa) {
+        const cumulativeResults = dbResults.filter(r => r.semester <= sem);
+        cgpa = calculateGpaForResults(cumulativeResults);
+      }
+
+      summaries[sem] = {
+        sgpa,
+        cgpa,
+        totalCredits,
+        passedCount,
+        failedCount,
+        status,
+      };
+    }
+
+    const mappedResults = dbResults.map(r => ({
+      id: r.id,
+      marks: r.marks,
+      grade: r.grade,
+      courseName: r.subjectName || "Subject",
+      subjectCode: r.subjectCode || "N/A",
+      internalMarks: r.internalMarks,
+      externalMarks: r.externalMarks,
+      credits: r.credits,
+      semester: r.semester,
+      status: r.status,
+      isPass: r.status === "PASS",
     }));
 
-    return successResponse({ results: mappedData }, "Fetched results successfully");
+    return successResponse({
+      results: mappedResults,
+      summaries,
+      publishedSemesters: uniqueSemesters,
+    }, "Fetched results successfully");
   } catch (error) {
-    console.error("Fetch results error:", error);
+    console.error("Fetch student results error:", error);
     return errorResponse("Internal server error", 500);
   }
 }

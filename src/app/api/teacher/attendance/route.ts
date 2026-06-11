@@ -78,29 +78,57 @@ export async function POST(req: Request) {
 
     const targetDate = new Date(date);
 
-    // Check if attendance is already saved for this course on this date
-    const existingCheck = await db.select().from(attendance).where(
+    // Future Lockout
+    if (targetDate > new Date()) {
+      return errorResponse("Cannot mark attendance for a future date.", 400);
+    }
+
+    // Weekend Lockout (Sunday = 0)
+    if (targetDate.getDay() === 0) {
+      return errorResponse("Cannot mark attendance on a Sunday. Sundays are official holidays.", 400);
+    }
+
+    // 24-hour lock check
+    const timeDiffMs = new Date().getTime() - targetDate.getTime();
+    if (timeDiffMs > 24 * 60 * 60 * 1000) {
+      return errorResponse("Attendance is locked. You can only modify attendance within 24 hours of the class date.", 400);
+    }
+
+    // Fetch existing attendance for this date to support upserts
+    const existingRecords = await db.select().from(attendance).where(
       and(
         eq(attendance.courseId, courseId),
         sql`date_trunc('day', ${attendance.date}) = date_trunc('day', ${targetDate.toISOString()}::timestamp)`
       )
-    ).limit(1);
+    );
 
-    if (existingCheck.length > 0) {
-      return errorResponse("Attendance for this course has already been saved for today. You cannot modify it for 24 hours.", 403);
-    }
-
-    // Insert attendance
+    // Process attendance (Insert or Update)
     for (const record of records) {
-      await db.insert(attendance).values({
-        courseId,
-        userId: record.userId,
-        date: targetDate,
-        status: record.status,
-      });
+      const existing = existingRecords.find(a => a.userId === record.userId);
+      
+      if (existing) {
+        // Update existing record
+        await db.update(attendance)
+          .set({ 
+            status: record.status,
+            updatedBy: payload.id as string,
+            updatedAt: new Date(),
+          })
+          .where(eq(attendance.id, existing.id));
+      } else {
+        // Insert new record
+        await db.insert(attendance).values({
+          courseId,
+          userId: record.userId,
+          date: targetDate,
+          status: record.status,
+          updatedBy: payload.id as string,
+          updatedAt: new Date(),
+        });
+      }
     }
 
-    return successResponse(null, "Attendance saved successfully", 200);
+    return successResponse(null, "Attendance updated successfully", 200);
   } catch (error) {
     console.error("Attendance POST Error", error);
     return errorResponse("Internal error", 500);

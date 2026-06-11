@@ -37,13 +37,15 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "ADMIN") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { name, description } = body;
+    const { name, description, typeOfEducation, totalSemesters } = body;
 
     if (!name) return errorResponse("Department name is required", 400);
 
     const [department] = await db.insert(departments).values({
       name,
       description,
+      typeOfEducation: typeOfEducation || "B.Tech",
+      totalSemesters: totalSemesters ? parseInt(totalSemesters) : 8,
     }).returning();
 
     return successResponse({ department }, "Department created successfully");
