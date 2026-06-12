@@ -112,6 +112,7 @@ async function main() {
   const materialInserts = [];
   const assignmentInserts = [];
   const courseFacultyInserts = [];
+  const allSemesters = [1, 2, 3, 4, 5, 6, 7, 8];
   const oddSemesters = [1, 3, 5, 7];
   
   // We will build these and map them to their IDs later
@@ -124,7 +125,7 @@ async function main() {
     const dbDept = dbDepartments[deptIndex];
     const deptTeachers = allTeachers.slice(deptIndex * 12, (deptIndex + 1) * 12);
 
-    for (const semNumber of oddSemesters) {
+    for (const semNumber of allSemesters) {
       const semIndex = semNumber - 1;
       const subjects = dept.semesters[semIndex];
       const semesterData = [];
@@ -163,7 +164,7 @@ async function main() {
           const [cf] = await db.insert(courseFaculty).values({
             courseId: course.id,
             teacherId: teacher.id,
-            capacity: 60,
+            capacity: 20,
           }).returning();
           assignedCourseFaculties.push(cf);
         }
@@ -188,10 +189,10 @@ async function main() {
     const dbDept = dbDepartments[deptIndex];
     
     for (const semNumber of oddSemesters) {
-      const yearPrefix = 27 - Math.floor(semNumber / 2);
+      const yearPrefix = 27 - Math.floor((semNumber - 1) / 2);
       let rollCounter = 1;
 
-      for (let s = 1; s <= 45; s++) {
+      for (let s = 1; s <= 60; s++) {
         const rollNumberStr = `${yearPrefix}${dept.code}${rollCounter.toString().padStart(3, '0')}`;
         rollCounter++;
 
@@ -253,7 +254,7 @@ async function main() {
       for (const { course, faculties } of semesterCourses) {
         let studentIndex = 0;
         for (const cf of faculties) {
-          for (let i = 0; i < 15; i++) {
+          for (let i = 0; i < 20; i++) {
             if (studentIndex >= semStudents.length) break;
             const student = semStudents[studentIndex];
             
@@ -301,8 +302,8 @@ async function main() {
   console.log("Login Credentials:");
   console.log("Admin: admin@test.com / 123456");
   console.log("Faculty: csefaculty1@test.com to csefaculty12@test.com / 123456");
-  console.log("Students: 27cse001@test.com to 27cse045@test.com (Sem 1) / 123456");
-  console.log("          26cse001@test.com to 26cse045@test.com (Sem 3) / 123456");
+  console.log("Students: 27cse001@test.com to 27cse060@test.com (Sem 1) / 123456");
+  console.log("          26cse001@test.com to 26cse060@test.com (Sem 3) / 123456");
   console.log("-----------------------------------------");
   process.exit(0);
 }

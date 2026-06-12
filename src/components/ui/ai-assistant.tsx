@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { AnimatedInput } from "@/components/ui/animated-input";
 import ReactMarkdown from "react-markdown";
+import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 
 interface ChatAssistantProps {
   userId: string;
@@ -33,11 +34,13 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
     }
   }, [messages]);
 
-  const sendMessage = async () => {
-    const trimmed = message.trim();
-    if (!trimmed) return;
+  const sendMessage = async (overrideText?: string, files?: File[]) => {
+    const textToSend = overrideText || message;
+    const trimmed = textToSend.trim();
+    if (!trimmed && !(files && files.length > 0)) return;
 
-    const userMessage: ChatMessage = { sender: "user", text: trimmed };
+    // For now we only display text in the local UI
+    const userMessage: ChatMessage = { sender: "user", text: trimmed || "[Image Attached]" };
     setMessages((prev) => [...prev, userMessage]);
     setMessage("");
     setIsLoading(true);
@@ -86,45 +89,32 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
   };
 
   return (
-    <div className="glass p-6 rounded-3xl space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="h-full w-full flex flex-col bg-transparent">
+      <div className="flex items-center justify-between p-4 pl-24 shrink-0 border-b border-border sticky top-0 z-10 bg-background/80 backdrop-blur-md">
         <div>
-          <h2 className="text-2xl font-bold text-primary">AI Chat</h2>
-          <p className="text-foreground/70 max-w-2xl">
-            Ask questions about your learning path and get answers in a chat-style interface.
-          </p>
+          <div className="text-xl font-bold text-foreground tracking-tight">AI Companion</div>
+          <p className="text-sm text-muted-foreground mt-0.5">Always here to help you learn.</p>
         </div>
       </div>
 
-
-
-      <div className="glass p-5 rounded-3xl h-[520px] overflow-hidden">
-        <div className="h-full flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Chat</h3>
-              <p className="text-sm text-foreground/70">Ask anything and get a human-style reply.</p>
-            </div>
-             <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">AI Chat</span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2" ref={scrollRef}>
+      <div className="flex-1 overflow-y-auto w-full custom-scrollbar" ref={scrollRef}>
+        <div className="max-w-4xl mx-auto w-full space-y-8 py-8 px-4 pl-20 md:pl-4">
             {messages.map((item, index) => (
               <div
                 key={`${item.sender}-${index}`}
                 className={`flex ${item.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-3xl p-4 text-sm leading-6 ${
+                  className={`max-w-[95%] w-fit rounded-2xl px-6 py-4 text-[15px] leading-relaxed shadow-sm ${
                     item.sender === "user"
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "bg-slate-800 text-slate-100"
+                      ? "bg-primary text-primary-foreground shadow-primary/20"
+                      : "bg-card text-card-foreground border border-border shadow-sm"
                   }`}
                 >
                   {item.sender === "user" ? (
                     item.text
                   ) : (
-                    <div className="prose prose-sm prose-invert max-w-none">
+                    <div className="prose prose-sm max-w-none text-foreground">
                       <ReactMarkdown>
                         {item.text}
                       </ReactMarkdown>
@@ -134,28 +124,20 @@ export function ChatAssistant({ userId }: ChatAssistantProps) {
               </div>
             ))}
           </div>
+      </div>
 
-          <div className="mt-4">
-            <textarea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              rows={3}
-              placeholder="Type your question here..."
-               className="w-full rounded-3xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-            />
-            <div className="mt-4 flex items-center justify-between gap-4">
-              <p className="text-xs text-foreground/60">Tip: ask about course choices, study plans, or which topic is best next.</p>
-              <AnimatedButton type="button" onClick={sendMessage} isLoading={isLoading}>
-                Send Message
-              </AnimatedButton>
-            </div>
-          </div>
+      <div className="shrink-0 w-full bg-gradient-to-t from-background via-background/80 to-transparent pt-6 pb-6 mt-auto">
+        <div className="max-w-4xl mx-auto w-full px-4 pl-20 md:pl-4">
+          <PromptInputBox 
+            value={message}
+            onChange={setMessage}
+            isLoading={isLoading}
+            onSend={sendMessage}
+            placeholder="Message AI Companion..."
+          />
+          <p className="text-center text-xs text-muted-foreground mt-3 font-medium">
+            AI Companion can make mistakes. Check important info.
+          </p>
         </div>
       </div>
     </div>

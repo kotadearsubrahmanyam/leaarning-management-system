@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
     totalCourses: 0,
     totalRevenue: 0,
     totalDepartments: 0,
-    studentsPerDept: [],
+    departmentStats: [],
   };
 
   return (
@@ -110,27 +110,29 @@ export default function AdminDashboardPage() {
           className="glass p-8 rounded-3xl border border-white/10 relative overflow-hidden"
         >
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -z-10" />
-          <h2 className="text-2xl font-bold mb-4">System Health</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-              <span className="font-medium text-foreground/80">Database Connection</span>
-              <span className="text-green-500 font-bold text-sm px-2 py-1 bg-green-500/20 rounded">Healthy</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-              <span className="font-medium text-foreground/80">API Services</span>
-              <span className="text-green-500 font-bold text-sm px-2 py-1 bg-green-500/20 rounded">Online</span>
-            </div>
-          </div>
           
-          <h3 className="text-lg font-bold mt-8 mb-4">Students per Department</h3>
-          <div className="space-y-3">
-            {stats.studentsPerDept?.map((dept: any, i: number) => (
-              <div key={i} className="flex justify-between items-center p-3 bg-white/5 border border-white/5 rounded-xl">
-                <span className="font-medium text-foreground/80">{dept.name}</span>
-                <span className="font-bold text-primary">{dept.count} Students</span>
+          <h3 className="text-lg font-bold mt-8 mb-4">Department Overview</h3>
+          <div className="space-y-4">
+            {stats.departmentStats?.map((dept: any, i: number) => (
+              <div key={i} className="p-4 bg-white/5 border border-white/5 rounded-2xl flex flex-col gap-3">
+                <div className="font-bold text-foreground/90 border-b border-white/5 pb-2">{dept.name}</div>
+                <div className="flex justify-between items-center text-sm">
+                  <div className="flex flex-col items-center p-2 bg-white/5 rounded-lg flex-1 mr-2">
+                    <span className="text-primary font-bold text-lg">{dept.studentCount}</span>
+                    <span className="text-foreground/60 text-xs uppercase tracking-wider">Students</span>
+                  </div>
+                  <div className="flex flex-col items-center p-2 bg-white/5 rounded-lg flex-1 mx-1">
+                    <span className="text-blue-400 font-bold text-lg">{dept.teacherCount}</span>
+                    <span className="text-foreground/60 text-xs uppercase tracking-wider">Faculty</span>
+                  </div>
+                  <div className="flex flex-col items-center p-2 bg-white/5 rounded-lg flex-1 ml-2">
+                    <span className="text-green-400 font-bold text-lg">{dept.courseCount}</span>
+                    <span className="text-foreground/60 text-xs uppercase tracking-wider">Courses</span>
+                  </div>
+                </div>
               </div>
             ))}
-            {(!stats.studentsPerDept || stats.studentsPerDept.length === 0) && (
+            {(!stats.departmentStats || stats.departmentStats.length === 0) && (
               <div className="text-foreground/50 text-sm">No department data available.</div>
             )}
           </div>
