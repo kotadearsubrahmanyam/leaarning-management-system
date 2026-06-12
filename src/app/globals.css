@@ -4,53 +4,67 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 60 4.8% 95.9%; /* Warm Pearl */
+    --foreground: 244 47% 20%; /* Deep Indigo */
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 244 47% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 244 47% 20%;
 
     --secondary: 222 47% 11%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 215 16% 90%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 60 4.8% 90%;
+    --muted-foreground: 244 47% 40%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 162 76% 40%;
+    --border: 220 14% 91%;
+    --input: 220 14% 91%;
+    --ring: 271 91% 65%;
+
+    --primary: 271 91% 65%; /* Vibrant Purple */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 173 80% 40%; /* Electric Teal */
+    --secondary-foreground: 0 0% 100%;
+    --accent: 43 96% 56%; /* Soft Gold */
+    --accent-foreground: 0 0% 100%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
+    --background: 244 47% 15%; /* Deeper Indigo Slate */
+    --foreground: 60 4.8% 95.9%; /* Warm Pearl */
 
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 244 47% 20%; /* Slightly lighter Indigo */
+    --card-foreground: 60 4.8% 95.9%;
 
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 244 47% 20%;
+    --popover-foreground: 60 4.8% 95.9%;
 
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 244 47% 25%;
+    --secondary-foreground: 60 4.8% 95.9%;
 
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 244 47% 25%;
+    --muted-foreground: 244 47% 70%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 244 47% 30%;
+    --input: 244 47% 30%;
+    --ring: 271 91% 65%;
+
+    --primary: 271 91% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 173 80% 40%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 0 0% 100%;
   }
 }
 
@@ -108,5 +122,12 @@
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.35);
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

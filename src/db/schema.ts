@@ -71,7 +71,7 @@ export const courseFaculty = pgTable("CourseFaculty", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   courseId: text("courseId").notNull().references(() => courses.id, { onDelete: "cascade" }),
   teacherId: text("teacherId").notNull().references(() => users.id, { onDelete: "cascade" }),
-  capacity: integer("capacity").notNull().default(60),
+  capacity: integer("capacity").notNull().default(20),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 

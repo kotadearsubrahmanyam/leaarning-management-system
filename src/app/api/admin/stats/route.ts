@@ -40,14 +40,31 @@ export async function GET() {
       .select({ departmentCount: sql<number>`count(*)` })
       .from(departments);
 
-    const studentsPerDept = await db
-      .select({
-        departmentName: departments.name,
-        count: sql<number>`count(${users.id})`,
-      })
-      .from(departments)
-      .leftJoin(users, sql`${users.departmentId} = ${departments.id} AND ${users.role} = 'STUDENT'`)
-      .groupBy(departments.id, departments.name);
+    const allDepartments = await db.select().from(departments);
+    
+    const departmentStatsRaw = await Promise.all(allDepartments.map(async (dept) => {
+      const [{ studentCount }] = await db
+        .select({ studentCount: sql<number>`count(*)` })
+        .from(users)
+        .where(sql`${users.departmentId} = ${dept.id} AND ${users.role} = 'STUDENT'`);
+        
+      const [{ teacherCount }] = await db
+        .select({ teacherCount: sql<number>`count(*)` })
+        .from(users)
+        .where(sql`${users.departmentId} = ${dept.id} AND ${users.role} = 'TEACHER'`);
+
+      const [{ courseCount }] = await db
+        .select({ courseCount: sql<number>`count(*)` })
+        .from(courses)
+        .where(sql`${courses.categoryId} = ${dept.id}`);
+
+      return {
+        name: dept.name,
+        studentCount: Number(studentCount),
+        teacherCount: Number(teacherCount),
+        courseCount: Number(courseCount),
+      };
+    }));
 
     const stats = {
       totalStudents: Number(studentCount),
@@ -55,7 +72,7 @@ export async function GET() {
       totalCourses: Number(courseCount),
       totalRevenue: Number(totalRevenue),
       totalDepartments: Number(departmentCount),
-      studentsPerDept: studentsPerDept.map(d => ({ name: d.departmentName, count: Number(d.count) })),
+      departmentStats: departmentStatsRaw,
     };
 
     return successResponse({ stats }, "Fetched admin stats successfully");

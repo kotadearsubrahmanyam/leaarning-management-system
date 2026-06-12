@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
 import { Providers } from "@/components/providers";
+import { NotificationProvider } from "@/components/ui/notification-provider";
+import { MouseTrail } from "@/components/ui/mouse-trail";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,8 +22,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <Navbar />
-          {children}
+          <NotificationProvider>
+            <MouseTrail />
+            <Navbar />
+            {children}
+          </NotificationProvider>
         </Providers>
       </body>
     </html>

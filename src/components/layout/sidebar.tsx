@@ -1,36 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { 
-  BookOpen, 
-  LayoutDashboard, 
-  Users, 
-  Settings,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  Compass,
-  DownloadCloud,
-  CreditCard,
-  Calendar,
-  Award,
-  FileEdit,
-  Shield,
-  Layers,
-  MessageSquare,
-  Clock,
-  ClipboardList,
-  CheckSquare,
-  BarChart,
-  FileCheck,
-  Library
-} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { 
+  BookOpen, LayoutDashboard, Users, Settings, Sparkles, LogOut, Compass, 
+  DownloadCloud, CreditCard, Calendar, Award, FileEdit, Shield, Layers, 
+  MessageSquare, Clock, ClipboardList, CheckSquare, BarChart, FileCheck, 
+  Library, Menu, X, User
+} from "lucide-react";
 
 interface SidebarProps {
   role?: string;
@@ -38,11 +18,7 @@ interface SidebarProps {
   setIsCollapsed?: (collapsed: boolean) => void;
 }
 
-export function Sidebar({ role, isCollapsed: propIsCollapsed, setIsCollapsed: propSetIsCollapsed }: SidebarProps) {
-  const [localIsCollapsed, setLocalIsCollapsed] = useState(false);
-  const isCollapsed = propIsCollapsed !== undefined ? propIsCollapsed : localIsCollapsed;
-  const setIsCollapsed = propSetIsCollapsed !== undefined ? propSetIsCollapsed : setLocalIsCollapsed;
-  
+export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -61,39 +37,40 @@ export function Sidebar({ role, isCollapsed: propIsCollapsed, setIsCollapsed: pr
     const base = [
       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
       { href: "/dashboard/ai", icon: Sparkles, label: "AI Chat" },
+      { href: "/dashboard/interview", icon: MessageSquare, label: "AI Interview" },
     ];
     
     if (role === "ADMIN") {
       return [
         { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
         { href: "/dashboard/admin", icon: Shield, label: "Admin Control" },
-        { href: "/dashboard/admin/academic", icon: Library, label: "Academic Overview" },
+        { href: "/dashboard/admin/academic", icon: Library, label: "Academic" },
         { href: "/dashboard/admin/users", icon: Users, label: "Users" },
         { href: "/dashboard/admin/courses", icon: BookOpen, label: "Courses" },
         { href: "/dashboard/admin/departments", icon: Layers, label: "Departments" },
         { href: "/dashboard/admin/schedules", icon: Clock, label: "Scheduling" },
         { href: "/dashboard/payments", icon: CreditCard, label: "Payments" },
         { href: "/dashboard/results", icon: Award, label: "Results" },
-        { href: "/dashboard/community", icon: Users, label: "Community Hub" },
+        { href: "/dashboard/community", icon: Users, label: "Community" },
       ];
     } else if (role === "TEACHER") {
       return [
         ...base, 
-        { href: "/dashboard/teacher/students", icon: Users, label: "Students Directory" },
+        { href: "/dashboard/teacher/students", icon: Users, label: "Students" },
         { href: "/dashboard/courses", icon: BookOpen, label: "My Courses" },
+        { href: "/dashboard/teacher/syllabus", icon: ClipboardList, label: "Syllabus" },
         { href: "/dashboard/teacher/assignments", icon: FileEdit, label: "Assignments" },
-        { href: "/dashboard/teacher/progress", icon: BarChart, label: "Student Progress" },
+        { href: "/dashboard/teacher/progress", icon: BarChart, label: "Progress" },
         { href: "/dashboard/teacher/attendance", icon: Calendar, label: "Attendance" },
-        { href: "/dashboard/teacher/evaluation", icon: CheckSquare, label: "Assignment Evaluation" },
-        { href: "/dashboard/teacher/activities", icon: Award, label: "Activity Evaluation" },
+        { href: "/dashboard/teacher/evaluation", icon: CheckSquare, label: "Evaluation" },
         { href: "/dashboard/teacher/certificates", icon: FileCheck, label: "Certification" },
-        { href: "/dashboard/community", icon: Users, label: "Community Hub" },
+        { href: "/dashboard/community", icon: Users, label: "Community" },
       ];
     } else {
       return [
         ...base, 
         { href: "/dashboard/my-courses", icon: BookOpen, label: "My Courses" },
-        { href: "/dashboard/courses", icon: Compass, label: "Explore Courses" },
+        { href: "/dashboard/courses", icon: Compass, label: "Explore" },
         { href: "/dashboard/assignments", icon: FileEdit, label: "Assignments" },
         { href: "/dashboard/activities", icon: Award, label: "Activities" },
         { href: "/dashboard/attendance", icon: Calendar, label: "Attendance" },
@@ -101,7 +78,7 @@ export function Sidebar({ role, isCollapsed: propIsCollapsed, setIsCollapsed: pr
         { href: "/dashboard/certificates", icon: FileCheck, label: "Certificates" },
         { href: "/dashboard/payments", icon: CreditCard, label: "Payments" },
         { href: "/dashboard/downloads", icon: DownloadCloud, label: "Downloads" },
-        { href: "/dashboard/community", icon: Users, label: "Community Hub" }
+        { href: "/dashboard/community", icon: Users, label: "Community" }
       ];
     }
   };
@@ -109,69 +86,78 @@ export function Sidebar({ role, isCollapsed: propIsCollapsed, setIsCollapsed: pr
   const links = getLinks();
 
   return (
-    <motion.aside
-      initial={{ width: 256 }}
-      animate={{ width: isCollapsed ? 80 : 256 }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="h-screen border-r border-slate-800/60 flex flex-col pt-6 pb-2 px-4 fixed left-0 top-0 z-40 bg-gradient-to-b from-[#0F172A] to-[#090d16] text-white"
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border transition-all duration-300",
+        isCollapsed ? "w-20" : "w-64"
+      )}
     >
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-8 bg-primary text-white p-1 rounded-full shadow-lg hover:scale-110 transition-transform"
-      >
-        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-      </button>
+      {/* Header */}
+      <div className={cn("flex items-center border-b border-border py-4 shrink-0", isCollapsed ? "flex-col gap-4" : "justify-between px-4 h-20")}>
+        {!isCollapsed && (
+          <Link href="/dashboard/profile" className="flex items-center gap-3 group overflow-hidden">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20 group-hover:bg-primary/20 transition-colors shrink-0">
+              <User className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-bold text-foreground leading-tight truncate">My Profile</span>
+              <span className="text-xs text-muted-foreground leading-tight truncate capitalize">{role ? role.toLowerCase() : "User"}</span>
+            </div>
+          </Link>
+        )}
+        {isCollapsed && (
+          <Link href="/dashboard/profile" title="Profile">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20 hover:bg-primary/20 transition-colors shrink-0">
+              <User className="h-5 w-5" />
+            </div>
+          </Link>
+        )}
+        <button
+          onClick={() => setIsCollapsed?.(!isCollapsed)}
+          className={cn(
+            "p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+          )}
+        >
+          {isCollapsed ? <Menu className="h-5 w-5 text-muted-foreground" /> : <X className="h-5 w-5 text-muted-foreground" />}
+        </button>
+      </div>
 
-      <div className="flex-1 space-y-0.5 mt-1.5">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto custom-scrollbar py-6 flex flex-col gap-1 px-4">
         {links.map((link) => {
           const isActive = pathname === link.href;
           return (
-            <Link key={link.href} href={link.href}>
-              <div
-                className={cn(
-                  "flex items-center space-x-3 p-2 px-3 rounded-xl transition-all mb-0.5 cursor-pointer border-l-4",
-                  isActive 
-                    ? "bg-gradient-to-r from-accent/20 to-accent/5 text-accent border-accent shadow-[0_0_20px_rgba(16,185,129,0.25)]" 
-                    : "border-transparent text-slate-400 hover:text-slate-100 hover:bg-white/5"
-                )}
-              >
-                <link.icon className={cn("w-5 h-5 flex-shrink-0 transition-all duration-300", isActive ? "text-accent drop-shadow-[0_0_6px_rgba(16,185,129,0.6)] scale-110" : "text-slate-400")} />
-                {!isCollapsed && (
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="font-medium whitespace-nowrap"
-                  >
-                    {link.label}
-                  </motion.span>
-                )}
-              </div>
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group",
+                isActive
+                  ? "bg-gradient-to-r from-primary/20 via-primary/5 to-transparent text-primary font-medium border-l-4 border-l-primary shadow-sm shadow-primary/5"
+                  : "text-muted-foreground hover:bg-slate-100 hover:text-foreground dark:hover:bg-slate-800 dark:hover:text-foreground hover:translate-x-1"
+              )}
+              title={isCollapsed ? link.label : undefined}
+            >
+              <link.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+              {!isCollapsed && <span>{link.label}</span>}
             </Link>
           );
         })}
-      </div>
+      </nav>
 
-      <div className="mt-auto border-t border-slate-800/60 pt-1.5 shrink-0 flex-shrink-0">
-        <Link href="/dashboard/profile">
-          <div className={cn(
-            "flex items-center space-x-3 p-2 px-3 rounded-xl transition-all mb-0.5 cursor-pointer border-l-4",
-            pathname === "/dashboard/profile"
-              ? "bg-gradient-to-r from-accent/20 to-accent/5 text-accent border-accent shadow-[0_0_20px_rgba(16,185,129,0.25)]"
-              : "border-transparent text-slate-400 hover:text-slate-100 hover:bg-white/5"
-          )}>
-            <Settings className={cn("w-5 h-5 flex-shrink-0 transition-all duration-300", pathname === "/dashboard/profile" ? "text-accent drop-shadow-[0_0_6px_rgba(16,185,129,0.6)] scale-110" : "text-slate-400")} />
-            {!isCollapsed && <span className="font-medium">Profile</span>}
-          </div>
-        </Link>
-        <div 
+      {/* Footer Logout */}
+      <div className="p-4 border-t border-border flex flex-col gap-1 shrink-0">
+        <button
           onClick={handleLogout}
-          className="flex items-center space-x-3 p-2 px-3 rounded-xl border-l-4 border-transparent text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all cursor-pointer mt-0"
+          className={cn(
+            "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group text-destructive hover:bg-destructive/10 hover:text-destructive hover:translate-x-1 w-full text-left"
+          )}
+          title={isCollapsed ? "Logout" : undefined}
         >
-          <LogOut className="w-5 h-5 flex-shrink-0 text-red-400" />
-          {!isCollapsed && <span className="font-medium">Logout</span>}
-        </div>
+          <LogOut className="h-5 w-5 shrink-0 text-destructive" />
+          {!isCollapsed && <span>Logout</span>}
+        </button>
       </div>
-    </motion.aside>
+    </aside>
   );
 }

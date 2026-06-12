@@ -27,18 +27,10 @@ export default function DashboardAiPage() {
   const { id, role } = authData.data.user;
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
-        <h1 className="text-3xl font-bold text-primary">AI Chat</h1>
-        <p className="text-foreground/70">Talk with the AI as if it were a human tutor. Ask questions about your learning path and get contextual answers.</p>
-      </motion.div>
-
-      <ChatAssistant userId={id} role={role} />
+    <div className="-mt-8 -mb-6 -mx-6 md:-mx-8 h-screen flex flex-col bg-background text-foreground pt-8">
+      <div className="flex-1 min-h-0 w-full max-w-4xl mx-auto flex flex-col relative">
+        <ChatAssistant userId={id} role={role} />
+      </div>
     </div>
   );
 }

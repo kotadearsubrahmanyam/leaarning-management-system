@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useQuery } from "@tanstack/react-query";
-import { AnimatedBackground } from "@/components/ui/animated-background";
+import { AnimatedBackgroundPattern } from "@/components/ui/animated-background-pattern";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -41,8 +41,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] relative overflow-hidden">
-      <AnimatedBackground />
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      <AnimatedBackgroundPattern />
       <Sidebar 
         role={authData.data.user.role} 
         isCollapsed={isSidebarCollapsed} 
@@ -50,8 +50,8 @@ export default function DashboardLayout({
       />
       <DashboardHeader isSidebarCollapsed={isSidebarCollapsed} />
       <main className={cn(
-        "pt-8 pb-6 pr-6 md:pr-8 transition-all duration-300 relative z-10 min-h-screen",
-        isSidebarCollapsed ? "pl-[104px] md:pl-[112px]" : "pl-[280px] md:pl-[288px]"
+        "pt-8 pb-6 px-6 md:px-8 transition-all duration-300 relative z-10 min-h-screen",
+        isSidebarCollapsed ? "pl-20 md:pl-[104px]" : "pl-[280px] md:pl-[300px]"
       )}>
         {children}
       </main>
