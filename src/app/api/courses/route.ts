@@ -4,7 +4,7 @@ import { courses, users, enrollments, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const createCourseSchema = z.object({
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const filterTeacher = searchParams.get("teacherOnly") === "true";
 
-    let fetchedCourses;
+    let fetchedCourses: any[];
 
     if (payload.role === "TEACHER" && filterTeacher) {
       const teacherCourseIds = await db
@@ -44,8 +44,10 @@ export async function GET(req: Request) {
             description: courses.description,
             level: courses.level,
             imageUrl: courses.imageUrl,
+            semester: courses.semester,
             createdAt: courses.createdAt,
             teacherName: users.name,
+            studentCount: sql<number>`(SELECT count(*)::int FROM ${enrollments} WHERE ${enrollments.courseId} = ${courses.id})`,
           })
           .from(courses)
           .innerJoin(users, eq(courses.teacherId, users.id))
@@ -66,8 +68,10 @@ export async function GET(req: Request) {
           description: courses.description,
           level: courses.level,
           imageUrl: courses.imageUrl,
+          semester: courses.semester,
           createdAt: courses.createdAt,
           teacherName: users.name,
+          studentCount: sql<number>`(SELECT count(*)::int FROM ${enrollments} WHERE ${enrollments.courseId} = ${courses.id})`,
         })
         .from(courses)
         .innerJoin(users, eq(courses.teacherId, users.id));
@@ -90,8 +94,10 @@ export async function GET(req: Request) {
           description: courses.description,
           level: courses.level,
           imageUrl: courses.imageUrl,
+          semester: courses.semester,
           createdAt: courses.createdAt,
           teacherName: users.name,
+          studentCount: sql<number>`(SELECT count(*)::int FROM ${enrollments} WHERE ${enrollments.courseId} = ${courses.id})`,
         })
         .from(courses)
         .innerJoin(users, eq(courses.teacherId, users.id));

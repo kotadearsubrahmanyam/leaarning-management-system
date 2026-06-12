@@ -81,7 +81,6 @@ export function Sidebar({ role, isCollapsed: propIsCollapsed, setIsCollapsed: pr
         ...base, 
         { href: "/dashboard/teacher/students", icon: Users, label: "Students Directory" },
         { href: "/dashboard/courses", icon: BookOpen, label: "My Courses" },
-        { href: "/dashboard/teacher/syllabus", icon: ClipboardList, label: "Syllabus Builder" },
         { href: "/dashboard/teacher/assignments", icon: FileEdit, label: "Assignments" },
         { href: "/dashboard/teacher/progress", icon: BarChart, label: "Student Progress" },
         { href: "/dashboard/teacher/attendance", icon: Calendar, label: "Attendance" },

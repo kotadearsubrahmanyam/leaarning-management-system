@@ -220,7 +220,7 @@ export default function DashboardPage() {
                 </div>
                 
                 <div className="space-y-3">
-                  {displaySchedules.map((lecture, i) => (
+                  {displaySchedules.map((lecture: any, i: number) => (
                     <div key={i} className="flex gap-4 items-start p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 hover:border-slate-300 transition-colors">
                       <div className="text-xs font-black text-primary shrink-0 bg-primary/10 px-2.5 py-1.5 rounded-lg border border-primary/20">
                         {lecture.time.split(" - ")[0]}

@@ -110,19 +110,7 @@ export default function AdminDashboardPage() {
           className="glass p-8 rounded-3xl border border-white/10 relative overflow-hidden"
         >
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -z-10" />
-          <h2 className="text-2xl font-bold mb-4">System Health</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-              <span className="font-medium text-foreground/80">Database Connection</span>
-              <span className="text-green-500 font-bold text-sm px-2 py-1 bg-green-500/20 rounded">Healthy</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-              <span className="font-medium text-foreground/80">API Services</span>
-              <span className="text-green-500 font-bold text-sm px-2 py-1 bg-green-500/20 rounded">Online</span>
-            </div>
-          </div>
-          
-          <h3 className="text-lg font-bold mt-8 mb-4">Students per Department</h3>
+          <h2 className="text-2xl font-bold mb-4">Students per Department</h2>
           <div className="space-y-3">
             {stats.studentsPerDept?.map((dept: any, i: number) => (
               <div key={i} className="flex justify-between items-center p-3 bg-white/5 border border-white/5 rounded-xl">

@@ -72,7 +72,15 @@ export function AnimatedChart({ data, type = "line", dataKey, xAxisKey = "name",
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-            <XAxis dataKey={xAxisKey} stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <XAxis 
+              dataKey={xAxisKey} 
+              stroke="#94A3B8" 
+              fontSize={11} 
+              tickLine={false} 
+              axisLine={false} 
+              interval={0}
+              tickFormatter={(value) => value && value.length > 15 ? `${value.slice(0, 12)}...` : value}
+            />
             <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip content={<CustomTooltip unit={unit} />} cursor={{ stroke: "rgba(16,185,129,0.2)", strokeWidth: 2 }} />
             <Area
@@ -95,7 +103,15 @@ export function AnimatedChart({ data, type = "line", dataKey, xAxisKey = "name",
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
-            <XAxis dataKey={xAxisKey} stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+            <XAxis 
+              dataKey={xAxisKey} 
+              stroke="#94A3B8" 
+              fontSize={11} 
+              tickLine={false} 
+              axisLine={false} 
+              interval={0}
+              tickFormatter={(value) => value && value.length > 15 ? `${value.slice(0, 12)}...` : value}
+            />
             <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
             <Tooltip content={<CustomTooltip unit={unit} />} cursor={{ fill: "rgba(16,185,129,0.08)" }} />
             <Bar dataKey={dataKey} fill="url(#colorBar)" radius={[6, 6, 0, 0]} />
