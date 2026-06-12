@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileCheck, Plus, X, Download } from "lucide-react";
 import { AnimatedButton } from "@/components/ui/animated-button";
+import { CourseSelect } from "@/components/ui/course-select";
 
 export default function TeacherCertificatesPage() {
   const queryClient = useQueryClient();
@@ -95,18 +96,15 @@ export default function TeacherCertificatesPage() {
         </AnimatedButton>
       </div>
 
-      <div className="glass p-6 rounded-3xl border border-white/10 mb-8 max-w-md">
-        <label className="block text-sm font-medium text-foreground/70 mb-2">Filter Issued by Course</label>
-        <select
-          value={selectedCourse}
-          onChange={(e) => setSelectedCourse(e.target.value)}
-          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none"
-        >
-          <option value="">All Courses</option>
-          {courses.map((c: any) => (
-            <option key={c.id} value={c.id}>{c.title}</option>
-          ))}
-        </select>
+      <div className="mb-8 max-w-2xl">
+        <CourseSelect
+          courses={courses}
+          selectedCourse={selectedCourse}
+          setSelectedCourse={setSelectedCourse}
+          label="Filter Issued by Course"
+          placeholder="Choose a course to filter certificates..."
+          showClear={true}
+        />
       </div>
 
       <div className="glass rounded-3xl border border-white/10 overflow-hidden">
@@ -173,17 +171,15 @@ export default function TeacherCertificatesPage() {
                 <h2 className="text-2xl font-bold mb-6 text-primary">Issue New Certificate</h2>
                 
                 <form onSubmit={handleIssue} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground/70 mb-1 ml-1">Select Course *</label>
-                    <select 
-                      value={selectedCourse}
-                      onChange={(e) => setSelectedCourse(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none"
-                      required
-                    >
-                      <option value="" disabled>Select Course</option>
-                      {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
-                    </select>
+                  <div className="relative z-50">
+                    <CourseSelect
+                      courses={courses}
+                      selectedCourse={selectedCourse}
+                      setSelectedCourse={setSelectedCourse}
+                      label="Select Course *"
+                      placeholder="Choose a course to issue..."
+                      showClear={false}
+                    />
                   </div>
 
                   {selectedCourse && (

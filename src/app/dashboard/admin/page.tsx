@@ -110,7 +110,6 @@ export default function AdminDashboardPage() {
           className="glass p-8 rounded-3xl border border-white/10 relative overflow-hidden"
         >
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -z-10" />
-          
           <h3 className="text-lg font-bold mt-8 mb-4">Department Overview</h3>
           <div className="space-y-4">
             {stats.departmentStats?.map((dept: any, i: number) => (

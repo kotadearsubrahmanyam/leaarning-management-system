@@ -32,6 +32,7 @@ export async function GET(req: Request) {
       id: users.id,
       name: users.name,
       email: users.email,
+      rollNumber: users.rollNumber,
     })
     .from(enrollments)
     .innerJoin(users, eq(enrollments.studentId, users.id))
