@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckSquare, X, Check, FileText } from "lucide-react";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { AnimatedInput } from "@/components/ui/animated-input";
+import { CourseSelect } from "@/components/ui/course-select";
 
 export default function TeacherEvaluationPage() {
   const queryClient = useQueryClient();
@@ -78,18 +79,15 @@ export default function TeacherEvaluationPage() {
         <p className="text-foreground/70">Review student submissions and assign grades.</p>
       </motion.div>
 
-      <div className="glass p-6 rounded-3xl border border-white/10 mb-8 max-w-md">
-        <label className="block text-sm font-medium text-foreground/70 mb-2">Filter by Course</label>
-        <select
-          value={selectedCourse}
-          onChange={(e) => setSelectedCourse(e.target.value)}
-          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none"
-        >
-          <option value="">All Courses</option>
-          {courses.map((c: any) => (
-            <option key={c.id} value={c.id}>{c.title}</option>
-          ))}
-        </select>
+      <div className="mb-8 max-w-2xl">
+        <CourseSelect
+          courses={courses}
+          selectedCourse={selectedCourse}
+          setSelectedCourse={setSelectedCourse}
+          label="Filter by Course"
+          placeholder="Choose a course to filter submissions..."
+          showClear={true}
+        />
       </div>
 
       <div className="glass rounded-3xl border border-white/10 overflow-hidden">

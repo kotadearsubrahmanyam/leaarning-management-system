@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FileEdit, Plus, X, Calendar } from "lucide-react";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { AnimatedInput } from "@/components/ui/animated-input";
+import { CourseSelect } from "@/components/ui/course-select";
 
 export default function TeacherAssignmentsPage() {
   const queryClient = useQueryClient();
@@ -138,17 +139,15 @@ export default function TeacherAssignmentsPage() {
                 <h2 className="text-2xl font-bold mb-6 text-primary">New Assignment</h2>
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground/70 mb-1 ml-1">Course *</label>
-                    <select 
-                      value={formData.courseId}
-                      onChange={(e) => setFormData({...formData, courseId: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none"
-                      required
-                    >
-                      <option value="" disabled>Select Course</option>
-                      {courses.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
-                    </select>
+                  <div className="relative z-50">
+                    <CourseSelect
+                      courses={courses}
+                      selectedCourse={formData.courseId}
+                      setSelectedCourse={(courseId) => setFormData(prev => ({ ...prev, courseId }))}
+                      label="Course *"
+                      placeholder="Choose a course for assignment..."
+                      showClear={false}
+                    />
                   </div>
                   
                   <AnimatedInput
