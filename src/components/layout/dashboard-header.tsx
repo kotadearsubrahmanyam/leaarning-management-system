@@ -70,7 +70,7 @@ export function DashboardHeader({ isSidebarCollapsed }: DashboardHeaderProps) {
       <div ref={dropdownRef} className="relative pointer-events-auto">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="relative p-3 rounded-full glass hover:bg-white/10 transition-colors border border-white/20"
+          className="relative p-3 rounded-full glass hover:bg-slate-50 transition-colors"
         >
           <Bell size={24} className="text-foreground" />
           {unreadCount > 0 && (
@@ -85,9 +85,9 @@ export function DashboardHeader({ isSidebarCollapsed }: DashboardHeaderProps) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="absolute top-16 right-0 w-80 sm:w-96 glass rounded-2xl border border-white/20 shadow-2xl overflow-hidden flex flex-col max-h-[500px]"
+              className="absolute top-16 right-0 w-80 sm:w-96 glass rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[500px]"
             >
-              <div className="p-4 border-b border-white/10 flex justify-between items-center bg-black/40 backdrop-blur-md">
+              <div className="p-4 border-b border-slate-200/60 flex justify-between items-center bg-white/95 backdrop-blur-md">
                 <h3 className="font-bold text-foreground">Notifications</h3>
                 {unreadCount > 0 && (
                   <button 
@@ -99,7 +99,7 @@ export function DashboardHeader({ isSidebarCollapsed }: DashboardHeaderProps) {
                 )}
               </div>
 
-              <div className="overflow-y-auto flex-1 p-2 space-y-1 bg-black/20">
+              <div className="overflow-y-auto flex-1 p-2 space-y-1 bg-slate-50/50">
                 {notifications.length === 0 ? (
                   <div className="p-8 text-center text-foreground/50 flex flex-col items-center justify-center">
                     <Bell size={32} className="mb-2 opacity-20" />
@@ -112,8 +112,8 @@ export function DashboardHeader({ isSidebarCollapsed }: DashboardHeaderProps) {
                       onClick={() => !n.isRead && markAsReadMutation.mutate(n.id)}
                       className={`p-4 rounded-xl cursor-pointer transition-all ${
                         n.isRead 
-                          ? "opacity-60 hover:bg-white/5" 
-                          : "bg-white/10 hover:bg-white/15 border-l-2 border-primary shadow-[inset_2px_0_10px_rgba(16,185,129,0.1)]"
+                          ? "opacity-60 hover:bg-slate-100/40" 
+                          : "bg-white hover:bg-slate-50 border border-slate-200/50 border-l-2 border-l-primary shadow-sm"
                       }`}
                     >
                       <h4 className={`text-sm ${!n.isRead ? "font-bold text-primary" : "font-medium text-foreground"}`}>

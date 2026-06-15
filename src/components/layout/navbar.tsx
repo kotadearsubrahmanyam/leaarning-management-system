@@ -19,9 +19,9 @@ export function Navbar() {
     retry: false,
   });
 
-  if (pathname.startsWith("/dashboard")) return null;
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/login") || pathname.startsWith("/signup")) return null;
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 glass rounded-none border-t-0 border-x-0 border-b border-white/20">
+    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 glass rounded-none border-t-0 border-x-0 border-b">
       <Link href="/" className="flex items-center space-x-2 text-primary">
         <BookOpen className="w-6 h-6" />
         <span className="text-xl font-bold tracking-tight">Learnin<span className="text-foreground/80 font-normal">Loop</span></span>

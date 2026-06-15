@@ -97,15 +97,19 @@ export async function GET(req: Request) {
       }
 
       if (studentIds.length > 0) {
-        const inStudentIds = sql`(${sql.join(studentIds.map(id => sql`${id}`), sql`, `)})`;
-        const backlogsRes = await db.execute(sql`
-          SELECT "userId", COUNT(*) as backlogs
-          FROM "Result"
-          WHERE "userId" IN ${inStudentIds} AND status = 'FAIL' AND published = true
-          GROUP BY "userId"
-          HAVING COUNT(*) > 2
-        `);
-        detainedCount = backlogsRes.rows.length;
+        const backlogsRes = await db.select({
+          userId: results.userId,
+        })
+        .from(results)
+        .where(and(
+          inArray(results.userId, studentIds),
+          eq(results.status, "FAIL"),
+          eq(results.published, true)
+        ))
+        .groupBy(results.userId)
+        .having(sql`count(*) > 2`);
+        
+        detainedCount = backlogsRes.length;
       }
     }
 

@@ -88,26 +88,30 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border transition-all duration-300",
+        "fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 backdrop-blur-[20px]",
         isCollapsed ? "w-20" : "w-64"
       )}
+      style={{
+        background: "linear-gradient(180deg, rgba(109, 40, 217, 0.95), rgba(124, 58, 237, 0.90))",
+        borderRight: "1px solid rgba(255, 255, 255, 0.15)"
+      }}
     >
       {/* Header */}
-      <div className={cn("flex items-center border-b border-border py-4 shrink-0", isCollapsed ? "flex-col gap-4" : "justify-between px-4 h-20")}>
+      <div className={cn("flex items-center border-b border-purple-600/50 py-4 shrink-0", isCollapsed ? "flex-col gap-4" : "justify-between px-4 h-20")}>
         {!isCollapsed && (
           <Link href="/dashboard/profile" className="flex items-center gap-3 group overflow-hidden">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20 group-hover:bg-primary/20 transition-colors shrink-0">
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold border border-white/20 group-hover:bg-white/[0.12] transition-colors shrink-0">
               <User className="h-5 w-5" />
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="text-sm font-bold text-foreground leading-tight truncate">My Profile</span>
-              <span className="text-xs text-muted-foreground leading-tight truncate capitalize">{role ? role.toLowerCase() : "User"}</span>
+              <span className="text-sm font-bold text-white leading-tight truncate">My Profile</span>
+              <span className="text-xs text-purple-200 leading-tight truncate capitalize">{role ? role.toLowerCase() : "User"}</span>
             </div>
           </Link>
         )}
         {isCollapsed && (
           <Link href="/dashboard/profile" title="Profile">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20 hover:bg-primary/20 transition-colors shrink-0">
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold border border-white/20 hover:bg-white/[0.12] transition-colors shrink-0">
               <User className="h-5 w-5" />
             </div>
           </Link>
@@ -115,10 +119,10 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         <button
           onClick={() => setIsCollapsed?.(!isCollapsed)}
           className={cn(
-            "p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            "p-2 rounded-lg hover:bg-white/[0.12] text-purple-200 hover:text-white transition-colors shrink-0"
           )}
         >
-          {isCollapsed ? <Menu className="h-5 w-5 text-muted-foreground" /> : <X className="h-5 w-5 text-muted-foreground" />}
+          {isCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
         </button>
       </div>
 
@@ -133,12 +137,22 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
               className={cn(
                 "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group",
                 isActive
-                  ? "bg-gradient-to-r from-primary/20 via-primary/5 to-transparent text-primary font-medium border-l-4 border-l-primary shadow-sm shadow-primary/5"
-                  : "text-muted-foreground hover:bg-slate-100 hover:text-foreground dark:hover:bg-slate-800 dark:hover:text-foreground hover:translate-x-1"
+                  ? "font-bold shadow-lg"
+                  : "text-purple-100/80 hover:bg-white/[0.12] hover:text-white hover:-translate-y-[2px] hover:shadow-[0_4px_15px_rgba(139,92,246,0.25)]"
               )}
+              style={
+                isActive
+                  ? {
+                      background: "rgba(255, 255, 255, 0.95)",
+                      color: "#6D28D9",
+                      boxShadow: "0 4px 12px rgba(109, 40, 217, 0.15)",
+                      border: "1px solid rgba(139, 92, 246, 0.2)",
+                    }
+                  : undefined
+              }
               title={isCollapsed ? link.label : undefined}
             >
-              <link.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+              <link.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-[#6D28D9]" : "text-purple-200 group-hover:text-white")} />
               {!isCollapsed && <span>{link.label}</span>}
             </Link>
           );
@@ -146,15 +160,15 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
       </nav>
 
       {/* Footer Logout */}
-      <div className="p-4 border-t border-border flex flex-col gap-1 shrink-0">
+      <div className="p-4 border-t border-purple-600/50 flex flex-col gap-1 shrink-0">
         <button
           onClick={handleLogout}
           className={cn(
-            "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group text-destructive hover:bg-destructive/10 hover:text-destructive hover:translate-x-1 w-full text-left"
+            "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group text-rose-200 hover:bg-rose-500/20 hover:text-rose-100 hover:translate-x-1 w-full text-left"
           )}
           title={isCollapsed ? "Logout" : undefined}
         >
-          <LogOut className="h-5 w-5 shrink-0 text-destructive" />
+          <LogOut className="h-5 w-5 shrink-0 text-rose-300 group-hover:text-rose-100" />
           {!isCollapsed && <span>Logout</span>}
         </button>
       </div>

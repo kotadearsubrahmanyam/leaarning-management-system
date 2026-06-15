@@ -1,0 +1,1 @@
+self.__REACT_LOADABLE_MANIFEST='{"app\\\\dashboard\\\\interview\\\\session\\\\page.tsx -> @mediapipe/tasks-vision":{"id":38398,"files":["static/chunks/8398.98929ccbbc984b8a.js","static/chunks/7084.85f7b49baf2ebd9a.js"]}}';

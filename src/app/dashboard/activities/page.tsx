@@ -52,12 +52,12 @@ export default function ActivitiesPage() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1,2,3,4].map(i => <div key={i} className="h-40 glass rounded-3xl animate-pulse" />)}
+          {[1,2,3,4].map(i => <div key={i} className="h-40 glass border border-slate-300 rounded-3xl animate-pulse bg-white/50" />)}
         </div>
       ) : activities.length === 0 ? (
-        <div className="glass p-12 rounded-3xl border border-white/10 text-center">
-          <Award size={48} className="mx-auto text-foreground/20 mb-4" />
-          <h3 className="text-xl font-bold text-foreground mb-2">No Activities Yet</h3>
+        <div className="glass p-12 rounded-3xl border border-slate-300 text-center">
+          <Award size={48} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-xl font-bold text-slate-800 mb-2">No Activities Yet</h3>
           <p className="text-foreground/50">Start logging your achievements to build your portfolio!</p>
         </div>
       ) : (
@@ -73,7 +73,7 @@ export default function ActivitiesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 whileHover={{ scale: 1.02, y: -5 }}
-                className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all"
+                className="glass p-6 rounded-3xl border border-slate-300 relative overflow-hidden group hover:shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all"
               >
                 <div className={`absolute top-0 right-0 w-32 h-32 rounded-full ${typeConfig.bg} blur-3xl -mr-10 -mt-10 opacity-50 group-hover:opacity-100 transition-opacity`} />
                 
@@ -83,8 +83,8 @@ export default function ActivitiesPage() {
                       <Icon size={24} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-foreground">{activity.title}</h3>
-                      <p className="text-xs text-foreground/50">{new Date(activity.date).toLocaleDateString()}</p>
+                      <h3 className="text-xl font-bold text-slate-800">{activity.title}</h3>
+                      <p className="text-xs text-slate-400 font-bold mt-0.5">{new Date(activity.date).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-xs font-bold border border-current ${typeConfig.color} ${typeConfig.bg}`}>
@@ -93,16 +93,16 @@ export default function ActivitiesPage() {
                 </div>
 
                 <div className="mt-4 relative z-10">
-                  <p className="text-foreground/80 text-sm line-clamp-3">{activity.description}</p>
+                  <p className="text-slate-600 text-sm line-clamp-3">{activity.description}</p>
                 </div>
 
                 {activity.proofUrl && (
-                  <div className="mt-6 pt-4 border-t border-white/10 relative z-10">
+                  <div className="mt-6 pt-4 border-t border-slate-200 relative z-10">
                     <a 
                       href={activity.proofUrl} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-primary hover:text-white transition-colors"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline transition-colors font-bold"
                     >
                       <FileIcon size={16} /> View Certificate / Proof
                     </a>
@@ -244,17 +244,17 @@ function AddActivityModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
             exit={{ opacity: 0, scale: 0.9, x: "-50%", y: "-40%" }}
             className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg"
           >
-            <div className="glass rounded-3xl border border-white/20 shadow-2xl relative overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="glass rounded-3xl border border-slate-300 shadow-2xl relative overflow-hidden max-h-[90vh] flex flex-col">
               <button
                 onClick={handleClose}
                 disabled={isUploading}
-                className="absolute top-4 right-4 z-10 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
+                className="absolute top-4 right-4 z-10 p-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full transition-colors disabled:opacity-50"
               >
                 <X size={20} />
               </button>
 
               <div className="p-8 overflow-y-auto">
-                <h2 className="text-2xl font-bold text-primary mb-6">Log Activity</h2>
+                <h2 className="text-2xl font-black text-slate-800 mb-6">Log Activity</h2>
 
                 {error && (
                   <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
@@ -266,12 +266,12 @@ function AddActivityModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
                   <AnimatedInput label="Activity Title" placeholder="e.g. AWS Cloud Practitioner" value={title} onChange={(e) => setTitle(e.target.value)} disabled={isUploading} />
                   
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80 ml-1">Activity Type</label>
+                    <label className="text-sm font-bold text-slate-600 ml-1">Activity Type</label>
                     <select
                       value={type}
                       onChange={(e) => setType(e.target.value)}
                       disabled={isUploading}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      className="w-full bg-white border border-slate-300 rounded-2xl px-4 py-3 text-slate-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     >
                       {ACTIVITY_TYPES.map(t => (
                         <option key={t.value} value={t.value} className="bg-white text-slate-900">{t.label}</option>
@@ -280,43 +280,43 @@ function AddActivityModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80 ml-1">Date</label>
+                    <label className="text-sm font-bold text-slate-600 ml-1">Date</label>
                     <input
                       type="date"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                       disabled={isUploading}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                      className="w-full bg-white border border-slate-300 rounded-2xl px-4 py-3 text-slate-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80 ml-1">Description</label>
+                    <label className="text-sm font-bold text-slate-600 ml-1">Description</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       disabled={isUploading}
                       placeholder="Briefly describe what you learned or achieved..."
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none h-24"
+                      className="w-full bg-white border border-slate-300 rounded-2xl px-4 py-3 text-slate-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none h-24 placeholder-slate-400"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground/80 ml-1">Proof / Certificate (Optional)</label>
+                    <label className="text-sm font-bold text-slate-600 ml-1">Proof / Certificate (Optional)</label>
                     {!file ? (
                       <div 
                         onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-white/20 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                        className="border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-slate-50 transition-all group bg-slate-50"
                       >
-                        <UploadCloud size={32} className="text-foreground/40 group-hover:text-primary transition-colors mb-2" />
-                        <p className="text-sm font-medium text-foreground/80">Click to upload file</p>
+                        <UploadCloud size={32} className="text-slate-400 group-hover:text-primary transition-colors mb-2" />
+                        <p className="text-sm font-bold text-slate-600">Click to upload file</p>
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf" />
                       </div>
                     ) : (
                       <div className="glass p-4 rounded-xl flex items-center space-x-4 border border-primary/20 bg-primary/5">
                         <FileIcon className="text-primary flex-shrink-0" size={24} />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-foreground truncate">{file.name}</p>
+                          <p className="font-bold text-sm text-foreground truncate">{file.name}</p>
                         </div>
                         {!isUploading && (
                           <button onClick={() => setFile(null)} className="text-foreground/50 hover:text-destructive transition-colors">
@@ -329,12 +329,12 @@ function AddActivityModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onC
 
                   {isUploading && (
                     <div className="space-y-2 pt-2">
-                      <div className="flex justify-between text-xs text-foreground/70 font-medium">
+                      <div className="flex justify-between text-xs text-slate-500 font-bold">
                         <span>Saving...</span>
                         <span>{progress}%</span>
                       </div>
-                      <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="h-full bg-gradient-to-r from-red-600 to-orange-500" />
+                      <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className="h-full bg-primary" />
                       </div>
                     </div>
                   )}

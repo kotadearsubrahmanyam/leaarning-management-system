@@ -50,10 +50,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
               className={`pointer-events-auto flex items-start p-4 rounded-2xl shadow-2xl border backdrop-blur-md ${
                 notification.type === "success"
-                  ? "bg-green-500/10 border-green-500/20 text-green-50"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                   : notification.type === "error"
-                  ? "bg-red-500/10 border-red-500/20 text-red-50"
-                  : "glass text-white border-white/20"
+                  ? "bg-rose-50 border-rose-200 text-rose-800"
+                  : "glass text-slate-800 border-slate-200"
               }`}
             >
               <div className="flex-shrink-0 mr-3 mt-0.5">

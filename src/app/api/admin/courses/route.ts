@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { desc, eq } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const cookieStore = cookies();

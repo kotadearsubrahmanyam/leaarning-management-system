@@ -1,44 +1,64 @@
 "use client";
 
+import React from "react";
+
+const PARTICLES = [
+  { left: "10%", top: "15%", size: "3px", color: "#8B5CF6", duration: "16s", delay: "2s" },
+  { left: "25%", top: "45%", size: "4px", color: "#3B82F6", duration: "22s", delay: "0s" },
+  { left: "40%", top: "85%", size: "2px", color: "#8B5CF6", duration: "18s", delay: "4s" },
+  { left: "55%", top: "25%", size: "5px", color: "#3B82F6", duration: "25s", delay: "1s" },
+  { left: "70%", top: "65%", size: "3px", color: "#A855F7", duration: "20s", delay: "3s" },
+  { left: "85%", top: "10%", size: "4px", color: "#3B82F6", duration: "15s", delay: "5s" },
+  { left: "90%", top: "50%", size: "3px", color: "#8B5CF6", duration: "24s", delay: "2s" },
+  { left: "15%", top: "75%", size: "2px", color: "#3B82F6", duration: "19s", delay: "6s" },
+  { left: "30%", top: "20%", size: "5px", color: "#A855F7", duration: "21s", delay: "1s" },
+  { left: "50%", top: "60%", size: "3px", color: "#8B5CF6", duration: "23s", delay: "0s" },
+  { left: "65%", top: "90%", size: "4px", color: "#3B82F6", duration: "17s", delay: "3s" },
+  { left: "80%", top: "35%", size: "2px", color: "#8B5CF6", duration: "26s", delay: "2s" },
+  { left: "95%", top: "80%", size: "5px", color: "#3B82F6", duration: "20s", delay: "5s" },
+  { left: "5%", top: "40%", size: "3px", color: "#A855F7", duration: "18s", delay: "4s" },
+  { left: "35%", top: "70%", size: "4px", color: "#8B5CF6", duration: "22s", delay: "1s" },
+  { left: "60%", top: "15%", size: "3px", color: "#3B82F6", duration: "25s", delay: "3s" },
+  { left: "75%", top: "55%", size: "2px", color: "#8B5CF6", duration: "16s", delay: "0s" },
+  { left: "45%", top: "30%", size: "4px", color: "#A855F7", duration: "24s", delay: "2s" },
+  { left: "20%", top: "95%", size: "3px", color: "#3B82F6", duration: "20s", delay: "5s" },
+  { left: "88%", top: "95%", size: "3px", color: "#8B5CF6", duration: "19s", delay: "1s" },
+];
+
 export function AnimatedBackgroundPattern() {
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-40 dark:opacity-20 mix-blend-overlay">
-      <svg
-        className="absolute w-[200vw] h-[200vh] -top-[50vh] -left-[50vw] animate-float-slow"
-        viewBox="0 0 1000 1000"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient id="aura-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.2" />
-            <stop offset="50%" stopColor="hsl(var(--secondary))" stopOpacity="0.1" />
-            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0.2" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        <g stroke="url(#aura-grad)" fill="none" strokeWidth="2" filter="url(#glow)">
-          {/* Topographical / Tribal lines */}
-          <path d="M-200,200 Q250,-100 500,250 T1200,300" className="animate-pulse-glow" />
-          <path d="M-100,400 Q350,100 600,450 T1300,500" className="animate-pulse-glow" style={{ animationDelay: '0.5s' }} />
-          <path d="M-50,600 Q450,300 700,650 T1400,700" className="animate-pulse-glow" style={{ animationDelay: '1s' }} />
-          <path d="M-150,800 Q300,500 550,850 T1250,900" className="animate-pulse-glow" style={{ animationDelay: '1.5s' }} />
-          
-          <path d="M200,-200 Q-100,250 250,500 T300,1200" className="animate-pulse-glow" style={{ animationDelay: '2s' }} />
-          <path d="M400,-100 Q100,350 450,600 T500,1300" className="animate-pulse-glow" style={{ animationDelay: '2.5s' }} />
-          <path d="M600,-50 Q300,450 650,700 T700,1400" className="animate-pulse-glow" style={{ animationDelay: '3s' }} />
-          <path d="M800,-150 Q500,300 850,550 T900,1250" className="animate-pulse-glow" style={{ animationDelay: '3.5s' }} />
-        </g>
-      </svg>
-      {/* Background blobs for depth */}
-      <div className="absolute top-[20%] left-[20%] w-[40vw] h-[40vw] rounded-full bg-primary/10 blur-[100px] animate-blob mix-blend-multiply dark:mix-blend-lighten" />
-      <div className="absolute top-[40%] right-[20%] w-[30vw] h-[30vw] rounded-full bg-secondary/10 blur-[100px] animate-blob animation-delay-2000 mix-blend-multiply dark:mix-blend-lighten" />
-      <div className="absolute bottom-[20%] left-[40%] w-[35vw] h-[35vw] rounded-full bg-accent/10 blur-[100px] animate-blob animation-delay-4000 mix-blend-multiply dark:mix-blend-lighten" />
+    <div 
+      className="fixed inset-0 z-0 overflow-hidden pointer-events-none"
+      style={{
+        background: "linear-gradient(135deg, #DBEAFE 0%, #EDE9FE 50%, #F8FAFC 100%)"
+      }}
+    >
+      {/* 1. Top Left Glow (#8B5CF6, Opacity 10%, Blur 120px) */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#8B5CF6]/10 blur-[120px] animate-float-blob-1 pointer-events-none" />
+      
+      {/* 2. Center Glow (#3B82F6, Opacity 8%, Blur 150px) */}
+      <div className="absolute top-[25%] left-[25%] md:left-[30%] w-[50vw] h-[50vw] rounded-full bg-[#3B82F6]/0.08 blur-[150px] animate-float-blob-2 pointer-events-none" />
+      
+      {/* 3. Bottom Right Glow (#A855F7, Opacity 10%, Blur 130px) */}
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#A855F7]/10 blur-[130px] animate-float-blob-3 pointer-events-none" />
+
+      {/* 4. Shining Particle Effect (Magical Glass UI) */}
+      {PARTICLES.map((p, idx) => (
+        <div
+          key={idx}
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            left: p.left,
+            top: p.top,
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            opacity: 0.12,
+            animation: `float-particle ${p.duration} infinite linear`,
+            animationDelay: p.delay,
+          }}
+        />
+      ))}
     </div>
   );
 }

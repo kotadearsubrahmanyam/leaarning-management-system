@@ -339,21 +339,32 @@ export default function LoginPage() {
   const tinyPos = calculatePosition(tinyRef);
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+    <div className="h-screen w-screen overflow-hidden flex flex-col lg:grid lg:grid-cols-2 bg-background relative">
       {/* Left Content Section */}
-      <div className="relative hidden lg:flex flex-col justify-between bg-primary/10 overflow-hidden p-12">
-        <div className="relative z-20">
-          <div className="flex items-center gap-2 text-xl font-bold text-primary">
-            <BookOpen className="size-6" />
-            <span>LMS</span>
+      <div className="relative flex flex-col justify-between bg-primary/[0.03] border-b lg:border-b-0 lg:border-r border-slate-200/50 overflow-hidden p-6 lg:p-12 h-[35vh] lg:h-full w-full">
+        <div className="relative z-20 shrink-0">
+          <div className="flex items-center gap-2 text-lg lg:text-xl font-bold text-primary justify-center lg:justify-start">
+            <BookOpen className="size-5 lg:size-6" />
+            <span>LMS Portal</span>
           </div>
         </div>
 
-        <div className="relative z-20 flex items-end justify-center h-[500px]">
-          {/* Animated Characters (Emerald Theme Palette) */}
-          <div className="relative" style={{ width: '550px', height: '400px' }}>
-            
-            {/* Tall Emerald Character (Main) */}
+        <div className="relative z-20 flex-1 flex flex-col items-center justify-center">
+          <div className="text-center max-w-md hidden md:block">
+            <h2 className="text-xl lg:text-2xl font-black tracking-tight text-slate-800">
+              Learn. Grow. Succeed.
+            </h2>
+            <p className="text-slate-500 mt-2 text-xs lg:text-sm leading-relaxed hidden lg:block">
+              Access your learning pathways, courses, and interactive AI companions in one unified workspace.
+            </p>
+          </div>
+
+          <div className="mt-2 lg:mt-6 w-full flex items-center justify-center">
+            {/* Animated Characters (Emerald Theme Palette) */}
+            <div className="scale-[0.42] sm:scale-[0.55] md:scale-[0.65] lg:scale-[0.7] xl:scale-[0.9] origin-center transform transition-transform duration-300">
+              <div className="relative" style={{ width: '550px', height: '400px' }}>
+                
+                {/* Tall Emerald Character (Main) */}
             <div 
               ref={tallRef}
               className="absolute bottom-0 transition-all duration-700 ease-in-out shadow-lg"
@@ -499,8 +510,10 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div className="relative z-20 flex items-center gap-8 text-sm text-primary/60 font-medium">
+        <div className="relative z-20 hidden lg:flex items-center gap-8 text-xs text-primary/60 font-medium shrink-0">
           <Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link>
           <Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link>
           <Link href="#" className="hover:text-primary transition-colors">Contact</Link>
@@ -508,38 +521,36 @@ export default function LoginPage() {
 
         {/* Decorative elements */}
         <div className="absolute inset-0 bg-grid-primary/[0.03] bg-[size:20px_20px]" />
-        <div className="absolute top-1/4 right-1/4 size-64 bg-primary/20 rounded-full blur-3xl opacity-50" />
+        <div className="absolute top-1/4 right-1/4 size-64 bg-primary/20 rounded-full blur-3xl opacity-50 animate-pulse" />
       </div>
 
       {/* Right Login Section */}
-      <div className="flex items-center justify-center p-8 bg-background relative z-10 shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.05)] overflow-hidden">
+      <div className="flex-1 lg:h-full flex items-center justify-center p-4 sm:p-8 bg-background relative z-10 shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.05)] overflow-hidden">
         <AnimatedBackgroundPattern />
-        <div className="w-full max-w-[420px] relative z-20 bg-background/60 backdrop-blur-md p-8 rounded-2xl border border-border shadow-xl">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center justify-center gap-2 text-2xl font-bold text-primary mb-12">
-            <BookOpen className="size-8" />
-            <span>LMS</span>
-          </div>
-
-          <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Welcome back!</h1>
-            <p className="text-muted-foreground text-sm">Please enter your details to sign in.</p>
+        
+        {/* Login Card */}
+        <div className="glass w-full max-w-[480px] p-6 lg:p-8 rounded-[24px] border border-border shadow-xl bg-white/95 relative z-20 transition-all duration-300">
+          
+          <div className="text-center mb-6">
+            <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-800 mb-1 lg:mb-2">Welcome back!</h1>
+            <p className="text-slate-500 text-xs lg:text-sm">Please sign in to your account.</p>
           </div>
 
           {errors.root && (
-            <div className="mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs text-center font-medium">
               {errors.root.message}
             </div>
           )}
 
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-8 relative border border-border">
+          {/* Role selector */}
+          <div className="flex bg-slate-100 p-1 rounded-xl mb-6 relative border border-slate-200">
             {["STUDENT", "TEACHER", "ADMIN"].map((role) => (
               <button
                 key={role}
                 type="button"
                 onClick={() => setSelectedRole(role as any)}
-                className={`flex-1 py-2 text-sm font-semibold rounded-lg z-10 transition-colors ${
-                  selectedRole === role ? "text-white" : "text-muted-foreground hover:text-foreground"
+                className={`flex-1 py-1.5 text-xs lg:text-sm font-semibold rounded-lg z-10 transition-colors ${
+                  selectedRole === role ? "text-white" : "text-slate-500 hover:text-slate-800"
                 }`}
               >
                 {role.charAt(0) + role.slice(1).toLowerCase()}
@@ -556,9 +567,10 @@ export default function LoginPage() {
             />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+          {/* Login Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs lg:text-sm font-semibold text-slate-700">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -567,47 +579,47 @@ export default function LoginPage() {
                 {...register("email")}
                 onFocus={() => setIsTyping(true)}
                 onBlur={() => setIsTyping(false)}
-                className={cn("h-12 bg-background border-border focus:border-primary", errors.email && "border-destructive focus:border-destructive")}
+                className={cn("h-10 lg:h-11 bg-background border-slate-200 text-slate-800 focus:border-primary text-sm", errors.email && "border-destructive focus:border-destructive")}
               />
               {errors.email && <span className="text-xs text-destructive mt-1 block">{errors.email.message}</span>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs lg:text-sm font-semibold text-slate-700">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   {...register("password")}
-                  className={cn("h-12 pr-10 bg-background border-border focus:border-primary", errors.password && "border-destructive focus:border-destructive")}
+                  className={cn("h-10 lg:h-11 pr-10 bg-background border-slate-200 text-slate-800 focus:border-primary text-sm", errors.password && "border-destructive focus:border-destructive")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                  {showPassword ? <EyeOff className="size-4 lg:size-5" /> : <Eye className="size-4 lg:size-5" />}
                 </button>
               </div>
               {errors.password && <span className="text-xs text-destructive mt-1 block">{errors.password.message}</span>}
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-1">
               <div className="flex items-center space-x-2">
-                <Checkbox id="remember" />
-                <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
+                <Checkbox id="remember" className="border-slate-300" />
+                <Label htmlFor="remember" className="text-xs lg:text-sm font-medium text-slate-600 cursor-pointer">
                   Remember for 30 days
                 </Label>
               </div>
-              <Link href="#" className="text-sm text-primary hover:underline font-medium">
+              <Link href="#" className="text-xs lg:text-sm text-primary hover:underline font-semibold">
                 Forgot password?
               </Link>
             </div>
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-medium shadow-lg shadow-primary/20" 
+              className="w-full h-10 lg:h-11 text-sm lg:text-base font-semibold shadow-lg shadow-primary/20 mt-2" 
               size="lg" 
               disabled={loginMutation.isPending}
             >
@@ -615,9 +627,10 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="text-center text-sm text-muted-foreground mt-8">
+          {/* Footer Register Link */}
+          <div className="text-center text-xs lg:text-sm text-slate-500 mt-6">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary font-bold hover:underline">
+            <Link href="/signup" className="text-primary font-bold hover:underline ml-1">
               Sign Up
             </Link>
           </div>

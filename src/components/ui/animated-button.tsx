@@ -15,7 +15,7 @@ export function AnimatedButton({ children, className, isLoading, ...props }: Ani
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.98 }}
       className={cn(
-        "w-full bg-primary text-primary-foreground font-semibold py-3 px-4 rounded-xl shadow-md transition-all hover:bg-[#047857] hover:shadow-[0_0_15px_rgba(16,185,129,0.4)] disabled:opacity-70 disabled:cursor-not-allowed",
+        "w-full bg-primary text-primary-foreground font-semibold py-3 px-4 rounded-xl shadow-md transition-all hover:bg-primary/95 hover:shadow-[0_0_20px_rgba(139,92,246,0.35)] disabled:opacity-70 disabled:cursor-not-allowed",
         className
       )}
       disabled={isLoading || props.disabled}

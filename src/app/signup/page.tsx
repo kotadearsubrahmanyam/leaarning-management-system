@@ -94,7 +94,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <AnimatedBackground isDark={true} />
+      <AnimatedBackground />
       
       <div className="w-full max-w-md z-10 mt-16">
         <AuthCard>
@@ -166,7 +166,7 @@ export default function SignupPage() {
                   <label className="block text-sm font-medium text-foreground/70 mb-1 ml-1">Branch (Department) *</label>
                   <select 
                     {...register("departmentId")}
-                    className={`w-full bg-black/40 border ${errors.departmentId ? 'border-destructive' : 'border-white/10'} rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none`}
+                    className={`w-full bg-white border ${errors.departmentId ? 'border-destructive' : 'border-slate-200'} rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-primary transition-colors appearance-none shadow-sm`}
                   >
                     <option value="">Select Branch</option>
                     {departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -177,7 +177,7 @@ export default function SignupPage() {
                   <label className="block text-sm font-medium text-foreground/70 mb-1 ml-1">Semester *</label>
                   <select 
                     {...register("semester")}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-primary transition-colors appearance-none shadow-sm"
                   >
                     <option value="">Select Semester</option>
                     {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s.toString()}>Semester {s}</option>)}

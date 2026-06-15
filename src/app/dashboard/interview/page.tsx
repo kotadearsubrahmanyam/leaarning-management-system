@@ -157,13 +157,13 @@ export default function InterviewSetupPage() {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g. Data Structures, React.js, System Design"
-              className="w-full bg-slate-50 border border-slate-300 dark:bg-white/5 dark:border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-800 dark:text-white"
+              className="w-full bg-white/50 backdrop-blur-sm border border-slate-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-800"
             />
           </div>
 
-          <div className="glass p-6 rounded-2xl">
-            <h2 className="text-xl font-semibold mb-4 text-foreground">Instructions & Proctoring</h2>
-            <ul className="space-y-3 text-sm text-foreground/70">
+          <div className="glass p-6 rounded-2xl border border-slate-300">
+            <h2 className="text-xl font-bold mb-4 text-slate-800">Instructions & Proctoring</h2>
+            <ul className="space-y-3 text-sm text-slate-600 font-medium">
               <li className="flex items-start gap-2">
                 <span className="text-primary font-bold">•</span>
                 <span>Speak clearly. The AI will listen and auto-submit your answer when you pause.</span>
@@ -186,8 +186,8 @@ export default function InterviewSetupPage() {
 
         {/* Right Side: Media Preview */}
         <div className="space-y-6">
-          <div className="glass p-6 rounded-2xl">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2 text-foreground">
+          <div className="glass p-6 rounded-2xl border border-slate-300">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-slate-800">
               <Settings className="w-5 h-5" /> Equipment Check
             </h2>
             
@@ -213,9 +213,9 @@ export default function InterviewSetupPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {hasVideo ? <Video className="w-5 h-5 text-emerald-500" /> : <VideoOff className="w-5 h-5 text-red-500" />}
-                    <span className="text-sm font-medium">Camera</span>
+                    <span className="text-sm font-semibold text-slate-700">Camera</span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${hasVideo ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                  <span className={`text-xs px-2 py-1 rounded-full font-bold ${hasVideo ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                     {hasVideo ? 'Ready' : 'Missing'}
                   </span>
                 </div>
@@ -223,7 +223,7 @@ export default function InterviewSetupPage() {
                   <select 
                     value={selectedVideoDevice} 
                     onChange={handleVideoChange}
-                    className="w-full text-sm bg-slate-50 border border-slate-300 dark:bg-white/5 dark:border-white/10 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full text-sm bg-white/50 backdrop-blur-sm border border-slate-300 rounded-lg p-2 focus:outline-none focus:border-primary text-slate-800"
                   >
                     {videoDevices.map(device => (
                       <option key={device.deviceId} value={device.deviceId}>
@@ -239,9 +239,9 @@ export default function InterviewSetupPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {hasAudio ? <Mic className="w-5 h-5 text-emerald-500" /> : <MicOff className="w-5 h-5 text-red-500" />}
-                    <span className="text-sm font-medium">Microphone</span>
+                    <span className="text-sm font-semibold text-slate-700">Microphone</span>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${hasAudio ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+                  <span className={`text-xs px-2 py-1 rounded-full font-bold ${hasAudio ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                     {hasAudio ? 'Ready' : 'Missing'}
                   </span>
                 </div>
@@ -249,7 +249,7 @@ export default function InterviewSetupPage() {
                   <select 
                     value={selectedAudioDevice} 
                     onChange={handleAudioChange}
-                    className="w-full text-sm bg-slate-50 border border-slate-300 dark:bg-white/5 dark:border-white/10 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full text-sm bg-white/50 backdrop-blur-sm border border-slate-300 rounded-lg p-2 focus:outline-none focus:border-primary text-slate-800"
                   >
                     {audioDevices.map(device => (
                       <option key={device.deviceId} value={device.deviceId}>

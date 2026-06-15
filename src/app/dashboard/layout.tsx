@@ -41,7 +41,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div 
+      className="min-h-screen relative overflow-hidden text-slate-800"
+      style={{
+        background: "linear-gradient(135deg, #DBEAFE 0%, #EDE9FE 50%, #F8FAFC 100%)"
+      }}
+    >
       <AnimatedBackgroundPattern />
       <Sidebar 
         role={authData.data.user.role} 

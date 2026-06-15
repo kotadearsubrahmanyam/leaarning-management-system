@@ -29,6 +29,7 @@ export async function GET(req: Request) {
         createdAt: courses.createdAt,
         teacherName: users.name,
         status: enrollments.status,
+        credits: courses.credits,
       })
       .from(enrollments)
       .innerJoin(courses, eq(enrollments.courseId, courses.id))

@@ -4,27 +4,27 @@
 
 @layer base {
   :root {
-    --background: 60 4.8% 95.9%; /* Warm Pearl */
-    --foreground: 244 47% 20%; /* Deep Indigo */
+    --background: 240 10% 99%; /* Soft off-white */
+    --foreground: 224 71.4% 4.1%; /* Dark slate */
 
-    --card: 0 0% 100%;
-    --card-foreground: 244 47% 20%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 224 71.4% 4.1%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 244 47% 20%;
+    --popover-foreground: 224 71.4% 4.1%;
 
-    --secondary: 222 47% 11%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 224 71.4% 4.1%;
 
-    --muted: 60 4.8% 90%;
-    --muted-foreground: 244 47% 40%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 14% 91%;
-    --input: 220 14% 91%;
-    --ring: 271 91% 65%;
+    --border: 220 14.3% 95.9%;
+    --input: 220 14.3% 95.9%;
+    --ring: 262.1 83.3% 57.8%;
 
     --primary: 271 91% 65%; /* Vibrant Purple */
     --primary-foreground: 0 0% 100%;
@@ -73,16 +73,25 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground bg-[#F8FAFC];
+    @apply bg-background text-foreground;
   }
   h1, h2, h3, h4, h5, h6,
   h1.text-primary, h2.text-primary, h3.text-primary, h4.text-primary, h5.text-primary, h6.text-primary {
-    color: #0F172A !important;
+    color: #111827 !important;
   }
-  select {
+  input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea, select {
     background-color: #ffffff !important;
     color: #0f172a !important;
-    border-color: #cbd5e1 !important;
+    border: 1px solid #94a3b8 !important;
+    transition: all 0.25s ease !important;
+  }
+  input[type="text"]:hover, input[type="number"]:hover, input[type="email"]:hover, input[type="password"]:hover, textarea:hover, select:hover {
+    border-color: #7c3aed !important;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
+    outline: none !important;
+    border-color: #6d28d9 !important;
+    box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.15) !important;
   }
   select option {
     background-color: #ffffff !important;
@@ -92,8 +101,94 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white rounded-[20px] border border-[#CBD5E1] shadow-[0_8px_30px_rgba(15,23,42,0.03),0_0_15px_rgba(16,185,129,0.02)] transition-all duration-300 hover:shadow-[0_20px_40px_rgba(15,23,42,0.06),0_0_30px_rgba(16,185,129,0.12)] hover:-translate-y-1 hover:scale-[1.005];
+    position: relative !important;
+    background: #FFFFFF !important;
+    border: 1.5px solid rgba(139, 92, 246, 0.25) !important;
+    box-shadow: 
+      inset 0 1.5px 0 0 rgba(255, 255, 255, 0.95),
+      0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+      0 0 15px rgba(139, 92, 246, 0.12) !important;
+    border-radius: 20px !important;
+    transition: all 0.3s ease !important;
+    color: #1e293b !important;
   }
+  
+  .glass::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.7),
+      transparent
+    );
+    transform: translateX(-150%) skewX(-25deg);
+    pointer-events: none;
+    z-index: 1;
+    clip-path: inset(0 round 20px);
+    transition: transform 0s ease;
+  }
+  
+  .glass::after {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 21px;
+    background: linear-gradient(
+      135deg,
+      #8B5CF6,
+      #A855F7,
+      #3B82F6,
+      #C084FC
+    );
+    opacity: 0.15;
+    filter: blur(12px);
+    z-index: -1;
+    pointer-events: none;
+    transition: all 0.3s ease;
+  }
+  
+  .glass:hover {
+    border-color: rgba(139, 92, 246, 0.45) !important;
+    box-shadow: 
+      inset 0 1.5px 0 0 rgba(255, 255, 255, 0.95),
+      0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+      0 0 20px rgba(139, 92, 246, 0.18) !important;
+  }
+  
+  .glass:hover::after {
+    opacity: 0.20;
+  }
+
+  .glass:active,
+  .glass:focus-within {
+    transform: translateY(-2px) scale(0.99) !important;
+    border: 2px solid rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 
+      inset 0 1.5px 0 0 rgba(255, 255, 255, 0.95),
+      0 0 0 1px rgba(255, 255, 255, 0.8) inset,
+      0 0 25px rgba(139, 92, 246, 0.25),
+      0 0 50px rgba(168, 85, 247, 0.20),
+      0 0 80px rgba(59, 130, 246, 0.15) !important;
+  }
+
+  .glass:active::before,
+  .glass:focus-within::before {
+    transform: translateX(100%) skewX(-25deg);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass:active::after,
+  .glass:focus-within::after {
+    opacity: 0.50;
+    filter: blur(16px);
+    inset: -3px;
+  }
+  
   .glass-dark {
     @apply bg-black/30 backdrop-blur-md border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.4)];
   }
@@ -130,4 +225,78 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+@keyframes float-blob-1 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(15px, -20px) scale(1.05);
+  }
+}
+@keyframes float-blob-2 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(-15px, 20px) scale(0.95);
+  }
+}
+@keyframes float-blob-3 {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  50% {
+    transform: translate(15px, -15px) scale(1.02);
+  }
+}
+@keyframes float-particle {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.15;
+  }
+  90% {
+    opacity: 0.15;
+  }
+  100% {
+    transform: translateY(-80px) translateX(30px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.animate-float-blob-1 {
+  animation: float-blob-1 20s ease-in-out infinite;
+}
+.animate-float-blob-2 {
+  animation: float-blob-2 25s ease-in-out infinite;
+}
+.animate-float-blob-3 {
+  animation: float-blob-3 18s ease-in-out infinite;
+}
+
+@keyframes shine-sweep {
+  0% {
+    transform: translateX(-150%) skewX(-25deg);
+  }
+  100% {
+    transform: translateX(100%) skewX(-25deg);
+  }
+}
+
+/* Override global input/textarea rules for AI prompt box to ensure clean layout */
+.glass textarea,
+textarea.flex {
+  border: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+textarea.flex:focus,
+textarea.flex:hover {
+  border: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }

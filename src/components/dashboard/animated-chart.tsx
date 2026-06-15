@@ -26,11 +26,11 @@ interface AnimatedChartProps {
 const CustomTooltip = ({ active, payload, label, unit }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="p-3 rounded-xl border border-slate-800/60 shadow-xl bg-[#0F172A] text-white min-w-[120px]">
-        <p className="text-xs text-slate-400 font-semibold mb-1">{label}</p>
+      <div className="p-3 rounded-xl border border-slate-200 shadow-xl bg-white text-slate-800 min-w-[120px]">
+        <p className="text-xs text-slate-500 font-semibold mb-1">{label}</p>
         <div className="flex items-center space-x-2">
           <div className="w-2.5 h-2.5 rounded-full bg-[#10B981] shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-          <p className="text-sm text-white font-bold">
+          <p className="text-sm text-slate-800 font-bold">
             {payload[0].value}{unit || ""}
           </p>
         </div>

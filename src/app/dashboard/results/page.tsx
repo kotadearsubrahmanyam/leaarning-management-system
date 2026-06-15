@@ -538,11 +538,11 @@ export default function ResultsPage() {
 
         {/* TAB CONTENT: Subject Marks */}
         {adminTab === "subjects" && (
-          <div className="bg-white rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
+          <div className="glass rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider border-b border-slate-300">
+                  <tr className="bg-slate-50/40 text-slate-500 font-bold text-xs uppercase tracking-wider border-b border-slate-300">
                     <th className="p-4 pl-6">Roll Number</th>
                     <th className="p-4">Student</th>
                     <th className="p-4 text-center">Semester</th>
@@ -627,11 +627,11 @@ export default function ResultsPage() {
 
         {/* TAB CONTENT: Publishing & GPA Overrides */}
         {adminTab === "publish" && (
-          <div className="bg-white rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
+          <div className="glass rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-wider border-b border-slate-300">
+                  <tr className="bg-slate-50/40 text-slate-500 font-bold text-xs uppercase tracking-wider border-b border-slate-300">
                     <th className="p-4 pl-6">Roll Number</th>
                     <th className="p-4">Student Name</th>
                     <th className="p-4 text-center">Semester</th>
@@ -702,7 +702,7 @@ export default function ResultsPage() {
                             </button>
                             <button
                               onClick={() => openOverrideModal(g.userId, g.studentName, g.semester)}
-                              className="px-3 py-1.5 border border-slate-300 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                              className="px-3 py-1.5 border border-slate-300 hover:border-slate-300 bg-white/50 hover:bg-slate-50/50 backdrop-blur-sm text-slate-600 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
                             >
                               <Sliders size={14} /> Set GPAs
                             </button>
@@ -1023,7 +1023,7 @@ export default function ResultsPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass p-12 rounded-3xl border border-white/10 text-center max-w-md mx-auto mt-12 shadow-xl bg-white flex flex-col items-center"
+          className="glass p-12 rounded-3xl border border-slate-300 text-center max-w-md mx-auto mt-12 shadow-xl flex flex-col items-center"
         >
           <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 shadow-inner">
             <Award size={36} className="text-slate-300" />
@@ -1064,7 +1064,7 @@ export default function ResultsPage() {
               className={`relative px-6 py-3 rounded-full font-extrabold transition-all whitespace-nowrap text-sm ${
                 selectedSemester === sem
                   ? "bg-[#10B981] text-white shadow-[0_4px_15px_rgba(16,185,129,0.35)] scale-[1.03]"
-                  : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
+                  : "bg-white/50 backdrop-blur-sm text-slate-600 border border-slate-300 hover:bg-slate-50/70"
               }`}
             >
               Semester {sem}
@@ -1084,34 +1084,34 @@ export default function ResultsPage() {
             >
               {/* Semester Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
                   <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
                     <TrendingUp size={12} className="text-[#10B981]" /> SGPA
                   </span>
                   <span className="text-3xl font-black text-slate-800 mt-2">{selectedSummary.sgpa}</span>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
                   <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
                     <GraduationCap size={12} className="text-[#10B981]" /> CGPA
                   </span>
                   <span className="text-3xl font-black text-slate-800 mt-2">{selectedSummary.cgpa}</span>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
                   <span className="text-xs text-slate-400 font-bold flex items-center gap-1">
                     <BookOpen size={12} className="text-[#10B981]" /> Total Credits
                   </span>
                   <span className="text-3xl font-black text-slate-800 mt-2">{selectedSummary.totalCredits}</span>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
                   <span className="text-xs text-slate-400 font-bold">Passed</span>
                   <span className="text-3xl font-black text-green-500 mt-2">{selectedSummary.passedCount}</span>
                 </div>
-                <div className="bg-white p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
+                <div className="glass p-5 rounded-2xl border border-slate-300 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
                   <span className="text-xs text-slate-400 font-bold">Status</span>
                   <span className={`text-sm font-bold mt-2.5 px-3 py-1 rounded-full text-center border ${
                     selectedSummary.status === "PASS"
-                      ? "bg-green-50 text-green-600 border-green-200"
-                      : "bg-red-50 text-red-600 border-red-200"
+                      ? "bg-green-50/50 text-green-600 border-green-200"
+                      : "bg-red-50/50 text-red-600 border-red-200"
                   }`}>
                     {selectedSummary.status}
                   </span>
@@ -1119,15 +1119,15 @@ export default function ResultsPage() {
               </div>
 
               {/* Subject Details Table */}
-              <div className="bg-white rounded-3xl border border-slate-300 overflow-hidden shadow-sm">
-                <div className="p-5 bg-slate-50 border-b border-slate-300 flex items-center gap-2.5">
+              <div className="glass rounded-3xl border border-slate-300 overflow-hidden shadow-sm">
+                <div className="p-5 bg-slate-50/40 backdrop-blur-sm border-b border-slate-300 flex items-center gap-2.5">
                   <GraduationCap className="text-[#10B981]" size={22} />
                   <h3 className="font-bold text-slate-800">Semester {selectedSemester} - Grade Sheet</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
-                      <tr className="bg-slate-50 text-slate-400 font-bold text-xs uppercase tracking-wider border-b border-slate-300">
+                      <tr className="bg-slate-50/40 text-slate-400 font-bold text-xs uppercase tracking-wider border-b border-slate-300">
                         <th className="p-4 pl-6">Subject Code</th>
                         <th className="p-4">Subject Name</th>
                         <th className="p-4 text-center">Internal Marks</th>

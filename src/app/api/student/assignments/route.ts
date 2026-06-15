@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { assignments, submissions, courses, enrollments } from "@/db/schema";
+import { assignments, submissions, courses, enrollments, users } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -24,9 +24,13 @@ export async function GET() {
         courseName: courses.title,
         submissionStatus: submissions.status,
         marks: submissions.marks,
+        submissionContent: submissions.content,
+        submissionFileUrl: submissions.fileUrl,
+        facultyName: users.name,
       })
       .from(assignments)
       .innerJoin(courses, eq(assignments.courseId, courses.id))
+      .innerJoin(users, eq(courses.teacherId, users.id))
       .innerJoin(enrollments, eq(enrollments.courseId, courses.id))
       .leftJoin(submissions, and(
         eq(submissions.assignmentId, assignments.id),

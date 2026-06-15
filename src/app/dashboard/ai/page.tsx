@@ -27,7 +27,7 @@ export default function DashboardAiPage() {
   const { id, role } = authData.data.user;
 
   return (
-    <div className="-mt-8 -mb-6 -mx-6 md:-mx-8 h-screen flex flex-col bg-background text-foreground pt-8">
+    <div className="-mt-8 -mb-6 -mx-6 md:-mx-8 h-screen flex flex-col bg-transparent text-foreground pt-8">
       <div className="flex-1 min-h-0 w-full max-w-4xl mx-auto flex flex-col relative">
         <ChatAssistant userId={id} role={role} />
       </div>

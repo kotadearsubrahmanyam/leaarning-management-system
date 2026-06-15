@@ -436,8 +436,8 @@ Thank you for your payment. Keep this copy for records.`;
 
         {/* TAB 1: Verify Student Payments */}
         {adminTab === "verify" && (
-          <div className="bg-white rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-slate-100 bg-slate-50 font-bold text-slate-700">
+          <div className="glass rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-slate-100 bg-slate-50/40 backdrop-blur-sm font-bold text-slate-700">
               Recent Transactions Ledger
             </div>
             <div className="overflow-x-auto">
@@ -506,7 +506,7 @@ Thank you for your payment. Keep this copy for records.`;
         {adminTab === "manage" && (
           <div className="space-y-6">
             {/* Student Search and Semester Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white p-6 rounded-2xl border border-slate-300 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 glass p-6 rounded-2xl border border-slate-300 shadow-sm">
               <div className="relative col-span-2">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Select Student (Search by Name or Roll Number)
@@ -566,8 +566,8 @@ Thank you for your payment. Keep this copy for records.`;
 
             {/* Fee Items Table for Selected Student */}
             {selectedStudentId ? (
-              <div className="bg-white rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
-                <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div className="glass rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/40 backdrop-blur-sm flex items-center justify-between">
                   <div className="font-bold text-slate-700 flex items-center gap-2">
                     <User size={18} className="text-[#10B981]" />
                     Semester {adminSelectedSemester} Fee Items Structure
@@ -649,7 +649,7 @@ Thank you for your payment. Keep this copy for records.`;
                 </div>
               </div>
             ) : (
-              <div className="bg-white border border-slate-300 rounded-2xl p-12 text-center text-slate-400 shadow-sm">
+              <div className="glass border border-slate-300 rounded-2xl p-12 text-center text-slate-400 shadow-sm">
                 <Search size={48} className="mx-auto text-slate-200 mb-4" />
                 <h3 className="font-bold text-slate-700 text-lg mb-1">No Student Selected</h3>
                 <p className="text-sm">Please search and select a student above to review or configure their fee schedules.</p>
@@ -804,7 +804,7 @@ Thank you for your payment. Keep this copy for records.`;
               className={`relative px-6 py-3 rounded-full font-extrabold transition-all whitespace-nowrap text-sm flex items-center gap-2 border ${
                 selectedSemester === sem
                   ? "bg-[#10B981] text-white shadow-[0_4px_15px_rgba(16,185,129,0.35)] scale-[1.03] border-transparent"
-                  : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                  : "bg-white/50 backdrop-blur-sm text-slate-600 border-slate-300 hover:bg-slate-50/70"
               }`}
             >
               Semester {sem}
@@ -863,7 +863,7 @@ Thank you for your payment. Keep this copy for records.`;
           )}
 
           {/* Progress Visualization */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-300 shadow-sm">
+          <div className="glass p-6 rounded-2xl border border-slate-300 shadow-sm">
             <div className="flex justify-between items-center mb-3">
               <span className="text-xs font-black text-slate-800 uppercase tracking-wider">Semester Payment Progress</span>
               <span className="text-sm font-black text-slate-950">{paymentProgress}% Paid</span>
@@ -890,7 +890,7 @@ Thank you for your payment. Keep this copy for records.`;
                 {currentSemesterFees.map((f: any) => {
                   const pending = f.amount - f.paidAmount;
                   return (
-                    <div key={f.id} className="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm flex flex-col justify-between space-y-3 hover:shadow-md transition-shadow">
+                    <div key={f.id} className="glass p-5 rounded-2xl border border-slate-300 shadow-sm flex flex-col justify-between space-y-3 hover:shadow-md transition-shadow">
                       <div>
                         <div className="text-xs font-black text-slate-800 uppercase tracking-wider">{FEE_TYPE_LABELS[f.feeType] || f.feeType}</div>
                         <div className="text-lg font-black text-slate-950 mt-1">₹{f.amount.toLocaleString()}</div>
@@ -919,14 +919,14 @@ Thank you for your payment. Keep this copy for records.`;
           )}
 
           {/* Itemized Fee Breakdown Table */}
-          <div className="bg-white rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-slate-100 bg-slate-50 font-extrabold text-slate-900">
+          <div className="glass rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-slate-100 bg-slate-50/40 backdrop-blur-sm font-extrabold text-slate-900">
               Breakdown Details Table
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[650px]">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-800 font-black text-[11px] uppercase tracking-wider border-b border-slate-300">
+                  <tr className="bg-slate-50/40 text-slate-800 font-black text-[11px] uppercase tracking-wider border-b border-slate-300">
                     <th className="p-4 pl-6">Fee Category</th>
                     <th className="p-4 text-center">Allocated Amount</th>
                     <th className="p-4 text-center">Paid Amount</th>
@@ -990,7 +990,7 @@ Thank you for your payment. Keep this copy for records.`;
         {/* RIGHT COLUMN: Fee Categories breakdown card & receipts */}
         <div className="space-y-6">
           {/* Detailed Fee Structure Card */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-300 shadow-sm relative overflow-hidden">
+          <div className="glass p-6 rounded-2xl border border-slate-300 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#10B981]/10 to-transparent rounded-full -mr-8 -mt-8" />
             <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
               <FileText className="text-[#10B981]" size={18} />
@@ -1038,7 +1038,7 @@ Thank you for your payment. Keep this copy for records.`;
           </div>
 
           {/* Pending Payments Breakdown Section */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-300 shadow-sm space-y-4">
+          <div className="glass p-6 rounded-2xl border border-slate-300 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
               <AlertTriangle className="text-amber-500" size={18} /> Pending Payments
             </h3>
@@ -1073,7 +1073,7 @@ Thank you for your payment. Keep this copy for records.`;
           </div>
 
           {/* Payment History ledger */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-300 shadow-sm">
+          <div className="glass p-5 rounded-2xl border border-slate-300 shadow-sm">
             <h3 className="font-bold text-slate-800 text-sm mb-4">Paid Transaction Ledger</h3>
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {payments.filter((p: any) => p.status === "PAID" || p.status === "VERIFIED" || p.status === "COMPLETED").length === 0 ? (

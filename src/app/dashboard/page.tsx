@@ -109,12 +109,7 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto relative z-10">
-      {/* Animated Soft Gradient Background */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-background/50">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob" />
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-teal-500/5 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob" style={{ animationDelay: "2s" }} />
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-slate-400/5 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob" style={{ animationDelay: "4s" }} />
-      </div>
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}

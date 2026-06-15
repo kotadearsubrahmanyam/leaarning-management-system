@@ -106,7 +106,7 @@ export default function AttendancePage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-slate-50 p-4 rounded-2xl border border-slate-300"
+                className="bg-slate-100/40 backdrop-blur-sm p-4 rounded-2xl border border-slate-300"
               >
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold text-sm truncate pr-4">{course}</span>
@@ -137,7 +137,7 @@ export default function AttendancePage() {
       <h2 className="text-xl font-bold text-foreground mb-4 pl-2">Detailed Log</h2>
 
       <div className="glass rounded-3xl border border-slate-300 overflow-hidden">
-        <div className="grid grid-cols-3 bg-slate-50 p-4 font-semibold text-foreground/80 border-b border-slate-300">
+        <div className="grid grid-cols-3 bg-slate-100/40 backdrop-blur-sm p-4 font-semibold text-foreground/80 border-b border-slate-300">
           <div>Course</div>
           <div>Date</div>
           <div>Status</div>
@@ -153,7 +153,7 @@ export default function AttendancePage() {
             {attendance.map((record: any, i: number) => (
               <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                key={record.id} className="grid grid-cols-3 p-4 items-center hover:bg-slate-50 transition-colors"
+                key={record.id} className="grid grid-cols-3 p-4 items-center hover:bg-white/40 transition-colors"
               >
                 <div className="font-medium">{record.courseName}</div>
                 <div className="text-sm text-foreground/60">{new Date(record.date).toLocaleDateString()}</div>
