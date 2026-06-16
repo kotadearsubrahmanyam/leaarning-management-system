@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, courses, enrollments, materials, materialProgress, assignments, submissions } from "@/db/schema";
+import { users, courses, enrollments, materials, materialProgress, assignments, submissions, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray, and } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -55,61 +55,78 @@ export async function GET() {
         enrollmentTrends
       };
     } else if (role === "TEACHER") {
-      const [coursesCreatedRes] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(courses)
-        .where(eq(courses.teacherId, id as string));
-
-      const [totalStudentsRes] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(enrollments)
-        .innerJoin(courses, eq(enrollments.courseId, courses.id))
-        .where(eq(courses.teacherId, id as string));
-
-      const [totalAssignmentsRes] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(assignments)
-        .innerJoin(courses, eq(assignments.courseId, courses.id))
-        .where(eq(courses.teacherId, id as string));
-
-      const [pendingEvaluationsRes] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(submissions)
-        .innerJoin(assignments, eq(submissions.assignmentId, assignments.id))
-        .innerJoin(courses, eq(assignments.courseId, courses.id))
-        .where(sql`${courses.teacherId} = ${id as string} AND ${submissions.status} = 'SUBMITTED'`);
-
-      const studentEnrollmentHistory = await db
+      // Find all courseFaculty IDs and course IDs for this teacher
+      const teacherFaculties = await db
         .select({
-          name: sql<string>`to_char(${enrollments.createdAt}, 'Mon')`,
-          value: sql<number>`count(*)::int`,
+          cfId: courseFaculty.id,
+          courseId: courseFaculty.courseId
         })
-        .from(enrollments)
-        .innerJoin(courses, eq(enrollments.courseId, courses.id))
-        .where(eq(courses.teacherId, id as string))
-        .groupBy(sql`to_char(${enrollments.createdAt}, 'Mon'), extract(month from ${enrollments.createdAt})`)
-        .orderBy(sql`extract(month from ${enrollments.createdAt})`);
+        .from(courseFaculty)
+        .where(eq(courseFaculty.teacherId, id as string));
 
-      const coursePopularity = await db
-        .select({
-          name: courses.title,
-          value: sql<number>`count(${enrollments.id})::int`,
-        })
-        .from(courses)
-        .leftJoin(enrollments, eq(enrollments.courseId, courses.id))
-        .where(eq(courses.teacherId, id as string))
-        .groupBy(courses.id, courses.title)
-        .orderBy(sql`count(${enrollments.id}) DESC`)
-        .limit(5);
+      const cfIds = teacherFaculties.map(f => f.cfId);
+      const courseIds = Array.from(new Set(teacherFaculties.map(f => f.courseId)));
 
-      stats = {
-        coursesCreated: coursesCreatedRes?.count || 0,
-        totalStudentsEnrolled: totalStudentsRes?.count || 0,
-        studentEnrollmentHistory,
-        coursePopularity,
-        totalAssignments: totalAssignmentsRes?.count || 0,
-        pendingEvaluations: pendingEvaluationsRes?.count || 0,
-      };
+      if (cfIds.length === 0) {
+        stats = {
+          coursesCreated: 0,
+          totalStudentsEnrolled: 0,
+          studentEnrollmentHistory: [],
+          coursePopularity: [],
+          totalAssignments: 0,
+          pendingEvaluations: 0,
+        };
+      } else {
+        stats.coursesCreated = courseIds.length;
+
+        const [totalStudentsRes] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(enrollments)
+          .where(inArray(enrollments.courseFacultyId, cfIds));
+        stats.totalStudentsEnrolled = totalStudentsRes?.count || 0;
+
+        const [totalAssignmentsRes] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(assignments)
+          .where(inArray(assignments.courseId, courseIds));
+        stats.totalAssignments = totalAssignmentsRes?.count || 0;
+
+        // For pending evaluations, we just count submitted submissions for assignments in courseIds
+        const pendingEvaluationsRes = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(submissions)
+          .innerJoin(assignments, eq(submissions.assignmentId, assignments.id))
+          .where(
+            and(
+              inArray(assignments.courseId, courseIds),
+              eq(submissions.status, "SUBMITTED")
+            )
+          );
+        stats.pendingEvaluations = pendingEvaluationsRes[0]?.count || 0;
+
+        stats.studentEnrollmentHistory = await db
+          .select({
+            name: sql<string>`to_char(${enrollments.createdAt}, 'Mon')`,
+            value: sql<number>`count(*)::int`,
+          })
+          .from(enrollments)
+          .where(inArray(enrollments.courseFacultyId, cfIds))
+          .groupBy(sql`to_char(${enrollments.createdAt}, 'Mon'), extract(month from ${enrollments.createdAt})`)
+          .orderBy(sql`extract(month from ${enrollments.createdAt})`);
+
+        stats.coursePopularity = await db
+          .select({
+            name: courses.title,
+            value: sql<number>`count(${enrollments.id})::int`,
+          })
+          .from(courses)
+          .innerJoin(courseFaculty, eq(courseFaculty.courseId, courses.id))
+          .leftJoin(enrollments, eq(enrollments.courseFacultyId, courseFaculty.id))
+          .where(eq(courseFaculty.teacherId, id as string))
+          .groupBy(courses.id, courses.title)
+          .orderBy(sql`count(${enrollments.id}) DESC`)
+          .limit(5);
+      }
     } else {
       // STUDENT
       const [enrolledCoursesRes] = await db

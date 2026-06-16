@@ -1,0 +1,9 @@
+import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { courses, courseFaculty, enrollments, assignments, submissions, users } from "@/db/schema";
+import { eq, inArray, sql, and } from "drizzle-orm";
+import { verifyJwt } from "@/lib/jwt";
+import { cookies } from "next/headers";
+import { successResponse, errorResponse } from "@/lib/api-response";
+
+// ... skipping ...

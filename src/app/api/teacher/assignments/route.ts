@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { assignments, courses } from "@/db/schema";
+import { assignments, courses, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 
 async function isTeacherOfCourse(teacherId: string, courseId: string) {
   const course = await db.query.courses.findFirst({
     where: eq(courses.id, courseId)
   });
-  return course?.teacherId === teacherId;
+  if (course?.teacherId === teacherId) return true;
+
+  const faculty = await db.query.courseFaculty.findFirst({
+    where: and(eq(courseFaculty.courseId, courseId), eq(courseFaculty.teacherId, teacherId))
+  });
+  return !!faculty;
 }
 
 export async function GET(req: Request) {
@@ -22,10 +27,18 @@ export async function GET(req: Request) {
     const payload = await verifyJwt(token);
     if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
 
+    const ownedCourses = await db.select({ id: courses.id }).from(courses).where(eq(courses.teacherId, payload.id as string));
+    const facultyCourses = await db.select({ id: courseFaculty.courseId }).from(courseFaculty).where(eq(courseFaculty.teacherId, payload.id as string));
+    const allCourseIds = Array.from(new Set([...ownedCourses.map(c => c.id), ...facultyCourses.map(c => c.id)]));
+
+    if (allCourseIds.length === 0) {
+      return successResponse({ assignments: [] }, "Fetched assignments successfully", 200);
+    }
+
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
 
-    const conditions = [eq(courses.teacherId, payload.id as string)];
+    const conditions = [inArray(assignments.courseId, allCourseIds)];
     if (courseId) {
        conditions.push(eq(assignments.courseId, courseId));
     }

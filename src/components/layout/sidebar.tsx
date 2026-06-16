@@ -9,7 +9,7 @@ import {
   BookOpen, LayoutDashboard, Users, Settings, Sparkles, LogOut, Compass, 
   DownloadCloud, CreditCard, Calendar, Award, FileEdit, Shield, Layers, 
   MessageSquare, Clock, ClipboardList, CheckSquare, BarChart, FileCheck, 
-  Library, Menu, X, User
+  Library, Menu, X, User, UserCircle, Mic
 } from "lucide-react";
 
 interface SidebarProps {
@@ -35,9 +35,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
 
   const getLinks = () => {
     const base = [
-      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-      { href: "/dashboard/ai", icon: Sparkles, label: "AI Chat" },
-      { href: "/dashboard/interview", icon: MessageSquare, label: "AI Interview" },
+      { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
     ];
     
     if (role === "ADMIN") {
@@ -57,8 +55,8 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
       return [
         ...base, 
         { href: "/dashboard/teacher/students", icon: Users, label: "Students" },
-        { href: "/dashboard/courses", icon: BookOpen, label: "My Courses" },
-        { href: "/dashboard/teacher/syllabus", icon: ClipboardList, label: "Syllabus" },
+        { href: "/dashboard/teacher/my-courses", icon: BookOpen, label: "My Courses" },
+        { href: "/dashboard/teacher/quizzes", icon: Sparkles, label: "AI Quizzes" },
         { href: "/dashboard/teacher/assignments", icon: FileEdit, label: "Assignments" },
         { href: "/dashboard/teacher/progress", icon: BarChart, label: "Progress" },
         { href: "/dashboard/teacher/attendance", icon: Calendar, label: "Attendance" },
@@ -69,6 +67,9 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
     } else {
       return [
         ...base, 
+        { href: "/dashboard/interview", icon: Mic, label: "AI Interview" },
+        { href: "/dashboard/student/quizzes", icon: Sparkles, label: "Practice Quizzes" },
+        { href: "/dashboard/student/mentoring", icon: Sparkles, label: "Learning Paths" },
         { href: "/dashboard/my-courses", icon: BookOpen, label: "My Courses" },
         { href: "/dashboard/courses", icon: Compass, label: "Explore" },
         { href: "/dashboard/assignments", icon: FileEdit, label: "Assignments" },
@@ -97,7 +98,19 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
       }}
     >
       {/* Header */}
-      <div className={cn("flex items-center border-b border-purple-600/50 py-4 shrink-0", isCollapsed ? "flex-col gap-4" : "justify-between px-4 h-20")}>
+      <div className={cn("flex flex-col border-b border-purple-600/50 py-4 shrink-0 px-4")}>
+        {/* Fixed Menu Button at Topmost Left */}
+        <div className={cn("flex items-center justify-start", !isCollapsed && "mb-4")}>
+          <button
+            onClick={() => setIsCollapsed?.(!isCollapsed)}
+            className="p-2 rounded-lg hover:bg-white/[0.12] text-purple-200 hover:text-white transition-colors shrink-0"
+            title="Toggle Sidebar"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Profile Section */}
         {!isCollapsed && (
           <Link href="/dashboard/profile" className="flex items-center gap-3 group overflow-hidden">
             <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold border border-white/20 group-hover:bg-white/[0.12] transition-colors shrink-0">
@@ -110,20 +123,12 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
           </Link>
         )}
         {isCollapsed && (
-          <Link href="/dashboard/profile" title="Profile">
+          <Link href="/dashboard/profile" title="Profile" className="mx-auto mt-2">
             <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold border border-white/20 hover:bg-white/[0.12] transition-colors shrink-0">
               <User className="h-5 w-5" />
             </div>
           </Link>
         )}
-        <button
-          onClick={() => setIsCollapsed?.(!isCollapsed)}
-          className={cn(
-            "p-2 rounded-lg hover:bg-white/[0.12] text-purple-200 hover:text-white transition-colors shrink-0"
-          )}
-        >
-          {isCollapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
-        </button>
       </div>
 
       {/* Navigation */}

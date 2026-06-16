@@ -11,6 +11,7 @@ export interface Course {
   title: string;
   description: string | null;
   level: string;
+  semester?: number;
   imageUrl: string | null;
   teacherName: string;
   createdAt: string;

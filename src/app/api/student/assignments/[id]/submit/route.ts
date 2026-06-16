@@ -16,12 +16,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     // Verify assignment exists and student is enrolled in the course
     const [assignment] = await db
-      .select({ courseId: assignments.courseId })
+      .select({ courseId: assignments.courseId, dueDate: assignments.dueDate })
       .from(assignments)
       .where(eq(assignments.id, params.id));
 
     if (!assignment) {
       return errorResponse("Assignment not found", 404);
+    }
+
+    if (assignment.dueDate && new Date() > new Date(assignment.dueDate)) {
+      return errorResponse("The deadline for this assignment has passed.", 403);
     }
 
     const [enrollment] = await db
@@ -36,6 +40,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     if (!enrollment) {
       return errorResponse("You are not enrolled in the course for this assignment", 403);
+    }
+
+    const [existingSubmission] = await db
+      .select({ id: submissions.id })
+      .from(submissions)
+      .where(
+        and(
+          eq(submissions.assignmentId, params.id),
+          eq(submissions.userId, payload.id as string)
+        )
+      );
+
+    if (existingSubmission) {
+      return errorResponse("You have already submitted this assignment.", 403);
     }
 
     const body = await req.json();

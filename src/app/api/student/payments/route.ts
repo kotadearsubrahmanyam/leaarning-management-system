@@ -171,6 +171,9 @@ export async function POST(req: Request) {
     }
 
     const payAmount = parseInt(amount);
+    if (isNaN(payAmount) || payAmount <= 0) {
+      return errorResponse("Invalid payment amount. Amount must be greater than zero.", 400);
+    }
 
     // Fetch the target FeeStructure item
     const feeItem = await db.query.feeStructure.findFirst({
@@ -268,6 +271,10 @@ export async function PUT(req: Request) {
 
     if (!existingPayment) {
       return errorResponse("Payment not found", 404);
+    }
+    
+    if (existingPayment.status === "PAID") {
+      return errorResponse("Payment is already verified and processed.", 400);
     }
 
     const [updated] = await db.update(payments)

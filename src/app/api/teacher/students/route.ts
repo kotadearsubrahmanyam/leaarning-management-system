@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, enrollments, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -15,9 +15,22 @@ export async function GET() {
     const payload = await verifyJwt(token);
     if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
 
+    // Get all student IDs enrolled in the teacher's courses
+    const teacherEnrollments = await db
+      .select({ studentId: enrollments.studentId })
+      .from(enrollments)
+      .innerJoin(courseFaculty, eq(enrollments.courseFacultyId, courseFaculty.id))
+      .where(eq(courseFaculty.teacherId, payload.id as string));
+
+    const studentIds = Array.from(new Set(teacherEnrollments.map(e => e.studentId)));
+
+    if (studentIds.length === 0) {
+      return successResponse({ students: [] }, "Fetched students successfully");
+    }
+
     // Fetch all students with their relations
     const studentsData = await db.query.users.findMany({
-      where: eq(users.role, "STUDENT"),
+      where: inArray(users.id, studentIds),
       with: {
         department: true,
         enrollments: {

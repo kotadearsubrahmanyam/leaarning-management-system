@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         const count = studentCountRaw[0]?.count || 0;
         
         const sem = semester || 1;
-        const yearPrefix = 27 - Math.floor(sem / 2);
+        const yearPrefix = 26 - Math.floor((sem - 1) / 2);
         
         generatedRollNumber = `${yearPrefix}${code}${(count + 1).toString().padStart(3, '0')}`;
       }

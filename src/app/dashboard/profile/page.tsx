@@ -38,6 +38,7 @@ import {
   StudentActivityCard,
   ProfileFieldCard,
 } from "@/components/ui/student-portal-cards";
+import { TeacherProfileView } from "./teacher-profile";
 
 const TABS = ["Overview", "Courses", "Results", "Fees", "Documents"];
 
@@ -423,6 +424,10 @@ export default function ProfilePage() {
         </div>
       </div>
     );
+  }
+  
+  if (user.role === "TEACHER") {
+    return <TeacherProfileView user={user} />;
   }
 
   // Print helper

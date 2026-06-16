@@ -102,15 +102,7 @@ export async function GET() {
     const uniqueSemesters = Array.from(new Set(dbResults.map(r => r.semester))).sort((a, b) => a - b);
 
     // 4. Build summaries (calculating or overriding SGPA / CGPA) for each semester
-    const summaries: Record<number, { sgpa: string; cgpa: string; totalCredits: number; passedCount: number; failedCount: number; status: string }> = {};
-
-    // Helper to calculate GPA for a list of results
-    const calculateGpaForResults = (items: typeof dbResults) => {
-      const totalCredits = items.reduce((sum, item) => sum + (item.credits || 0), 0);
-      if (totalCredits === 0) return "0.00";
-      const totalPoints = items.reduce((sum, item) => sum + (getGradePoints(item.grade) * (item.credits || 0)), 0);
-      return (totalPoints / totalCredits).toFixed(2);
-    };
+    const summaries: Record<number, { sgpa: string; cgpa: string; totalCredits: number; passedCount: number; failedCount: number; status: string; backlogCount: number }> = {};
 
     for (const sem of uniqueSemesters) {
       // Find all results for this semester
@@ -118,31 +110,17 @@ export async function GET() {
       const totalCredits = semResults.reduce((sum, r) => sum + (r.credits || 0), 0);
       const passedCount = semResults.filter(r => r.status === "PASS").length;
       const failedCount = semResults.filter(r => r.status === "FAIL").length;
-      const status = failedCount === 0 && semResults.length > 0 ? "PASS" : "FAIL";
 
-      // Check if there is an admin override for SGPA/CGPA
-      const summaryOverride = dbSummaries.find(s => s.semester === sem);
-
-      // SGPA: Use override if present, otherwise calculate
-      let sgpa = summaryOverride?.sgpa || "";
-      if (!sgpa) {
-        sgpa = calculateGpaForResults(semResults);
-      }
-
-      // CGPA: Use override if present, otherwise calculate cumulatively (all published semesters <= current semester)
-      let cgpa = summaryOverride?.cgpa || "";
-      if (!cgpa) {
-        const cumulativeResults = dbResults.filter(r => r.semester <= sem);
-        cgpa = calculateGpaForResults(cumulativeResults);
-      }
+      const summary = dbSummaries.find(s => s.semester === sem);
 
       summaries[sem] = {
-        sgpa,
-        cgpa,
+        sgpa: summary?.sgpa || "0.00",
+        cgpa: summary?.cgpa || "0.00",
         totalCredits,
         passedCount,
         failedCount,
-        status,
+        status: summary?.status || "PASS",
+        backlogCount: summary?.backlogCount || failedCount
       };
     }
 

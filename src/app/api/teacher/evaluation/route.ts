@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { submissions, assignments, courses, users } from "@/db/schema";
+import { submissions, assignments, courses, users, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -64,20 +64,43 @@ export async function PUT(req: Request) {
     if (!submissionId || marks === undefined) return errorResponse("Missing fields", 400);
 
     // Verify ownership
-    const submissionData = await db.select({ courseTeacherId: courses.teacherId })
+    const submissionData = await db.select({ 
+        courseTeacherId: courses.teacherId,
+        courseId: courses.id
+      })
       .from(submissions)
       .innerJoin(assignments, eq(submissions.assignmentId, assignments.id))
       .innerJoin(courses, eq(assignments.courseId, courses.id))
       .where(eq(submissions.id, submissionId))
       .limit(1);
 
-    if (submissionData.length === 0 || submissionData[0].courseTeacherId !== payload.id) {
+    if (submissionData.length === 0) {
+      return errorResponse("Submission not found", 404);
+    }
+
+    let isAuthorized = submissionData[0].courseTeacherId === payload.id;
+    if (!isAuthorized) {
+       const [coTeacher] = await db.select().from(courseFaculty).where(
+         and(
+           eq(courseFaculty.courseId, submissionData[0].courseId),
+           eq(courseFaculty.teacherId, payload.id as string)
+         )
+       );
+       if (coTeacher) isAuthorized = true;
+    }
+
+    if (!isAuthorized) {
       return errorResponse("Forbidden", 403);
+    }
+
+    const marksInt = parseInt(marks);
+    if (isNaN(marksInt) || marksInt < 0 || marksInt > 100) {
+      return errorResponse(`Marks must be between 0 and 100`, 400);
     }
 
     await db.update(submissions)
       .set({ 
-        marks: parseInt(marks),
+        marks: marksInt,
         status: "GRADED" 
       })
       .where(eq(submissions.id, submissionId));

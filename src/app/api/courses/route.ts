@@ -27,16 +27,32 @@ export async function GET(req: Request) {
     const filterTeacher = searchParams.get("teacherOnly") === "true";
 
     let fetchedCourses: any[];
+    let assignedIds = new Set<string>();
 
     if (payload.role === "TEACHER" && filterTeacher) {
-      const teacherCourseIds = await db
-        .select({ courseId: courseFaculty.courseId })
-        .from(courseFaculty)
+      // Get owned courses
+      const ownedCourses = await db.select({ id: courses.id, categoryId: courses.categoryId, semester: courses.semester })
+        .from(courses).where(eq(courses.teacherId, payload.id as string));
+      // Get co-taught courses
+      const facultyCourseList = await db.select({ id: courses.id, categoryId: courses.categoryId, semester: courses.semester })
+        .from(courseFaculty).innerJoin(courses, eq(courseFaculty.courseId, courses.id))
         .where(eq(courseFaculty.teacherId, payload.id as string));
-        
-      const ids = teacherCourseIds.map(t => t.courseId);
       
-      if (ids.length > 0) {
+      const assigned = [...ownedCourses, ...facultyCourseList];
+      assignedIds = new Set(assigned.map(c => c.id));
+
+      if (assigned.length > 0) {
+        const categories = Array.from(new Set(assigned.map(c => c.categoryId).filter(Boolean))) as string[];
+        const relevantSemesters = new Set<number>();
+        assigned.forEach(c => {
+           const sem = c.semester;
+           if (sem <= 2) { relevantSemesters.add(1); relevantSemesters.add(2); }
+           else if (sem <= 4) { relevantSemesters.add(3); relevantSemesters.add(4); }
+           else if (sem <= 6) { relevantSemesters.add(5); relevantSemesters.add(6); }
+           else { relevantSemesters.add(7); relevantSemesters.add(8); }
+        });
+        const semestersArr = Array.from(relevantSemesters);
+
         fetchedCourses = await db
           .select({
             id: courses.id,
@@ -54,7 +70,10 @@ export async function GET(req: Request) {
           .from(courses)
           .innerJoin(users, eq(courses.teacherId, users.id))
           .leftJoin(departments, eq(courses.categoryId, departments.id))
-          .where(inArray(courses.id, ids));
+          .where(and(
+            inArray(courses.categoryId, categories),
+            inArray(courses.semester, semestersArr)
+          ));
       } else {
         fetchedCourses = [];
       }
@@ -127,6 +146,7 @@ export async function GET(req: Request) {
       ...course,
       isEnrolled: enrolledIds.includes(course.id),
       subjectCode: "N/A",
+      isAssigned: assignedIds.has(course.id)
     }));
 
     // Group courses by department and semester to assign sequential codes dynamically
