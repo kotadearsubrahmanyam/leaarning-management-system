@@ -88,11 +88,11 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 backdrop-blur-[20px]",
+        "fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300",
         isCollapsed ? "w-20" : "w-64"
       )}
       style={{
-        background: "linear-gradient(180deg, rgba(109, 40, 217, 0.95), rgba(124, 58, 237, 0.90))",
+        background: "linear-gradient(180deg, #6D28D9, #7C3AED)",
         borderRight: "1px solid rgba(255, 255, 255, 0.15)"
       }}
     >
@@ -127,7 +127,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto custom-scrollbar py-6 flex flex-col gap-1 px-4">
+      <nav className="flex-1 overflow-y-auto scrollbar-thin py-6 flex flex-col gap-1 px-4">
         {links.map((link) => {
           const isActive = pathname === link.href;
           return (
@@ -143,7 +143,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
               style={
                 isActive
                   ? {
-                      background: "rgba(255, 255, 255, 0.95)",
+                      background: "#ffffff",
                       color: "#6D28D9",
                       boxShadow: "0 4px 12px rgba(109, 40, 217, 0.15)",
                       border: "1px solid rgba(139, 92, 246, 0.2)",

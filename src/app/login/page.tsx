@@ -605,13 +605,7 @@ export default function LoginPage() {
               {errors.password && <span className="text-xs text-destructive mt-1 block">{errors.password.message}</span>}
             </div>
 
-            <div className="flex items-center justify-between py-1">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="remember" className="border-slate-300" />
-                <Label htmlFor="remember" className="text-xs lg:text-sm font-medium text-slate-600 cursor-pointer">
-                  Remember for 30 days
-                </Label>
-              </div>
+            <div className="flex items-center justify-end py-1">
               <Link href="#" className="text-xs lg:text-sm text-primary hover:underline font-semibold">
                 Forgot password?
               </Link>

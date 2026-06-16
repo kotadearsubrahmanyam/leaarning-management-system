@@ -32,33 +32,7 @@ export function AnimatedBackgroundPattern() {
       style={{
         background: "linear-gradient(135deg, #DBEAFE 0%, #EDE9FE 50%, #F8FAFC 100%)"
       }}
-    >
-      {/* 1. Top Left Glow (#8B5CF6, Opacity 10%, Blur 120px) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#8B5CF6]/10 blur-[120px] animate-float-blob-1 pointer-events-none" />
-      
-      {/* 2. Center Glow (#3B82F6, Opacity 8%, Blur 150px) */}
-      <div className="absolute top-[25%] left-[25%] md:left-[30%] w-[50vw] h-[50vw] rounded-full bg-[#3B82F6]/0.08 blur-[150px] animate-float-blob-2 pointer-events-none" />
-      
-      {/* 3. Bottom Right Glow (#A855F7, Opacity 10%, Blur 130px) */}
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#A855F7]/10 blur-[130px] animate-float-blob-3 pointer-events-none" />
-
-      {/* 4. Shining Particle Effect (Magical Glass UI) */}
-      {PARTICLES.map((p, idx) => (
-        <div
-          key={idx}
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            left: p.left,
-            top: p.top,
-            width: p.size,
-            height: p.size,
-            backgroundColor: p.color,
-            opacity: 0.12,
-            animation: `float-particle ${p.duration} infinite linear`,
-            animationDelay: p.delay,
-          }}
-        />
-      ))}
-    </div>
+    />
   );
 }
+

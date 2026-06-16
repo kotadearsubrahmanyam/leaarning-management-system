@@ -93,6 +93,14 @@ export default function PaymentsPage() {
   const role = authData?.data?.user?.role;
   const currentStudentName = authData?.data?.user?.name || "Student";
   const currentStudentRoll = authData?.data?.user?.rollNumber || "N/A";
+  const activeStudentSemester = authData?.data?.user?.semester || 1;
+
+  // Default selected semester to student's current active semester when loaded
+  useEffect(() => {
+    if (role === "STUDENT" && authData?.data?.user?.semester) {
+      setSelectedSemester(authData.data.user.semester);
+    }
+  }, [authData, role]);
 
   // Fetch payments list based on role
   const { data: paymentsData, isLoading: isPaymentsLoading } = useQuery({
@@ -325,6 +333,10 @@ Thank you for your payment. Keep this copy for records.`;
 
   // Open Payment Confirmation Modal
   const openPayModal = (fee: any) => {
+    if (fee.semester > activeStudentSemester) {
+      alert(`You cannot pay fees for future semesters (Semester ${fee.semester}). This section is for informational purposes only.`);
+      return;
+    }
     setSelectedFeeToPay(fee);
     setPayAmountInput(String(fee.amount - fee.paidAmount));
     setIsPayModalOpen(true);
@@ -804,7 +816,7 @@ Thank you for your payment. Keep this copy for records.`;
               className={`relative px-6 py-3 rounded-full font-extrabold transition-all whitespace-nowrap text-sm flex items-center gap-2 border ${
                 selectedSemester === sem
                   ? "bg-[#10B981] text-white shadow-[0_4px_15px_rgba(16,185,129,0.35)] scale-[1.03] border-transparent"
-                  : "bg-white/50 backdrop-blur-sm text-slate-600 border-slate-300 hover:bg-slate-50/70"
+                  : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
               }`}
             >
               Semester {sem}
@@ -820,40 +832,8 @@ Thank you for your payment. Keep this copy for records.`;
         {/* LEFT COLUMN: Breakdown & alerts (2 cols) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Alerts Banner Container */}
-          {overdueFeesList.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl flex items-start gap-3 shadow-sm"
-            >
-              <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
-              <div className="text-sm">
-                <h4 className="font-bold mb-1">Overdue Payments Notice!</h4>
-                <div className="leading-relaxed text-red-600/90 text-xs">
-                  You have overdue fees for Semester {selectedSemester}. 
-                  {overdueFeesList.map((f: any) => (
-                    <span key={f.id} className="block mt-1 font-semibold">
-                      • {FEE_TYPE_LABELS[f.feeType] || f.feeType}: ₹{(f.amount - f.paidAmount).toLocaleString()} was due on {new Date(f.dueDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-')}. Late fee of ₹{f.lateFee} applied.
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
 
-          {overdueFeesList.length === 0 && upcomingFeesList.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl flex items-start gap-3 shadow-sm">
-              <Calendar className="text-amber-600 shrink-0 mt-0.5" size={20} />
-              <div className="text-sm">
-                <h4 className="font-bold mb-0.5">Upcoming Payments Due</h4>
-                <p className="text-amber-700/90 text-xs leading-relaxed">
-                  Upcoming category <strong>{FEE_TYPE_LABELS[upcomingFeesList[0].feeType] || upcomingFeesList[0].feeType}</strong> of <strong>₹{(upcomingFeesList[0].amount - upcomingFeesList[0].paidAmount).toLocaleString()}</strong> is due on {new Date(upcomingFeesList[0].dueDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-')}.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {currentSemesterFees.length > 0 && overdueFeesList.length === 0 && upcomingFeesList.length === 0 && (
+          {selectedSemester <= activeStudentSemester && currentSemesterFees.length > 0 && overdueFeesList.length === 0 && upcomingFeesList.length === 0 && (
             <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
               <CheckCircle className="text-green-500 shrink-0" size={20} />
               <div className="text-sm font-bold">
@@ -862,8 +842,15 @@ Thank you for your payment. Keep this copy for records.`;
             </div>
           )}
 
+          {selectedSemester > activeStudentSemester && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-2xl flex items-center gap-3 shadow-sm text-sm font-semibold">
+              <Clock className="text-blue-500 shrink-0" size={20} />
+              Semester {selectedSemester} fees are shown for informational and planning purposes only.
+            </div>
+          )}
+
           {/* Progress Visualization */}
-          <div className="glass p-6 rounded-2xl border border-slate-300 shadow-sm">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex justify-between items-center mb-3">
               <span className="text-xs font-black text-slate-800 uppercase tracking-wider">Semester Payment Progress</span>
               <span className="text-sm font-black text-slate-950">{paymentProgress}% Paid</span>
@@ -890,7 +877,7 @@ Thank you for your payment. Keep this copy for records.`;
                 {currentSemesterFees.map((f: any) => {
                   const pending = f.amount - f.paidAmount;
                   return (
-                    <div key={f.id} className="glass p-5 rounded-2xl border border-slate-300 shadow-sm flex flex-col justify-between space-y-3 hover:shadow-md transition-shadow">
+                    <div key={f.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 hover:shadow-md transition-shadow">
                       <div>
                         <div className="text-xs font-black text-slate-800 uppercase tracking-wider">{FEE_TYPE_LABELS[f.feeType] || f.feeType}</div>
                         <div className="text-lg font-black text-slate-950 mt-1">₹{f.amount.toLocaleString()}</div>
@@ -919,14 +906,14 @@ Thank you for your payment. Keep this copy for records.`;
           )}
 
           {/* Itemized Fee Breakdown Table */}
-          <div className="glass rounded-2xl border border-slate-300 overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-slate-100 bg-slate-50/40 backdrop-blur-sm font-extrabold text-slate-900">
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-slate-100 bg-slate-50 font-extrabold text-slate-900">
               Breakdown Details Table
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[650px]">
                 <thead>
-                  <tr className="bg-slate-50/40 text-slate-800 font-black text-[11px] uppercase tracking-wider border-b border-slate-300">
+                  <tr className="bg-slate-50 text-slate-800 font-black text-[11px] uppercase tracking-wider border-b border-slate-300">
                     <th className="p-4 pl-6">Fee Category</th>
                     <th className="p-4 text-center">Allocated Amount</th>
                     <th className="p-4 text-center">Paid Amount</th>
@@ -945,7 +932,7 @@ Thank you for your payment. Keep this copy for records.`;
                     </tr>
                   ) : (
                     currentSemesterFees.map((f: any) => (
-                      <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
                         <td className="p-4 pl-6 font-extrabold text-slate-950">{FEE_TYPE_LABELS[f.feeType] || f.feeType}</td>
                         <td className="p-4 text-center font-extrabold text-slate-900">₹{f.amount.toLocaleString()}</td>
                         <td className="p-4 text-center text-green-700 font-extrabold">₹{f.paidAmount.toLocaleString()}</td>
@@ -990,8 +977,7 @@ Thank you for your payment. Keep this copy for records.`;
         {/* RIGHT COLUMN: Fee Categories breakdown card & receipts */}
         <div className="space-y-6">
           {/* Detailed Fee Structure Card */}
-          <div className="glass p-6 rounded-2xl border border-slate-300 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#10B981]/10 to-transparent rounded-full -mr-8 -mt-8" />
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
             <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
               <FileText className="text-[#10B981]" size={18} />
               Semester {selectedSemester} Fee Structure
@@ -1038,7 +1024,7 @@ Thank you for your payment. Keep this copy for records.`;
           </div>
 
           {/* Pending Payments Breakdown Section */}
-          <div className="glass p-6 rounded-2xl border border-slate-300 shadow-sm space-y-4">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
               <AlertTriangle className="text-amber-500" size={18} /> Pending Payments
             </h3>
@@ -1055,7 +1041,7 @@ Thank you for your payment. Keep this copy for records.`;
                   if (f.feeType === "PLACEMENT") emoji = "💼";
                   
                   return (
-                    <div key={f.id} className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl space-y-1">
+                    <div key={f.id} className="p-3 bg-amber-50 border border-amber-100 rounded-xl space-y-1">
                       <div className="font-extrabold text-slate-950 text-sm flex items-center gap-1.5">
                         <span>{emoji}</span> {FEE_TYPE_LABELS[f.feeType] || f.feeType}
                       </div>
@@ -1073,7 +1059,7 @@ Thank you for your payment. Keep this copy for records.`;
           </div>
 
           {/* Payment History ledger */}
-          <div className="glass p-5 rounded-2xl border border-slate-300 shadow-sm">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <h3 className="font-bold text-slate-800 text-sm mb-4">Paid Transaction Ledger</h3>
             <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {payments.filter((p: any) => p.status === "PAID" || p.status === "VERIFIED" || p.status === "COMPLETED").length === 0 ? (

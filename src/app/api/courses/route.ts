@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { courses, users, enrollments, courseFaculty } from "@/db/schema";
+import { courses, users, enrollments, courseFaculty, departments } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -45,12 +45,15 @@ export async function GET(req: Request) {
             level: courses.level,
             imageUrl: courses.imageUrl,
             semester: courses.semester,
+            credits: courses.credits,
             createdAt: courses.createdAt,
             teacherName: users.name,
+            departmentDescription: departments.description,
             studentCount: sql<number>`(SELECT count(*)::int FROM ${enrollments} WHERE ${enrollments.courseId} = ${courses.id})`,
           })
           .from(courses)
           .innerJoin(users, eq(courses.teacherId, users.id))
+          .leftJoin(departments, eq(courses.categoryId, departments.id))
           .where(inArray(courses.id, ids));
       } else {
         fetchedCourses = [];
@@ -69,18 +72,24 @@ export async function GET(req: Request) {
           level: courses.level,
           imageUrl: courses.imageUrl,
           semester: courses.semester,
+          credits: courses.credits,
           createdAt: courses.createdAt,
           teacherName: users.name,
+          departmentDescription: departments.description,
           studentCount: sql<number>`(SELECT count(*)::int FROM ${enrollments} WHERE ${enrollments.courseId} = ${courses.id})`,
         })
         .from(courses)
-        .innerJoin(users, eq(courses.teacherId, users.id));
+        .innerJoin(users, eq(courses.teacherId, users.id))
+        .leftJoin(departments, eq(courses.categoryId, departments.id));
 
-      if (studentData?.departmentId && studentData?.semester) {
+      const targetSemStr = searchParams.get("semester");
+      const targetSem = targetSemStr ? parseInt(targetSemStr) : studentData?.semester;
+
+      if (studentData?.departmentId && targetSem) {
         query = query.where(
           and(
             eq(courses.categoryId, studentData.departmentId),
-            eq(courses.semester, studentData.semester)
+            eq(courses.semester, targetSem)
           )
         ) as any;
       }
@@ -95,12 +104,15 @@ export async function GET(req: Request) {
           level: courses.level,
           imageUrl: courses.imageUrl,
           semester: courses.semester,
+          credits: courses.credits,
           createdAt: courses.createdAt,
           teacherName: users.name,
+          departmentDescription: departments.description,
           studentCount: sql<number>`(SELECT count(*)::int FROM ${enrollments} WHERE ${enrollments.courseId} = ${courses.id})`,
         })
         .from(courses)
-        .innerJoin(users, eq(courses.teacherId, users.id));
+        .innerJoin(users, eq(courses.teacherId, users.id))
+        .leftJoin(departments, eq(courses.categoryId, departments.id));
     }
 
     // Also get enrollments for the student
@@ -114,7 +126,28 @@ export async function GET(req: Request) {
     const data = fetchedCourses.map(course => ({
       ...course,
       isEnrolled: enrolledIds.includes(course.id),
+      subjectCode: "N/A",
     }));
+
+    // Group courses by department and semester to assign sequential codes dynamically
+    const coursesByDeptSem: Record<string, typeof data> = {};
+    data.forEach(c => {
+      const key = `${c.departmentDescription || ""}-${c.semester}`;
+      if (!coursesByDeptSem[key]) coursesByDeptSem[key] = [];
+      coursesByDeptSem[key].push(c);
+    });
+
+    Object.keys(coursesByDeptSem).forEach(key => {
+      coursesByDeptSem[key].sort((a, b) => a.title.localeCompare(b.title));
+      const [deptDesc] = key.split("-");
+      const deptCode = (deptDesc?.split(" ")[0] || "SUBJ").toUpperCase();
+      const sem = key.split("-")[1];
+      
+      coursesByDeptSem[key].forEach((c, index) => {
+        const codeNum = 101 + index; // e.g. 101, 102
+        c.subjectCode = `${deptCode}${sem}${codeNum.toString().slice(1)}`;
+      });
+    });
 
     return successResponse({ courses: data }, "Courses fetched successfully", 200);
   } catch (error) {

@@ -1,10 +1,8 @@
-"use client";
-
 import React from "react";
 import { motion } from "framer-motion";
 import { FileText, Video, Download, CheckCircle, Eye } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-
+ 
 export interface Material {
   id: string;
   courseId: string;
@@ -15,16 +13,16 @@ export interface Material {
   createdAt: string;
   isCompleted?: boolean;
 }
-
+ 
 interface MaterialCardProps {
   material: Material;
   index: number;
   onToggleComplete?: (id: string) => void;
 }
-
+ 
 export function MaterialCard({ material, index, onToggleComplete }: MaterialCardProps) {
   const isVideo = material.fileType.toLowerCase().includes("video");
-
+ 
   const trackDownload = useMutation({
     mutationFn: async () => {
       await fetch("/api/student/downloads/track", {
@@ -34,11 +32,11 @@ export function MaterialCard({ material, index, onToggleComplete }: MaterialCard
       });
     }
   });
-
+ 
   const handleView = () => {
     window.open(material.fileUrl, "_blank", "noopener,noreferrer");
   };
-
+ 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -65,7 +63,7 @@ export function MaterialCard({ material, index, onToggleComplete }: MaterialCard
           </div>
         </div>
       </div>
-
+ 
       <div className="flex items-center space-x-2">
         {onToggleComplete && (
           <button
@@ -96,7 +94,7 @@ export function MaterialCard({ material, index, onToggleComplete }: MaterialCard
         >
           <Eye size={20} />
         </a>
-
+ 
         {/* Download Button */}
         <a 
           href={material.fileUrl} 
@@ -116,3 +114,4 @@ export function MaterialCard({ material, index, onToggleComplete }: MaterialCard
     </motion.div>
   );
 }
+

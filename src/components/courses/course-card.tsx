@@ -47,7 +47,7 @@ export function CourseCard({ course, onClick, index }: CourseCardProps) {
     >
       <div className={cn("h-40 w-full bg-gradient-to-br relative", defaultGradient)}>
         {course.imageUrl ? (
-          <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover mix-blend-overlay opacity-80" />
+          <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center opacity-30">
             <BookOpen size={48} className="text-accent" />

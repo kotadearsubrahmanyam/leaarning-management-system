@@ -4,20 +4,15 @@ import { payments, feeStructure, users, departments } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 
-async function ensureDefaultFeesExist(userId: string, semester: number) {
+async function ensureDefaultFeesExist(userId: string, semester: number, currentSemester: number) {
   const existingFees = await db
     .select()
     .from(feeStructure)
     .where(and(eq(feeStructure.userId, userId), eq(feeStructure.semester, semester)));
 
   if (existingFees.length === 0) {
-    const userPayments = await db
-      .select()
-      .from(payments)
-      .where(eq(payments.userId, userId));
-
     const defaultFees = [
       { feeType: "TUITION", amount: 50000, dueDate: new Date("2026-05-15") },
       { feeType: "BUS", amount: 15000, dueDate: new Date("2026-06-20") },
@@ -27,9 +22,10 @@ async function ensureDefaultFeesExist(userId: string, semester: number) {
     ];
 
     for (const f of defaultFees) {
-      const matchPayment = userPayments.find(p => p.feeType === f.feeType && (p.status === "PAID" || p.status === "VERIFIED" || p.status === "COMPLETED"));
-      const paid = matchPayment ? matchPayment.amount : 0;
-      const status = paid >= f.amount ? "PAID" : "PENDING";
+      // Past and current semesters are already paid/cleared. Future semesters are pending.
+      const isPaidSemester = semester <= currentSemester;
+      const paid = isPaidSemester ? f.amount : 0;
+      const status = isPaidSemester ? "PAID" : "PENDING";
 
       const [inserted] = await db.insert(feeStructure).values({
         userId,
@@ -42,10 +38,16 @@ async function ensureDefaultFeesExist(userId: string, semester: number) {
         semester,
       }).returning();
 
-      if (matchPayment) {
-        await db.update(payments)
-          .set({ feeStructureId: inserted.id })
-          .where(eq(payments.id, matchPayment.id));
+      // If it's a paid semester and it has an amount, insert a corresponding payment record to populate the ledger
+      if (isPaidSemester && f.amount > 0) {
+        await db.insert(payments).values({
+          userId,
+          amount: f.amount,
+          status: "VERIFIED",
+          feeType: f.feeType as any,
+          feeStructureId: inserted.id,
+          date: new Date(new Date().getFullYear() - (currentSemester - semester), 5, 15),
+        });
       }
     }
   }
@@ -62,14 +64,17 @@ export async function GET() {
 
     const userId = payload.id as string;
 
-    // Fetch student's department to get their total semesters
+    // Fetch student's department to get their total semesters and active semester
     const [user] = await db
       .select({
         id: users.id,
         departmentId: users.departmentId,
+        semester: users.semester,
       })
       .from(users)
       .where(eq(users.id, userId));
+
+    const currentSemester = user?.semester || 1;
 
     let totalSemesters = 8;
     if (user && user.departmentId) {
@@ -84,9 +89,33 @@ export async function GET() {
       }
     }
 
+    // Clean existing feeStructure and payments to allow clean re-seeding according to student's current active semester
+    // Note: In a real system we would keep actual student transactions, but for development reset we wipe and re-seed
+    const existingFees = await db
+      .select()
+      .from(feeStructure)
+      .where(eq(feeStructure.userId, userId));
+
+    // If student active semester changed or first time seeding, recreate to align correctly
+    if (existingFees.length > 0) {
+      const dbSemesters = Array.from(new Set(existingFees.map(f => f.semester)));
+      const minSem = Math.min(...dbSemesters);
+      const maxSem = Math.max(...dbSemesters);
+      
+      // If the seeded structure doesn't match totalSemesters or has incorrect payments for future semesters
+      const hasIncorrectSeeding = existingFees.some(f => 
+        (f.semester > currentSemester && f.status === "PAID" && f.amount > 0)
+      );
+
+      if (hasIncorrectSeeding || dbSemesters.length !== totalSemesters) {
+        await db.delete(payments).where(eq(payments.userId, userId));
+        await db.delete(feeStructure).where(eq(feeStructure.userId, userId));
+      }
+    }
+
     // Seed default fees for all semesters so student gets complete billing profiles
     for (let sem = 1; sem <= totalSemesters; sem++) {
-      await ensureDefaultFeesExist(userId, sem);
+      await ensureDefaultFeesExist(userId, sem, currentSemester);
     }
 
     // Fetch payments
@@ -153,6 +182,17 @@ export async function POST(req: Request) {
 
     if (!feeItem) {
       return errorResponse("Fee structure item not found", 404);
+    }
+
+    // Block payments for future semesters
+    const [studentUser] = await db
+      .select({ semester: users.semester })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    const currentActiveSemester = studentUser?.semester || 1;
+    if (feeItem.semester > currentActiveSemester) {
+      return errorResponse(`You cannot pay fees for future semesters (Semester ${feeItem.semester}). This section is for informational purposes only.`, 400);
     }
 
     // Overpayment Blocker Logic

@@ -4,7 +4,6 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
 import { Providers } from "@/components/providers";
 import { NotificationProvider } from "@/components/ui/notification-provider";
-import { MouseTrail } from "@/components/ui/mouse-trail";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,7 +22,6 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <NotificationProvider>
-            <MouseTrail />
             <Navbar />
             {children}
           </NotificationProvider>
@@ -32,3 +30,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -13,7 +13,7 @@ const ACTIVITY_TYPES = [
   { value: "HACKATHON", label: "Hackathon", icon: Code, color: "text-purple-500", bg: "bg-purple-500/10" },
   { value: "CONTEST", label: "Contest", icon: Trophy, color: "text-amber-500", bg: "bg-amber-500/10" },
   { value: "WORKSHOP", label: "Workshop", icon: MonitorPlay, color: "text-green-500", bg: "bg-green-500/10" },
-  { value: "OTHER", label: "Other", icon: Star, color: "text-foreground", bg: "bg-white/10" },
+  { value: "OTHER", label: "Other", icon: Star, color: "text-foreground", bg: "bg-slate-100" },
 ];
 
 export default function ActivitiesPage() {
@@ -52,7 +52,7 @@ export default function ActivitiesPage() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1,2,3,4].map(i => <div key={i} className="h-40 glass border border-slate-300 rounded-3xl animate-pulse bg-white/50" />)}
+          {[1,2,3,4].map(i => <div key={i} className="h-40 border border-slate-200 rounded-3xl animate-pulse bg-slate-200" />)}
         </div>
       ) : activities.length === 0 ? (
         <div className="glass p-12 rounded-3xl border border-slate-300 text-center">
@@ -75,7 +75,6 @@ export default function ActivitiesPage() {
                 whileHover={{ scale: 1.02, y: -5 }}
                 className="glass p-6 rounded-3xl border border-slate-300 relative overflow-hidden group hover:shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all"
               >
-                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full ${typeConfig.bg} blur-3xl -mr-10 -mt-10 opacity-50 group-hover:opacity-100 transition-opacity`} />
                 
                 <div className="flex items-start justify-between relative z-10">
                   <div className="flex items-center gap-3">

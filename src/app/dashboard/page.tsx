@@ -76,7 +76,7 @@ export default function DashboardPage() {
     return (
       <div className="flex space-x-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="glass w-full h-32 rounded-2xl animate-pulse bg-white/20" />
+          <div key={i} className="w-full h-32 rounded-2xl animate-pulse bg-slate-200" />
         ))}
       </div>
     );
@@ -202,7 +202,7 @@ export default function DashboardPage() {
           {/* Timetable & Deadlines Horizontal section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Daily Schedule Card */}
-            <div className="glass p-6 rounded-3xl border border-slate-300 flex flex-col justify-between hover:shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/85 flex flex-col justify-between hover:shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2">
@@ -231,7 +231,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Upcoming Deadlines Card */}
-            <div className="glass p-6 rounded-3xl border border-slate-300 flex flex-col justify-between hover:shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/85 flex flex-col justify-between hover:shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-extrabold text-foreground flex items-center gap-2">

@@ -3,8 +3,10 @@ import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, departments } from "@/db/schema";
 import { eq } from "drizzle-orm";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -29,10 +31,12 @@ export async function GET() {
         role: users.role,
         semester: users.semester,
         departmentId: users.departmentId,
+        departmentName: departments.name,
         rollNumber: users.rollNumber,
         residentStatus: users.residentStatus,
       })
       .from(users)
+      .leftJoin(departments, eq(users.departmentId, departments.id))
       .where(eq(users.id, payload.id as string));
 
     if (!user) {

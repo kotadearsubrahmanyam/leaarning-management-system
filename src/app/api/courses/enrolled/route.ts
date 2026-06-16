@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { courses, users, enrollments } from "@/db/schema";
+import { courses, users, enrollments, departments } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 export async function GET(req: Request) {
   try {
@@ -19,28 +19,68 @@ export async function GET(req: Request) {
       return errorResponse("Forbidden", 403);
     }
 
-    const fetchedCourses = await db
+    // Fetch student profile details (department and current semester)
+    const [student] = await db
       .select({
-        id: courses.id,
-        title: courses.title,
-        description: courses.description,
-        level: courses.level,
-        imageUrl: courses.imageUrl,
-        createdAt: courses.createdAt,
-        teacherName: users.name,
-        status: enrollments.status,
-        credits: courses.credits,
+        departmentId: users.departmentId,
+        semester: users.semester,
       })
-      .from(enrollments)
-      .innerJoin(courses, eq(enrollments.courseId, courses.id))
-      .innerJoin(users, eq(courses.teacherId, users.id))
-      .where(eq(enrollments.studentId, payload.id as string));
+      .from(users)
+      .where(eq(users.id, payload.id as string));
+
+    let fetchedCourses: any[] = [];
+    if (student && student.departmentId && student.semester) {
+      fetchedCourses = await db
+        .select({
+          id: courses.id,
+          title: courses.title,
+          description: courses.description,
+          level: courses.level,
+          imageUrl: courses.imageUrl,
+          semester: courses.semester,
+          createdAt: courses.createdAt,
+          teacherName: users.name,
+          status: sql<string>`CASE WHEN ${courses.semester} < ${student.semester} THEN 'COMPLETED' ELSE 'ACTIVE' END`,
+          credits: courses.credits,
+          departmentDescription: departments.description,
+        })
+        .from(courses)
+        .innerJoin(users, eq(courses.teacherId, users.id))
+        .leftJoin(departments, eq(courses.categoryId, departments.id))
+        .where(
+          and(
+            eq(courses.categoryId, student.departmentId),
+            sql`${courses.semester} <= ${student.semester}`
+          )
+        );
+    }
 
     const data = fetchedCourses.map(course => ({
       ...course,
       isEnrolled: true,
-      progress: course.status === "COMPLETED" ? 100 : 50, // Mock progress based on status
+      progress: course.status === "COMPLETED" ? 100 : 50, // Completed courses are marked 100%, active are 50%
+      subjectCode: "N/A",
     }));
+
+    // Group courses by department and semester to assign sequential codes dynamically
+    const coursesByDeptSem: Record<string, typeof data> = {};
+    data.forEach(c => {
+      const key = `${c.departmentDescription || ""}-${c.semester}`;
+      if (!coursesByDeptSem[key]) coursesByDeptSem[key] = [];
+      coursesByDeptSem[key].push(c);
+    });
+
+    Object.keys(coursesByDeptSem).forEach(key => {
+      coursesByDeptSem[key].sort((a, b) => a.title.localeCompare(b.title));
+      const [deptDesc] = key.split("-");
+      const deptCode = (deptDesc?.split(" ")[0] || "SUBJ").toUpperCase();
+      const sem = key.split("-")[1];
+      
+      coursesByDeptSem[key].forEach((c, index) => {
+        const codeNum = 101 + index; // e.g. 101, 102
+        c.subjectCode = `${deptCode}${sem}${codeNum.toString().slice(1)}`;
+      });
+    });
 
     return successResponse({ courses: data }, "Enrolled courses fetched successfully", 200);
   } catch (error) {

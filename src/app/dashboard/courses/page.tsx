@@ -100,7 +100,7 @@ export default function CoursesPage() {
     return (
       <div className="flex space-x-6">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="glass w-full h-64 rounded-2xl animate-pulse bg-white/20" />
+          <div key={i} className="w-full h-64 rounded-2xl animate-pulse bg-slate-200" />
         ))}
       </div>
     );

@@ -39,7 +39,7 @@ export function ContinueLearningCard({
             <img 
               src={imageUrl} 
               alt={title} 
-              className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-50"
+              className="absolute inset-0 w-full h-full object-cover"
             />
           ) : (
             <BookOpen size={64} className="text-white opacity-40 relative z-10" />

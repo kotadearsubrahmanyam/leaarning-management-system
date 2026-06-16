@@ -87,7 +87,7 @@ export function DashboardHeader({ isSidebarCollapsed }: DashboardHeaderProps) {
               transition={{ duration: 0.2 }}
               className="absolute top-16 right-0 w-80 sm:w-96 glass rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[500px]"
             >
-              <div className="p-4 border-b border-slate-200/60 flex justify-between items-center bg-white/95 backdrop-blur-md">
+              <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white">
                 <h3 className="font-bold text-foreground">Notifications</h3>
                 {unreadCount > 0 && (
                   <button 
@@ -99,7 +99,7 @@ export function DashboardHeader({ isSidebarCollapsed }: DashboardHeaderProps) {
                 )}
               </div>
 
-              <div className="overflow-y-auto flex-1 p-2 space-y-1 bg-slate-50/50">
+              <div className="overflow-y-auto flex-1 p-2 space-y-1 bg-slate-50">
                 {notifications.length === 0 ? (
                   <div className="p-8 text-center text-foreground/50 flex flex-col items-center justify-center">
                     <Bell size={32} className="mb-2 opacity-20" />
@@ -112,7 +112,7 @@ export function DashboardHeader({ isSidebarCollapsed }: DashboardHeaderProps) {
                       onClick={() => !n.isRead && markAsReadMutation.mutate(n.id)}
                       className={`p-4 rounded-xl cursor-pointer transition-all ${
                         n.isRead 
-                          ? "opacity-60 hover:bg-slate-100/40" 
+                          ? "opacity-60 hover:bg-slate-100" 
                           : "bg-white hover:bg-slate-50 border border-slate-200/50 border-l-2 border-l-primary shadow-sm"
                       }`}
                     >

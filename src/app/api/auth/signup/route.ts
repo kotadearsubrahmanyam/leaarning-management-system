@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         let code = "STU";
         if (dept.name.includes("Computer Science")) code = "CSE";
         else if (dept.name.includes("Electronics")) code = "ECE";
-        else if (dept.name.includes("Civil")) code = "CE";
+        else if (dept.name.includes("Business Administration") || dept.name.includes("BBA")) code = "BBA";
         else code = dept.name.substring(0, 3).toUpperCase();
 
         const studentCountRaw = await db.select({ count: sql<number>`count(*)::int` })

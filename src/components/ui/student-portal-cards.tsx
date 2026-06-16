@@ -18,7 +18,7 @@ export function DashboardCard({ children, className, delay = 0, ...props }: Dash
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
       className={cn(
-        "glass p-6 rounded-3xl border border-slate-300 hover:shadow-[0_10px_30px_rgba(0,0,0,0.05)] transition-all",
+        "bg-white p-6 rounded-3xl border border-slate-200/85 shadow-[0_8px_32px_rgba(31,38,135,0.04)] transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.08)] hover:border-slate-200/85",
         className
       )}
       {...props}
@@ -47,12 +47,12 @@ export function StatisticsCard({ title, value, icon, delay = 0, className, onCli
       whileHover={{ scale: 1.02, y: -2 }}
       onClick={onClick}
       className={cn(
-        "glass p-5 rounded-2xl border border-slate-300 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md hover:border-primary/30 transition-all",
+        "bg-white p-5 rounded-2xl border border-slate-200/85 flex items-center justify-between shadow-[0_4px_20px_rgba(31,38,135,0.02)] cursor-pointer hover:shadow-md hover:border-primary/30 hover:bg-white transition-all",
         className
       )}
     >
       <div className="min-w-0 flex-1 pr-4">
-        <span className="text-xs font-bold text-foreground/50 uppercase tracking-wider block mb-1">
+        <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider block mb-1">
           {title}
         </span>
         <span className="text-3xl font-black text-foreground block truncate">
@@ -94,7 +94,7 @@ export function StudentCourseCard({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay }}
       whileHover={{ scale: 1.02 }}
-      className="glass rounded-3xl border border-slate-300 overflow-hidden flex flex-col justify-between hover:shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all cursor-pointer"
+      className="bg-white rounded-3xl border border-slate-200/85 overflow-hidden flex flex-col justify-between hover:shadow-[0_15px_30px_rgba(0,0,0,0.05)] hover:border-slate-200/85 transition-all cursor-pointer"
       onClick={onViewDetails}
     >
       <div className="p-6">
@@ -171,7 +171,7 @@ export function StudentAttendanceCard({ courseName, present, total, delay = 0 }:
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      className="glass p-5 rounded-2xl border border-slate-300 bg-white/50"
+      className="bg-white p-5 rounded-2xl border border-slate-200/85 shadow-sm"
     >
       <div className="flex justify-between items-center mb-2">
         <h4 className="font-extrabold text-sm text-foreground truncate pr-4">{courseName}</h4>
@@ -292,7 +292,7 @@ export function StudentActivityCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
       whileHover={{ scale: 1.01, y: -2 }}
-      className="glass p-6 rounded-3xl border border-slate-300 relative overflow-hidden group hover:shadow-[0_15px_30px_rgba(0,0,0,0.05)] transition-all bg-white"
+      className="bg-white p-6 rounded-3xl border border-slate-200/85 relative overflow-hidden group hover:shadow-[0_15px_30px_rgba(0,0,0,0.05)] hover:border-slate-200/85 transition-all"
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -361,11 +361,11 @@ interface ProfileFieldCardProps {
 
 export function ProfileFieldCard({ label, value }: ProfileFieldCardProps) {
   return (
-    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors">
+    <div className="p-4 rounded-2xl bg-white border border-slate-200/85 hover:border-slate-300/80 transition-all">
       <span className="text-[10px] font-black text-foreground/45 uppercase tracking-wider block mb-1">
         {label}
       </span>
-      <span className="text-sm font-extrabold text-foreground block truncate">
+      <span className="text-sm font-extrabold text-slate-800 block truncate">
         {value || "Not Available"}
       </span>
     </div>

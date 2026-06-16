@@ -220,7 +220,7 @@ export function UploadModal({ isOpen, onClose, courseId, onSuccess }: UploadModa
 
                 <AnimatedButton 
                   onClick={handleUpload} 
-                  className="w-full" 
+                  className="w-full font-bold" 
                   disabled={!file || !title || isUploading}
                 >
                   {isUploading ? "Uploading..." : "Upload File"}
@@ -234,3 +234,4 @@ export function UploadModal({ isOpen, onClose, courseId, onSuccess }: UploadModa
     </AnimatePresence>
   );
 }
+

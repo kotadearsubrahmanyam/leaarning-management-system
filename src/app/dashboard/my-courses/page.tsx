@@ -43,6 +43,23 @@ export default function MyCoursesPage() {
     });
   }, [courses, searchQuery, filterStatus]);
 
+  const coursesBySemester = useMemo(() => {
+    const grouped: Record<number, Course[]> = {};
+    filteredCourses.forEach((c) => {
+      const sem = c.semester || 1;
+      if (!grouped[sem]) {
+        grouped[sem] = [];
+      }
+      grouped[sem].push(c);
+    });
+    return grouped;
+  }, [filteredCourses]);
+
+  const sortedSemesters = useMemo(() => {
+    // Sort descending so latest semester appears first (e.g. 3, 2, 1)
+    return Object.keys(coursesBySemester).map(Number).sort((a, b) => b - a);
+  }, [coursesBySemester]);
+
   const handleCourseClick = (course: Course) => {
     router.push(`/dashboard/courses/${course.id}`);
   };
@@ -52,7 +69,7 @@ export default function MyCoursesPage() {
       <div className="max-w-7xl mx-auto pb-12">
         <div className="flex space-x-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="glass w-full h-64 rounded-2xl animate-pulse bg-white/20" />
+            <div key={i} className="bg-white/95 backdrop-blur-md w-full h-64 rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -79,7 +96,7 @@ export default function MyCoursesPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="flex flex-col md:flex-row gap-4 mb-8 items-center justify-between glass p-4 rounded-2xl border border-slate-300"
+        className="flex flex-col md:flex-row gap-4 mb-8 items-center justify-between bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200/85"
       >
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
@@ -113,11 +130,24 @@ export default function MyCoursesPage() {
         </div>
       </motion.div>
 
-      {/* Courses Grid */}
-      {filteredCourses.length > 0 ? (
-        <CourseGrid courses={filteredCourses} onCourseClick={handleCourseClick} />
+      {/* Courses Rendering (Always grouped by semester in descending order) */}
+      {sortedSemesters.length > 0 ? (
+        <div className="space-y-10">
+          {sortedSemesters.map((sem) => {
+            const semCourses = coursesBySemester[sem];
+            return (
+              <div key={sem} className="bg-white/95 backdrop-blur-md p-6 rounded-3xl border border-slate-200/85">
+                <h3 className="text-xl font-extrabold text-slate-800 mb-6 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <span className="inline-block w-2.5 h-6 bg-primary rounded-full" />
+                  Semester {sem} Courses
+                </h3>
+                <CourseGrid courses={semCourses} onCourseClick={handleCourseClick} />
+              </div>
+            );
+          })}
+        </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center glass rounded-3xl border border-slate-300">
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/85">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-4 border border-primary/20">
             <Search className="text-primary" size={32} />
           </div>

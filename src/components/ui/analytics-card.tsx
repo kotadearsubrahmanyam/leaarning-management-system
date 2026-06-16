@@ -20,7 +20,7 @@ export function AnalyticsCard({ title, value, icon, delay = 0, className, ...pro
         transition={{ duration: 0.5, delay, ease: "easeOut" }}
         whileHover={{ scale: 1.03 }}
         className={cn(
-          "glass w-full p-6 rounded-2xl relative overflow-hidden border border-slate-300 transition-all hover:shadow-[0_20px_40px_rgba(16,185,129,0.1)]",
+          "bg-white w-full p-6 rounded-2xl relative overflow-hidden border border-slate-200/85 transition-all hover:shadow-[0_20px_40px_rgba(16,185,129,0.1)]",
           className
         )}
         {...props}
@@ -30,7 +30,6 @@ export function AnalyticsCard({ title, value, icon, delay = 0, className, ...pro
           {icon && <div className="text-white p-2 bg-gradient-to-tr from-primary to-accent rounded-xl shadow-sm">{icon}</div>}
         </div>
         <div className="text-3xl font-bold text-foreground">{value}</div>
-        <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-accent/10 rounded-full blur-2xl pointer-events-none" />
       </motion.div>
     </div>
   );

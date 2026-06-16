@@ -70,7 +70,7 @@ export function CoursePreviewModal({
 
               <div className="h-48 w-full shrink-0 bg-gradient-to-br from-primary/30 to-accent/30 relative">
                 {course.imageUrl ? (
-                  <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover mix-blend-overlay opacity-80" />
+                  <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center opacity-30">
                     <BookOpen size={64} className="text-primary" />
