@@ -9,7 +9,7 @@ import {
   BookOpen, LayoutDashboard, Users, Settings, Sparkles, LogOut, Compass, 
   DownloadCloud, CreditCard, Calendar, Award, FileEdit, Shield, Layers, 
   MessageSquare, Clock, ClipboardList, CheckSquare, BarChart, FileCheck, 
-  Library, Menu, X, User
+  Library, Menu, X, User, FileText
 } from "lucide-react";
 
 interface SidebarProps {
@@ -38,6 +38,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
       { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
       { href: "/dashboard/ai", icon: Sparkles, label: "AI Chat" },
       { href: "/dashboard/interview", icon: MessageSquare, label: "AI Interview" },
+      { href: "/dashboard/resume-builder", icon: FileText, label: "Resume Builder" },
     ];
     
     if (role === "ADMIN") {
