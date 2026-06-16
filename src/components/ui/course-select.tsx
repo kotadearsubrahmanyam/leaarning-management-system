@@ -209,20 +209,24 @@ export function CourseSelect({
                       const isSelected = selectedCourse === c.id;
                       const aesthetics = getCourseAesthetics(c);
                       const Icon = aesthetics.IconComponent;
+                      const isAssigned = c.isAssigned !== false;
                       return (
                         <button
                           key={c.id}
                           type="button"
+                          disabled={!isAssigned}
                           onClick={() => {
-                            setSelectedCourse(c.id);
-                            setIsOpen(false);
-                            setSearchQuery("");
+                            if (isAssigned) {
+                              setSelectedCourse(c.id);
+                              setIsOpen(false);
+                              setSearchQuery("");
+                            }
                           }}
                           className={`w-full p-3 flex items-center justify-between rounded-xl text-left transition-all duration-200 border ${
                             isSelected 
                               ? "bg-emerald-50/70 border-emerald-300 text-emerald-800 shadow-sm" 
                               : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200 text-slate-700"
-                          }`}
+                          } ${!isAssigned ? "opacity-50 cursor-not-allowed bg-slate-50/50" : ""}`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`p-2 bg-gradient-to-tr ${aesthetics.gradient} text-white rounded-lg shadow-sm flex-shrink-0`}>
@@ -237,9 +241,16 @@ export function CourseSelect({
                                   • Sem {c.semester}
                                 </span>
                               </div>
-                              <p className="font-semibold text-sm truncate max-w-[250px] md:max-w-[400px]">
-                                {c.title}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-sm truncate max-w-[250px] md:max-w-[400px]">
+                                  {c.title}
+                                </p>
+                                {!isAssigned && (
+                                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-200 text-slate-500">
+                                    N/A
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

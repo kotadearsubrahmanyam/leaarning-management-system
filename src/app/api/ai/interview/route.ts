@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyJwt } from "@/lib/jwt";
 import { successResponse, errorResponse } from "@/lib/api-response";
+import { db } from "@/db";
+import { aiInterviewSessions } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 export async function POST(req: Request) {
   try {
@@ -54,44 +57,72 @@ Guidelines:
       ? `The candidate is ready. Start the interview on the topic of ${topic}.`
       : `The candidate answered: "${latestAnswer}". Evaluate it and generate the next question, or conclude the interview if sufficient questions have been asked.`;
 
+    let dbSession;
+    if (isFirstQuestion) {
+      // Create new session
+      const [newSession] = await db.insert(aiInterviewSessions).values({
+        userId: payload.id as string,
+        topic,
+        history: JSON.stringify([]),
+        isFinished: false
+      }).returning();
+      dbSession = newSession;
+    } else {
+      // Find active session
+      dbSession = await db.query.aiInterviewSessions.findFirst({
+        where: and(
+          eq(aiInterviewSessions.userId, payload.id as string),
+          eq(aiInterviewSessions.topic, topic),
+          eq(aiInterviewSessions.isFinished, false)
+        ),
+        orderBy: desc(aiInterviewSessions.createdAt)
+      });
+      if (!dbSession) return errorResponse("No active interview session found", 404);
+    }
+
+    const savedHistory = JSON.parse(dbSession.history);
+
     const messages = [
       { role: "system", content: systemInstruction },
-      ...(history || []),
+      ...savedHistory,
       { role: "user", content: prompt }
     ];
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",
+        messages,
         response_format: { type: "json_object" },
-        messages: messages,
-        temperature: 0.7
+        temperature: 0.3
       })
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("OpenAI error:", errText);
-      return errorResponse("AI returned an error", 500);
-    }
+    if (!aiRes.ok) throw new Error("AI request failed");
 
-    const data = await response.json();
-    const responseText = data.choices[0].message.content;
-    
-    let jsonResponse;
-    try {
-      jsonResponse = JSON.parse(responseText);
-    } catch (e) {
-      console.error("Failed to parse AI response as JSON:", responseText);
-      return errorResponse("AI returned an invalid format", 500);
-    }
+    const groqData = await aiRes.json();
+    const aiMessage = JSON.parse(groqData.choices[0].message.content);
 
-    return successResponse({ aiResponse: jsonResponse }, "AI generated response");
+    // Update session history
+    const newHistory = [
+      ...savedHistory,
+      { role: "user", content: prompt },
+      { role: "assistant", content: JSON.stringify(aiMessage) }
+    ];
+
+    await db.update(aiInterviewSessions)
+      .set({ 
+        history: JSON.stringify(newHistory),
+        isFinished: aiMessage.isFinished || false,
+        score: aiMessage.finalScore || null
+      })
+      .where(eq(aiInterviewSessions.id, dbSession.id));
+
+    return successResponse({ aiResponse: aiMessage }, "AI generated response");
   } catch (error: any) {
     console.error("AI Interview error:", error);
     return errorResponse(error.message || "Internal server error", 500);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { assignments, courses, submissions } from "@/db/schema";
+import { assignments, courses, submissions, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -10,7 +10,12 @@ async function isTeacherOfCourse(teacherId: string, courseId: string) {
   const course = await db.query.courses.findFirst({
     where: eq(courses.id, courseId)
   });
-  return course?.teacherId === teacherId;
+  if (course?.teacherId === teacherId) return true;
+
+  const faculty = await db.query.courseFaculty.findFirst({
+    where: and(eq(courseFaculty.courseId, courseId), eq(courseFaculty.teacherId, teacherId))
+  });
+  return !!faculty;
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {

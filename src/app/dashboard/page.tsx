@@ -143,10 +143,38 @@ export default function DashboardPage() {
       {role === "TEACHER" && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-5">
-            <AnalyticsCard title="Courses Managed" value={stats.coursesCreated || 0} icon={<BookOpen size={20} />} delay={0.1} />
-            <AnalyticsCard title="Total Students" value={stats.totalStudentsEnrolled || 0} icon={<Users size={20} />} delay={0.2} />
-            <AnalyticsCard title="Total Assignments" value={stats.totalAssignments || 0} icon={<FileEdit size={20} />} delay={0.3} />
-            <AnalyticsCard title="Pending Evaluations" value={stats.pendingEvaluations || 0} icon={<CheckSquare size={20} className="text-orange-500" />} delay={0.4} />
+            <AnalyticsCard 
+              title="Courses Managed" 
+              value={stats.coursesCreated || 0} 
+              icon={<BookOpen size={20} />} 
+              delay={0.1} 
+              className="cursor-pointer hover:border-primary transition-all duration-300"
+              onClick={() => router.push("/dashboard/teacher/my-courses")} 
+            />
+            <AnalyticsCard 
+              title="Total Students" 
+              value={stats.totalStudentsEnrolled || 0} 
+              icon={<Users size={20} />} 
+              delay={0.2} 
+              className="cursor-pointer hover:border-primary transition-all duration-300"
+              onClick={() => router.push("/dashboard/teacher/students")} 
+            />
+            <AnalyticsCard 
+              title="Total Assignments" 
+              value={stats.totalAssignments || 0} 
+              icon={<FileEdit size={20} />} 
+              delay={0.3} 
+              className="cursor-pointer hover:border-primary transition-all duration-300"
+              onClick={() => router.push("/dashboard/teacher/assignments")} 
+            />
+            <AnalyticsCard 
+              title="Pending Evaluations" 
+              value={stats.pendingEvaluations || 0} 
+              icon={<CheckSquare size={20} className="text-orange-500" />} 
+              delay={0.4} 
+              className="cursor-pointer hover:border-primary transition-all duration-300"
+              onClick={() => router.push("/dashboard/teacher/evaluation")} 
+            />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
@@ -301,9 +329,11 @@ export default function DashboardPage() {
         </>
       )}
 
-      <div className="mt-10">
-        <ChatAssistant userId={authData.data.user.id} role={role} />
-      </div>
+      {role === "STUDENT" && (
+        <div className="mt-10">
+          <ChatAssistant userId={authData.data.user.id} role={role} />
+        </div>
+      )}
     </div>
   );
 }

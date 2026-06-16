@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Search, ChevronRight, User, Award, BookOpen, Activity, AlertCircle } from "lucide-react";
 import { AnimatedInput } from "@/components/ui/animated-input";
+import { Button } from "@/components/ui/button";
 
 export default function TeacherStudentsPage() {
   const [search, setSearch] = useState("");
@@ -95,6 +96,8 @@ export default function TeacherStudentsPage() {
 }
 
 function StudentDetailView({ studentId }: { studentId: string }) {
+  const [generatingPlan, setGeneratingPlan] = useState(false);
+  
   const { data, isLoading } = useQuery({
     queryKey: ["teacherStudentDetail", studentId],
     queryFn: async () => {
@@ -114,6 +117,27 @@ function StudentDetailView({ studentId }: { studentId: string }) {
   const totalAtt = student.attendance?.length || 0;
   const presentCount = student.attendance?.filter((a: any) => a.status === 'PRESENT').length || 0;
   const attPercent = totalAtt === 0 ? 0 : Math.round((presentCount / totalAtt) * 100);
+
+  const generateMentoringPlan = async () => {
+    setGeneratingPlan(true);
+    try {
+      const res = await fetch("/api/teacher/mentoring/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        alert("Mentoring Plan Generated successfully! The student can now view it in their dashboard.");
+      } else {
+        alert("Error: " + resData.message);
+      }
+    } catch (err) {
+      alert("Failed to generate plan.");
+    } finally {
+      setGeneratingPlan(false);
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 flex flex-col h-full overflow-hidden">
@@ -136,6 +160,17 @@ function StudentDetailView({ studentId }: { studentId: string }) {
               <span className="px-2 py-0.5 rounded-full bg-white/10">Sem {student.semester || 1}</span>
             </div>
           </div>
+        </div>
+        
+        <div className="mt-6 flex justify-end gap-3 relative z-10">
+          <Button 
+            onClick={generateMentoringPlan} 
+            disabled={generatingPlan}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg"
+          >
+            {generatingPlan ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div> : <span className="mr-2">✨</span>}
+            Generate Mentoring Plan
+          </Button>
         </div>
       </div>
 

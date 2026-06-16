@@ -218,6 +218,8 @@ export const studentSemesterSummary = pgTable("StudentSemesterSummary", {
   semester: integer("semester").notNull(),
   sgpa: text("sgpa"),
   cgpa: text("cgpa"),
+  status: text("status").default("PASS").notNull(),
+  backlogCount: integer("backlogCount").default(0).notNull(),
   published: boolean("published").default(false).notNull(),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { precision: 3, mode: "date" })
@@ -243,6 +245,53 @@ export const submissions = pgTable("Submission", {
   fileUrl: text("fileUrl"),
   status: text("status").notNull().default("SUBMITTED"),
   marks: integer("marks"),
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+});
+
+export const aiInterviewSessions = pgTable("AiInterviewSession", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  topic: text("topic").notNull(),
+  history: text("history").notNull(), // JSON stringified array of messages
+  score: integer("score"),
+  isFinished: boolean("isFinished").default(false).notNull(),
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+});
+
+export const mentoringPlans = pgTable("MentoringPlan", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  studentId: text("studentId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  teacherId: text("teacherId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  planContent: text("planContent").notNull(),
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+});
+
+export const quizzes = pgTable("Quiz", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  courseId: text("courseId").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  teacherId: text("teacherId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  timeLimit: integer("timeLimit").default(15).notNull(), // minutes
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+});
+
+export const quizQuestions = pgTable("QuizQuestion", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  quizId: text("quizId").notNull().references(() => quizzes.id, { onDelete: "cascade" }),
+  question: text("question").notNull(),
+  options: text("options").notNull(), // JSON array of 4 options
+  correctAnswer: text("correctAnswer").notNull(),
+  points: integer("points").default(1).notNull(),
+});
+
+export const quizSubmissions = pgTable("QuizSubmission", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  quizId: text("quizId").notNull().references(() => quizzes.id, { onDelete: "cascade" }),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  score: integer("score").notNull(),
+  totalPoints: integer("totalPoints").notNull(),
+  answers: text("answers"), // JSON string
+  isMalpractice: boolean("isMalpractice").default(false).notNull(),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 

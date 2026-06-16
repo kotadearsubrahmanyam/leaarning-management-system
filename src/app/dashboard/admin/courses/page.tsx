@@ -3,11 +3,14 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Plus, X } from "lucide-react";
+import { BookOpen, Plus, X, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { AnimatedInput } from "@/components/ui/animated-input";
 
 export default function AdminCoursesPage() {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,6 +20,10 @@ export default function AdminCoursesPage() {
     teacherId: "",
     categoryId: "",
   });
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editCourse, setEditCourse] = useState<any>(null);
+  const [editTeacherId, setEditTeacherId] = useState("");
 
   const { data: coursesData, isLoading } = useQuery({
     queryKey: ["adminCourses"],
@@ -60,12 +67,41 @@ export default function AdminCoursesPage() {
       setIsModalOpen(false);
       setFormData({ title: "", description: "", level: "Beginner", teacherId: "", categoryId: "" });
     },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create course", variant: "destructive" });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/admin/courses/${editCourse.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teacherId: editTeacherId }),
+      });
+      if (!res.ok) throw new Error("Failed to reassign teacher");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
+      setIsEditModalOpen(false);
+      toast({ title: "Success", description: "Teacher reassigned successfully!" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to reassign teacher", variant: "destructive" });
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.teacherId) return;
     createMutation.mutate();
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTeacherId) return;
+    updateMutation.mutate();
   };
 
   const courses = coursesData?.data?.courses || [];
@@ -87,11 +123,12 @@ export default function AdminCoursesPage() {
       </div>
 
       <div className="glass rounded-3xl border border-white/10 overflow-hidden">
-        <div className="grid grid-cols-5 bg-white/5 p-4 font-semibold text-foreground/80 border-b border-white/10 text-sm">
-          <div className="col-span-2">Course Title</div>
+        <div className="grid grid-cols-6 bg-white/5 p-4 text-xs font-bold text-foreground/50 uppercase tracking-wider border-b border-white/10">
+          <div className="col-span-2">Course Name</div>
           <div>Department</div>
           <div>Level</div>
           <div>Assigned Teacher</div>
+          <div className="text-right">Actions</div>
         </div>
         {isLoading ? (
           <div className="p-4 space-y-4">
@@ -104,7 +141,7 @@ export default function AdminCoursesPage() {
             {courses.map((course: any, i: number) => (
               <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                key={course.id} className="grid grid-cols-5 p-4 items-center hover:bg-white/5 transition-colors text-sm"
+                key={course.id} className="grid grid-cols-6 p-4 items-center hover:bg-white/5 transition-colors text-sm"
               >
                 <div className="col-span-2 font-bold text-primary">{course.title}</div>
                 <div className="text-foreground/70">{course.departmentName || "Unassigned"}</div>
@@ -112,6 +149,14 @@ export default function AdminCoursesPage() {
                   <span className="bg-white/10 px-2 py-1 rounded text-xs">{course.level}</span>
                 </div>
                 <div className="text-foreground/90 font-medium">{course.teacherName}</div>
+                <div className="text-right">
+                  <button 
+                    onClick={() => { setEditCourse(course); setEditTeacherId(course.teacherId); setIsEditModalOpen(true); }} 
+                    className="text-emerald-400 hover:text-emerald-300 text-xs px-3 py-1 bg-emerald-500/10 rounded-md transition-colors"
+                  >
+                    Reassign
+                  </button>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -198,6 +243,55 @@ export default function AdminCoursesPage() {
                     <AnimatedButton type="submit" isLoading={createMutation.isPending}>
                       Create Course
                     </AnimatedButton>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && editCourse && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsEditModalOpen(false)}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: "10%" }} animate={{ opacity: 1, scale: 1, y: "-50%" }} exit={{ opacity: 0, scale: 0.95, y: "10%" }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 z-50 w-full max-w-xl"
+            >
+              <div className="glass p-8 rounded-3xl border border-white/20 shadow-2xl relative">
+                <button onClick={() => setIsEditModalOpen(false)} className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
+                  <X size={20} />
+                </button>
+                <h2 className="text-2xl font-bold mb-6 text-primary">Reassign Teacher</h2>
+                <div className="mb-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                  <p className="text-sm text-foreground/70 mb-1">Course</p>
+                  <p className="font-semibold text-lg">{editCourse.title}</p>
+                </div>
+                
+                <form onSubmit={handleUpdate} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground/70 mb-1 ml-1">Assign New Teacher</label>
+                    <select 
+                      value={editTeacherId}
+                      onChange={(e) => setEditTeacherId(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none"
+                      required
+                    >
+                      <option value="">Select a Teacher</option>
+                      {teachers.map((t: any) => <option key={t.id} value={t.id}>{t.name} ({t.email})</option>)}
+                    </select>
+                  </div>
+                  <div className="pt-4 flex justify-end gap-3">
+                    <Button type="button" variant="ghost" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                    <Button type="submit" disabled={updateMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[120px]">
+                      {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+                    </Button>
                   </div>
                 </form>
               </div>

@@ -95,11 +95,11 @@ async function main() {
     }))
   ).returning();
 
-  console.log("👨‍🏫 Creating 36 Faculty Members (12 per Department)...");
+  console.log("👨‍🏫 Creating 144 Faculty Members (48 per Department)...");
   const facultyInserts: any[] = [];
   dbDepartments.forEach((dbDept) => {
     const deptCode = dbDept.description?.split(' ')[0] || "fac";
-    for (let i = 1; i <= 12; i++) {
+    for (let i = 1; i <= 48; i++) {
       facultyInserts.push({
         name: `${deptCode} Faculty ${i}`,
         email: `${deptCode.toLowerCase()}faculty${i}@test.com`,
@@ -127,7 +127,7 @@ async function main() {
   for (let deptIndex = 0; deptIndex < departmentData.length; deptIndex++) {
     const dept = departmentData[deptIndex];
     const dbDept = dbDepartments[deptIndex];
-    const deptTeachers = allTeachers.slice(deptIndex * 12, (deptIndex + 1) * 12);
+    const deptTeachers = allTeachers.filter(t => t.departmentId === dbDept.id);
 
     for (const semNumber of allSemesters) {
       if (semNumber > dept.totalSemesters) continue;
@@ -135,10 +135,15 @@ async function main() {
       const subjects = dept.semesters[semIndex];
       if (!subjects) continue;
       const semesterData = [];
+      
+      const yearIndex = Math.floor((semNumber - 1) / 2);
+      const poolStart = yearIndex * 12;
+      const yearPoolTeachers = deptTeachers.slice(poolStart, poolStart + 12);
+      
       let localTeacherIndex = 0;
 
       for (const subject of subjects) {
-        const primaryTeacher = deptTeachers[localTeacherIndex];
+        const primaryTeacher = yearPoolTeachers[localTeacherIndex];
         
         let imageUrl = null;
         if (subject === "Human Resource Management") imageUrl = "/thumbnails/human-resource-management.jpg";
@@ -189,7 +194,7 @@ async function main() {
 
         const assignedCourseFaculties = [];
         for (let i = 0; i < 3; i++) {
-          const teacher = deptTeachers[localTeacherIndex];
+          const teacher = yearPoolTeachers[localTeacherIndex];
           localTeacherIndex++;
           const [cf] = await db.insert(courseFaculty).values({
             courseId: course.id,
@@ -221,7 +226,7 @@ async function main() {
     
     for (const semNumber of oddSemesters) {
       if (semNumber > dept.totalSemesters) continue;
-      const yearPrefix = 27 - Math.floor((semNumber - 1) / 2);
+      const yearPrefix = 26 - Math.floor((semNumber - 1) / 2);
       let rollCounter = 1;
 
       for (let s = 1; s <= 60; s++) {
@@ -233,7 +238,7 @@ async function main() {
         if (r < 0.3) residentStatus = "HOSTELER";
         else if (r < 0.6) residentStatus = "DAYSCHOLAR_BUS";
 
-        const studentSemester = rollNumberStr === "24CSE001" ? 3 : semNumber;
+        const studentSemester = semNumber;
 
         studentInserts.push({
           name: `${dept.code} Student ${rollNumberStr}`,
@@ -244,8 +249,6 @@ async function main() {
           semester: studentSemester,
           rollNumber: rollNumberStr,
           residentStatus,
-          // meta: We need a way to link students to their assigned faculties without doing it in chunks, 
-          // actually since we need their DB `id`, we must insert students first.
         });
       }
     }
@@ -287,8 +290,6 @@ async function main() {
       const semesterCourses = createdCourseFacultiesBySemAndDept.get(`${dbDept.id}-${semNumber}`);
       const semStudents = allStudents.filter(s => s.departmentId === dbDept.id && s.semester === semNumber);
       semStudents.sort((a, b) => {
-        if (a.rollNumber === "24CSE001") return -1;
-        if (b.rollNumber === "24CSE001") return 1;
         return 0;
       });
 
@@ -414,13 +415,13 @@ async function main() {
   console.log("-----------------------------------------");
   console.log("Login Credentials:");
   console.log("Admin: admin@test.com / 123456");
-  console.log("Faculty: csefaculty1@test.com to csefaculty12@test.com / 123456");
-  console.log("         ecefaculty1@test.com to ecefaculty12@test.com / 123456");
-  console.log("         bbafaculty1@test.com to bbafaculty12@test.com / 123456");
+  console.log("Faculty: csefaculty1@test.com to csefaculty48@test.com / 123456");
+  console.log("         ecefaculty1@test.com to ecefaculty48@test.com / 123456");
+  console.log("         bbafaculty1@test.com to bbafaculty48@test.com / 123456");
   console.log("Students:");
-  console.log("  CSE: 27cse001@test.com (Sem 1), 26cse001@test.com (Sem 3), 25cse001@test.com (Sem 5), 24cse001@test.com (Sem 7)");
-  console.log("  ECE: 27ece001@test.com (Sem 1), 26ece001@test.com (Sem 3), 25ece001@test.com (Sem 5), 24ece001@test.com (Sem 7)");
-  console.log("  BBA: 27bba001@test.com (Sem 1), 26bba001@test.com (Sem 3), 25bba001@test.com (Sem 5) [No Sem 7]");
+  console.log("  CSE: 26cse001@test.com (Sem 1), 25cse001@test.com (Sem 3), 24cse001@test.com (Sem 5), 23cse001@test.com (Sem 7)");
+  console.log("  ECE: 26ece001@test.com (Sem 1), 25ece001@test.com (Sem 3), 24ece001@test.com (Sem 5), 23ece001@test.com (Sem 7)");
+  console.log("  BBA: 26bba001@test.com (Sem 1), 25bba001@test.com (Sem 3), 24bba001@test.com (Sem 5) [No Sem 7]");
   console.log("All passwords are: 123456");
   console.log("-----------------------------------------");
   process.exit(0);

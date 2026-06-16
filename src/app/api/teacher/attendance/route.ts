@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { attendance, enrollments, users, courses } from "@/db/schema";
+import { attendance, enrollments, users, courses, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -25,7 +25,20 @@ export async function GET(req: Request) {
     
     // Check ownership
     const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
-    if (course?.teacherId !== payload.id) return errorResponse("Forbidden", 403);
+    if (!course) return errorResponse("Course not found", 404);
+    
+    let isAuthorized = course.teacherId === payload.id;
+    if (!isAuthorized) {
+       const [coTeacher] = await db.select().from(courseFaculty).where(
+         and(
+           eq(courseFaculty.courseId, courseId),
+           eq(courseFaculty.teacherId, payload.id as string)
+         )
+       );
+       if (coTeacher) isAuthorized = true;
+    }
+    
+    if (!isAuthorized) return errorResponse("Forbidden", 403);
 
     // Get enrolled students
     const enrolledStudents = await db.select({
@@ -76,6 +89,23 @@ export async function POST(req: Request) {
     const { courseId, date, records } = body; // records: { userId, status }[]
 
     if (!courseId || !date || !records) return errorResponse("Missing fields", 400);
+
+    // Check ownership
+    const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
+    if (!course) return errorResponse("Course not found", 404);
+    
+    let isAuthorized = course.teacherId === payload.id;
+    if (!isAuthorized) {
+       const [coTeacher] = await db.select().from(courseFaculty).where(
+         and(
+           eq(courseFaculty.courseId, courseId),
+           eq(courseFaculty.teacherId, payload.id as string)
+         )
+       );
+       if (coTeacher) isAuthorized = true;
+    }
+    
+    if (!isAuthorized) return errorResponse("Forbidden", 403);
 
     const targetDate = new Date(date);
 
