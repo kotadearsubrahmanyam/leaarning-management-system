@@ -9,7 +9,7 @@ import {
   BookOpen, LayoutDashboard, Users, Settings, Sparkles, LogOut, Compass, 
   DownloadCloud, CreditCard, Calendar, Award, FileEdit, Shield, Layers, 
   MessageSquare, Clock, ClipboardList, CheckSquare, BarChart, FileCheck, 
-  Library, Menu, X, User, UserCircle, Mic
+  Library, Menu, X, User, FileText, UserCircle, Mic
 } from "lucide-react";
 
 interface SidebarProps {
@@ -36,11 +36,16 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
   const getLinks = () => {
     const base = [
       { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+      { href: "/dashboard/academic-calendar", icon: Calendar, label: "Academic Calendar" },
+      { href: "/dashboard/ai", icon: Sparkles, label: "AI Chat" },
+      { href: "/dashboard/interview", icon: MessageSquare, label: "AI Interview" },
+      { href: "/dashboard/resume-builder", icon: FileText, label: "Resume Builder" },
     ];
     
     if (role === "ADMIN") {
       return [
         { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+        { href: "/dashboard/academic-calendar", icon: Calendar, label: "Academic Calendar" },
         { href: "/dashboard/admin", icon: Shield, label: "Admin Control" },
         { href: "/dashboard/admin/academic", icon: Library, label: "Academic" },
         { href: "/dashboard/admin/users", icon: Users, label: "Users" },
@@ -67,7 +72,6 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
     } else {
       return [
         ...base, 
-        { href: "/dashboard/interview", icon: Mic, label: "AI Interview" },
         { href: "/dashboard/student/quizzes", icon: Sparkles, label: "Practice Quizzes" },
         { href: "/dashboard/student/mentoring", icon: Sparkles, label: "Learning Paths" },
         { href: "/dashboard/my-courses", icon: BookOpen, label: "My Courses" },
