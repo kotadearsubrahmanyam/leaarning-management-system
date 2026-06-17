@@ -42,6 +42,10 @@ export default function TeacherMyCoursesPage() {
     return Object.keys(coursesBySemester).map(Number).sort((a, b) => b - a);
   }, [coursesBySemester]);
 
+  const handleCourseClick = (course: Course) => {
+    router.push(`/dashboard/courses/${course.id}`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -90,10 +94,7 @@ export default function TeacherMyCoursesPage() {
                   {coursesBySemester[sem].length} {coursesBySemester[sem].length === 1 ? 'Course' : 'Courses'}
                 </span>
               </div>
-              <CourseGrid 
-                courses={coursesBySemester[sem]} 
-                onCourseClick={(course) => router.push(`/dashboard/courses/${course.id}`)}
-              />
+              <CourseGrid courses={coursesBySemester[sem]} onCourseClick={handleCourseClick} />
             </div>
           ))}
         </div>

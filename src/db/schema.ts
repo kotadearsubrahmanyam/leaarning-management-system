@@ -688,3 +688,15 @@ export const studentLearningPathsRelations = relations(studentLearningPaths, ({ 
   }),
 }));
 
+export const academicEvents = pgTable("AcademicEvent", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  startDate: timestamp("startDate", { precision: 3, mode: "date" }).notNull(),
+  endDate: timestamp("endDate", { precision: 3, mode: "date" }).notNull(),
+  category: text("category").notNull(),
+  semester: integer("semester"),
+  createdBy: text("createdBy"),
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+});
+

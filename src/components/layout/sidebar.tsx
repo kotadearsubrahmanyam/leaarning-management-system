@@ -34,12 +34,10 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
   };
 
   const getLinks = () => {
-    const base = [
+    const commonBase = [
       { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
       { href: "/dashboard/academic-calendar", icon: Calendar, label: "Academic Calendar" },
       { href: "/dashboard/ai", icon: Sparkles, label: "AI Chat" },
-      { href: "/dashboard/interview", icon: MessageSquare, label: "AI Interview" },
-      { href: "/dashboard/resume-builder", icon: FileText, label: "Resume Builder" },
     ];
     
     if (role === "ADMIN") {
@@ -58,7 +56,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
       ];
     } else if (role === "TEACHER") {
       return [
-        ...base, 
+        ...commonBase, 
         { href: "/dashboard/teacher/students", icon: Users, label: "Students" },
         { href: "/dashboard/teacher/my-courses", icon: BookOpen, label: "My Courses" },
         { href: "/dashboard/teacher/quizzes", icon: Sparkles, label: "AI Quizzes" },
@@ -70,7 +68,9 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
       ];
     } else {
       return [
-        ...base, 
+        ...commonBase, 
+        { href: "/dashboard/interview", icon: MessageSquare, label: "AI Interview" },
+        { href: "/dashboard/resume-builder", icon: FileText, label: "Resume Builder" },
         { href: "/dashboard/student/quizzes", icon: Sparkles, label: "Practice Quizzes" },
         { href: "/dashboard/student/mentoring", icon: Sparkles, label: "Learning Paths" },
         { href: "/dashboard/my-courses", icon: BookOpen, label: "My Courses" },
