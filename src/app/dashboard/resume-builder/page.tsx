@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileText, Plus, Edit2, Trash2, Download, FileCode, Calendar, Loader2 } from "lucide-react";
+import { LiveResumePreview } from "@/components/resume-builder/LiveResumePreview";
 
 interface Resume {
   id: string;
@@ -18,6 +19,7 @@ export default function ResumeBuilderDashboard() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [exportingResume, setExportingResume] = useState<any | null>(null);
 
   const fetchResumes = async () => {
     try {
@@ -106,10 +108,89 @@ export default function ResumeBuilderDashboard() {
 
   const handleExport = async (id: string, type: "pdf" | "tex", e: React.MouseEvent) => {
     e.stopPropagation();
+    if (type === "tex") {
+      try {
+        window.open(`/api/resume/${id}?export=tex`, "_blank");
+      } catch (err) {
+        console.error("Failed to download LaTeX:", err);
+      }
+      return;
+    }
+
+    // PDF client-side export fallback to avoid host LaTeX dependencies
     try {
-      window.open(`/api/resume/${id}?export=${type}`, "_blank");
+      setCreating(true); // display loader during fetch/generation
+      const res = await fetch(`/api/resume/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch resume details");
+      const payload = await res.json();
+      if (!payload.success || !payload.data) throw new Error("Resume not found");
+
+      const resumeData = payload.data;
+      setExportingResume(resumeData);
+
+      // Wait for offscreen DOM element to render
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const element = document.getElementById("hidden-resume-preview");
+      if (!element) throw new Error("Hidden preview element not found");
+
+      const previewContent = element.querySelector("#resume-preview-content") as HTMLElement;
+      if (!previewContent) throw new Error("Preview content element not found");
+
+      const html2canvasModule = await import("html2canvas");
+      const html2canvas = html2canvasModule.default || html2canvasModule;
+
+      const jspdfModule = await import("jspdf");
+      const jsPDF = jspdfModule.jsPDF || jspdfModule.default || jspdfModule;
+
+      // Temporarily reset transform for clean capture
+      const originalTransform = previewContent.style.transform;
+      previewContent.style.transform = "none";
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const canvas = await html2canvas(previewContent, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      previewContent.style.transform = originalTransform;
+
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+      
+      let pdf;
+      try {
+        pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "pt",
+          format: "a4",
+        });
+      } catch (err) {
+        try {
+          pdf = new jsPDF("p", "pt", "a4");
+        } catch (err2) {
+          throw new Error("jsPDF constructor failed to instantiate.");
+        }
+      }
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
+
+      const filename = `resume_${resumeData.fullName.toLowerCase().replace(/\s+/g, "_")}.pdf`;
+      pdf.save(filename);
+
     } catch (err) {
-      console.error(`Failed to download ${type}:`, err);
+      console.error("Client-side PDF generation failed, falling back to backend:", err);
+      // Fallback: Open backend endpoint in new tab
+      window.open(`/api/resume/${id}?export=pdf`, "_blank");
+    } finally {
+      setExportingResume(null);
+      setCreating(false);
     }
   };
 
@@ -264,6 +345,12 @@ export default function ResumeBuilderDashboard() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      {/* Hidden preview container for client-side PDF generation from dashboard */}
+      {exportingResume && (
+        <div style={{ position: "absolute", left: "-9999px", top: "-9999px" }} id="hidden-resume-preview">
+          <LiveResumePreview data={exportingResume} />
         </div>
       )}
     </div>
