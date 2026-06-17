@@ -5,6 +5,7 @@ import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { eq, and, inArray, sql } from "drizzle-orm";
+import { recalculateStudentGpas, assignLearningPathOnFail } from "@/lib/gpa";
 
 export async function POST(req: Request) {
   try {
@@ -111,6 +112,25 @@ export async function POST(req: Request) {
       WHERE "userId" IN ${sql`(${sql.join(studentIds.map(id => sql`${id}`), sql`, `)})`}
       AND published = false
     `);
+
+    // Recalculate GPAs and auto-assign learning paths
+    for (const studentId of studentIds) {
+      await recalculateStudentGpas(studentId);
+      
+      const failedResults = await db.select({ courseId: results.courseId })
+        .from(results)
+        .where(and(
+          eq(results.userId, studentId),
+          eq(results.semester, semester),
+          eq(results.status, "FAIL")
+        ));
+      
+      for (const fr of failedResults) {
+        if (fr.courseId) {
+          await assignLearningPathOnFail(studentId, fr.courseId);
+        }
+      }
+    }
 
     return successResponse(null, "Results successfully declared for the batch!", 200);
 

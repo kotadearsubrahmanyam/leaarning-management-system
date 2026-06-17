@@ -5,6 +5,7 @@ import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { eq, and } from "drizzle-orm";
+import { recalculateStudentGpas, assignLearningPathOnFail } from "@/lib/gpa";
 
 export async function POST(req: Request) {
   try {
@@ -50,9 +51,30 @@ export async function POST(req: Request) {
       });
     }
 
+    if (pub) {
+      // Recalculate GPAs under configured policy
+      await recalculateStudentGpas(userId);
+
+      // Auto assign learning path for failed courses
+      const failedResults = await db.select({ courseId: results.courseId })
+        .from(results)
+        .where(and(
+          eq(results.userId, userId),
+          eq(results.semester, sem),
+          eq(results.status, "FAIL")
+        ));
+      
+      for (const fr of failedResults) {
+        if (fr.courseId) {
+          await assignLearningPathOnFail(userId, fr.courseId);
+        }
+      }
+    }
+
     return successResponse(null, `Successfully ${pub ? 'published' : 'unpublished'} results for Semester ${sem}`);
   } catch (error) {
     console.error("Publish results error:", error);
     return errorResponse("Internal server error", 500);
   }
 }
+

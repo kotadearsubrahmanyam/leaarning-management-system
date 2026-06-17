@@ -6,8 +6,10 @@ import { BookOpen } from "lucide-react";
 import { CourseGrid } from "@/components/courses/course-grid";
 import { Course } from "@/components/courses/course-card";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function TeacherMyCoursesPage() {
+  const router = useRouter();
   const { data, isLoading } = useQuery({
     queryKey: ["teacherCourses"],
     queryFn: async () => {
@@ -88,7 +90,10 @@ export default function TeacherMyCoursesPage() {
                   {coursesBySemester[sem].length} {coursesBySemester[sem].length === 1 ? 'Course' : 'Courses'}
                 </span>
               </div>
-              <CourseGrid courses={coursesBySemester[sem]} />
+              <CourseGrid 
+                courses={coursesBySemester[sem]} 
+                onCourseClick={(course) => router.push(`/dashboard/courses/${course.id}`)}
+              />
             </div>
           ))}
         </div>

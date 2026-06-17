@@ -46,23 +46,22 @@ interface SubjectResult {
 
 const getGradePoints = (grade: string): number => {
   const g = grade.toUpperCase().trim();
-  if (g === "O") return 10;
-  if (g === "A+") return 9;
-  if (g === "A") return 8;
-  if (g === "B+") return 7;
-  if (g === "B") return 6;
-  if (g === "C") return 5;
-  if (g === "D") return 4;
+  if (["A+", "O"].includes(g)) return 10;
+  if (g === "A") return 9;
+  if (g === "B+") return 8;
+  if (g === "B") return 7;
+  if (g === "C") return 6;
+  if (g === "D") return 5;
   return 0; // F, S, etc.
 };
 
 const getAutoGrade = (total: number): string => {
-  if (total >= 90) return "O";
-  if (total >= 80) return "A+";
-  if (total >= 70) return "A";
-  if (total >= 60) return "B+";
-  if (total >= 50) return "B";
-  if (total >= 40) return "C";
+  if (total >= 90) return "A+";
+  if (total >= 80) return "A";
+  if (total >= 70) return "B+";
+  if (total >= 60) return "B";
+  if (total >= 50) return "C";
+  if (total >= 40) return "D";
   return "F";
 };
 
@@ -91,16 +90,65 @@ const getExamMonthYear = (sem: number, rollNumber?: string, currentSem?: number)
   }
 };
 
+const getExamDate = (sem: number, courseIndex: number, rollNumber?: string, currentSem?: number) => {
+  let joiningYear = 2024;
+  if (rollNumber && /^\d{2}/.test(rollNumber)) {
+    joiningYear = 2000 + parseInt(rollNumber.substring(0, 2), 10);
+  }
+  
+  const currentSemester = currentSem || 1;
+  const currentRealYear = new Date().getFullYear(); // 2026
+
+  let year = joiningYear + Math.floor(sem / 2);
+  if (sem >= currentSemester) {
+    year = currentRealYear + Math.floor(sem / 2) - Math.floor(currentSemester / 2);
+  }
+
+  let startMonth = 12;
+  let startDay = 2;
+
+  if (sem === 1) { startMonth = 12; startDay = 2; }
+  else if (sem === 2) { startMonth = 6; startDay = 2; }
+  else if (sem === 3) { startMonth = 11; startDay = 23; }
+  else if (sem === 4) { startMonth = 4; startDay = 26; }
+  else if (sem === 5) { startMonth = 11; startDay = 22; }
+  else if (sem === 6) { startMonth = 4; startDay = 24; }
+  else if (sem === 7) { startMonth = 11; startDay = 20; }
+  else if (sem === 8) { startMonth = 4; startDay = 23; }
+
+  const startDate = new Date(year, startMonth - 1, startDay);
+  let examDate = new Date(startDate);
+  let daysAdded = 0;
+  let targetDays = courseIndex * 2; // space exams every 2 days
+  
+  while (daysAdded < targetDays) {
+    examDate.setDate(examDate.getDate() + 1);
+    if (examDate.getDay() !== 0) { // skip Sunday
+      daysAdded++;
+    }
+  }
+
+  const day = String(examDate.getDate()).padStart(2, "0");
+  const months = ["Dec", "Jun", "Nov", "Apr", "Nov", "Apr", "Nov", "Apr"]; // lookup based on sem startMonth
+  const monthName = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][examDate.getMonth()];
+  const yearStr = examDate.getFullYear();
+  return `${day}-${monthName}-${yearStr}`;
+};
+
 export default function ResultsPage() {
   const queryClient = useQueryClient();
   const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
 
   // Calculator States
   const [plannerGrades, setPlannerGrades] = useState<Record<string, string>>({});
+  const [hasUserModified, setHasUserModified] = useState(false);
 
+  // Policy Settings States
+  const [backlogPolicy, setBacklogPolicy] = useState("A");
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
 
   // Search & Filters for Admin
-  const [adminTab, setAdminTab] = useState<"subjects" | "publish">("subjects");
+  const [adminTab, setAdminTab] = useState<"subjects" | "publish" | "policy">("subjects");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSemester, setFilterSemester] = useState<string>("ALL");
   const [isPublishingAll, setIsPublishingAll] = useState(false);
@@ -233,6 +281,18 @@ export default function ResultsPage() {
       : deptCurriculumCourses;
   }, [planningSem, currentStudentSemester, enrolledCoursesRes, departmentCoursesRes]);
 
+  const officialCgpa = React.useMemo(() => {
+    if (publishedSemesters.length === 0) return 0;
+    const latestSem = publishedSemesters[publishedSemesters.length - 1];
+    const latestSummary = studentSummaries[latestSem];
+    return latestSummary ? parseFloat(latestSummary.cgpa || "0") : 0;
+  }, [publishedSemesters, studentSummaries]);
+
+  const publishedCredits = React.useMemo(() => {
+    return Object.entries(studentSummaries)
+      .reduce((sum, [_, val]: [string, any]) => sum + (val.totalCredits || 0), 0);
+  }, [studentSummaries]);
+
   // Set default selected semester for student to the latest tab
   useEffect(() => {
     if (tabsList.length > 0 && selectedSemester === null) {
@@ -266,6 +326,42 @@ export default function ResultsPage() {
       setPlannerGrades(initialGrades);
     }
   }, [activeCourses, data]);
+
+  // Load backlog policy setting for administrators
+  useEffect(() => {
+    if (role === "ADMIN") {
+      fetch("/api/admin/settings")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.data?.policy) {
+            setBacklogPolicy(data.data.policy);
+          }
+        })
+        .catch((err) => console.error("Error fetching backlog policy:", err));
+    }
+  }, [role]);
+
+  const handleSavePolicy = async (policy: string) => {
+    setIsSavingPolicy(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ policy }),
+      });
+      if (!res.ok) throw new Error("Failed to save backlog policy");
+      const resData = await res.json();
+      if (resData.success) {
+        setBacklogPolicy(policy);
+        alert("GPA Recalculation Policy updated successfully!");
+      }
+    } catch (err) {
+      console.error("Save backlog policy error:", err);
+      alert("Failed to update GPA recalculation policy.");
+    } finally {
+      setIsSavingPolicy(false);
+    }
+  };
 
   // Reset form data
   const resetForm = () => {
@@ -579,6 +675,16 @@ export default function ResultsPage() {
             >
               <Sliders size={18} /> Publishing & GPA Overrides
             </button>
+            <button
+              onClick={() => setAdminTab("policy")}
+              className={`pb-3 font-bold text-sm transition-all border-b-2 flex items-center gap-2 ${
+                adminTab === "policy"
+                  ? "border-[#10B981] text-[#10B981]"
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              <Sliders size={18} /> GPA Policies
+            </button>
           </div>
           {adminTab === "publish" && (
             <button
@@ -806,6 +912,74 @@ export default function ResultsPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB CONTENT: GPA Policies */}
+        {adminTab === "policy" && (
+          <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm max-w-2xl mx-auto space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Backlog GPA Recalculation Policy</h2>
+              <p className="text-slate-500 text-sm">
+                Select the institutional policy used to recalculate student SGPA and CGPA values once a backlog subject is cleared via supplementary exams.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-start gap-4 p-4 rounded-2xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="gpaPolicy"
+                  value="A"
+                  checked={backlogPolicy === "A"}
+                  onChange={() => handleSavePolicy("A")}
+                  disabled={isSavingPolicy}
+                  className="mt-1.5 h-4 w-4 text-[#10B981] focus:ring-[#10B981] border-slate-300"
+                />
+                <div>
+                  <span className="block font-bold text-slate-800">Policy A: Latest Grade Replacement</span>
+                  <span className="block text-xs text-slate-500 mt-1">
+                    Replace the failed grade with the actual grade achieved in the supplementary exam (e.g. F becomes B). Recalculate SGPA for the original semester and CGPA for all subsequent semesters.
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-4 p-4 rounded-2xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="gpaPolicy"
+                  value="B"
+                  checked={backlogPolicy === "B"}
+                  onChange={() => handleSavePolicy("B")}
+                  disabled={isSavingPolicy}
+                  className="mt-1.5 h-4 w-4 text-[#10B981] focus:ring-[#10B981] border-slate-300"
+                />
+                <div>
+                  <span className="block font-bold text-slate-800">Policy B: Pass Grade Replacement</span>
+                  <span className="block text-xs text-slate-500 mt-1">
+                    Replace the failed grade with a fixed minimum passing grade (D, 5 points) defined by the institution, regardless of the actual grade scored in the supplementary exam.
+                  </span>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-4 p-4 rounded-2xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="gpaPolicy"
+                  value="C"
+                  checked={backlogPolicy === "C"}
+                  onChange={() => handleSavePolicy("C")}
+                  disabled={isSavingPolicy}
+                  className="mt-1.5 h-4 w-4 text-[#10B981] focus:ring-[#10B981] border-slate-300"
+                />
+                <div>
+                  <span className="block font-bold text-slate-800">Policy C: Original Grade Retention</span>
+                  <span className="block text-xs text-slate-500 mt-1">
+                    Retain the original failed grade (F, 0 points) in GPA calculations and only update the subject's status to passed. Backlog count is updated, but SGPA and CGPA remain unchanged.
+                  </span>
+                </div>
+              </label>
             </div>
           </div>
         )}
@@ -1096,6 +1270,7 @@ export default function ResultsPage() {
   // Let's compute projected SGPA and CGPA for the active courses calculator
   const currentCredits = activeCourses.reduce((sum: number, c: any) => sum + (c.credits || 3), 0);
   
+
   const projectedSgpa = (() => {
     if (currentCredits === 0) return "0.00";
     const totalPoints = activeCourses.reduce((sum: number, c: any) => {
@@ -1106,17 +1281,13 @@ export default function ResultsPage() {
   })();
 
   const projectedCgpa = (() => {
-    const pastCredits = Object.entries(studentSummaries)
-      .reduce((sum, [_, val]: [string, any]) => sum + (val.totalCredits || 0), 0);
-    const pastPoints = Object.entries(studentSummaries)
-      .reduce((sum, [_, val]: [string, any]) => sum + (parseFloat(val.sgpa || "0") * (val.totalCredits || 0)), 0);
-    const totalCreditsCombined = pastCredits + currentCredits;
+    if (!hasUserModified) {
+      return officialCgpa.toFixed(2);
+    }
+    const totalCreditsCombined = publishedCredits + currentCredits;
     if (totalCreditsCombined === 0) return "0.00";
-    const currentPoints = activeCourses.reduce((sum: number, c: any) => {
-      const grade = plannerGrades[c.id] || "A";
-      return sum + getGradePoints(grade) * (c.credits || 3);
-    }, 0);
-    const totalPointsCombined = pastPoints + currentPoints;
+    const projectedSgpaNum = parseFloat(projectedSgpa);
+    const totalPointsCombined = (officialCgpa * publishedCredits) + (projectedSgpaNum * currentCredits);
     return (totalPointsCombined / totalCreditsCombined).toFixed(2);
   })();
 
@@ -1142,7 +1313,7 @@ export default function ResultsPage() {
         cgpa: projectedCgpa,
         totalCredits: currentCredits,
         passedCount: activeCourses.filter((c: any) => (plannerGrades[c.id] || "A") !== "F").length,
-        status: "PROJECTED",
+        status: "ESTIMATED",
       }
     : (selectedSemester ? studentSummaries[selectedSemester] : null);
 
@@ -1235,7 +1406,7 @@ export default function ResultsPage() {
                           <span className={`text-sm font-bold mt-2.5 px-3 py-1 rounded-full text-center border ${
                             selectedSummary.status === "PASS"
                               ? "bg-green-50 text-green-600 border-green-200"
-                              : selectedSummary.status === "PROJECTED"
+                              : selectedSummary.status === "ESTIMATED"
                               ? "bg-blue-50 text-blue-600 border-blue-200"
                               : "bg-red-50 text-red-600 border-red-200"
                           }`}>
@@ -1257,7 +1428,6 @@ export default function ResultsPage() {
                                 <th className="p-4 pl-6 text-center w-16">S.No</th>
                                 <th className="p-4">Course Code</th>
                                 <th className="p-4">Course Name</th>
-                                <th className="p-4 text-center">{selectedSemester ? getExamMonthYear(selectedSemester, authData?.data?.user?.rollNumber, authData?.data?.user?.semester) : "Exam"}</th>
                                 <th className="p-4 text-center font-bold">Grade</th>
                                 <th className="p-4 text-center">Grade Points</th>
                                 <th className="p-4 text-center">Credits</th>
@@ -1269,8 +1439,15 @@ export default function ResultsPage() {
                                 <tr key={sub.id || index} className="hover:bg-slate-50 transition-colors">
                                   <td className="p-4 pl-6 text-center font-bold text-slate-400">{index + 1}</td>
                                   <td className="p-4 font-mono text-xs font-bold text-[#10B981]">{sub.subjectCode}</td>
-                                  <td className="p-4 font-bold text-slate-800">{sub.courseName}</td>
-                                  <td className="p-4 text-center font-bold text-slate-600">{sub.grade}</td>
+                                  <td className="p-4 font-bold text-slate-800">
+                                    <div>{sub.courseName}</div>
+                                    {sub.passType === "SUPPLEMENTARY" && (
+                                      <div className="text-[11px] text-amber-600 font-extrabold mt-1 flex items-center gap-1 bg-amber-50 border border-amber-200/55 rounded-full px-2 py-0.5 w-max">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
+                                        Cleared via Supplementary in Sem {sub.clearedSemester} (Attempt {sub.attemptNumber})
+                                      </div>
+                                    )}
+                                  </td>
                                   <td className="p-4 text-center">
                                     <span className={`font-black ${["A+", "A", "B+", "B", "O"].includes(sub.grade) ? "text-[#10B981]" : sub.grade === "F" ? "text-red-500" : "text-slate-700"}`}>
                                       {sub.grade}
@@ -1333,7 +1510,10 @@ export default function ResultsPage() {
                       </div>
                       <select
                         value={plannerGrades[c.id] || "A"}
-                        onChange={(e) => setPlannerGrades({ ...plannerGrades, [c.id]: e.target.value })}
+                        onChange={(e) => {
+                          setPlannerGrades({ ...plannerGrades, [c.id]: e.target.value });
+                          setHasUserModified(true);
+                        }}
                         className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-700 focus:outline-none focus:border-[#10B981]"
                       >
                         <option value="A+">A+ (10)</option>
@@ -1350,16 +1530,20 @@ export default function ResultsPage() {
               )}
             </div>
 
-            {/* Projected Outputs */}
+            {/* Estimated Outputs */}
             <div className="space-y-6 lg:mt-9">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                  <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Projected SGPA</span>
-                  <span className="text-3xl font-black text-slate-800 mt-2">{projectedSgpa}</span>
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Official CGPA</span>
+                  <span className="text-3xl font-black text-slate-900 mt-2">{officialCgpa.toFixed(2)}</span>
                 </div>
                 <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                  <span className="text-xs font-black text-slate-700 uppercase tracking-wider">Projected CGPA</span>
-                  <span className="text-3xl font-black text-slate-800 mt-2">{projectedCgpa}</span>
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Estimated SGPA</span>
+                  <span className="text-3xl font-black text-slate-900 mt-2">{projectedSgpa}</span>
+                </div>
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Estimated CGPA</span>
+                  <span className="text-3xl font-black text-slate-900 mt-2">{projectedCgpa}</span>
                 </div>
               </div>
             </div>

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { results, users } from "@/db/schema";
+import { results, users, resultAttempts } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { desc, eq } from "drizzle-orm";
+import { recalculateStudentGpas, assignLearningPathOnFail } from "@/lib/gpa";
 
 const getAutoGrade = (total: number): string => {
   if (total >= 90) return "A+";
@@ -121,6 +122,9 @@ export async function POST(req: Request) {
       grade: calculatedGrade,
       status: calculatedStatus,
       published: false, // default to unpublished draft
+      originalSemester: parseInt(semester),
+      attemptNumber: 1,
+      passType: "REGULAR",
     }).returning();
 
     return successResponse({ result: newResult }, "Result added successfully");
@@ -181,10 +185,57 @@ export async function PUT(req: Request) {
     updateData.status = calculatedStatus;
     if (published !== undefined) updateData.published = published;
 
+    // Check if status changed from FAIL to PASS (Supplementary Cleared)
+    const wasFailed = existingResult.status === "FAIL";
+    const isNowPassed = calculatedStatus === "PASS";
+
+    if (wasFailed && isNowPassed) {
+      // 1. Fetch student info to get current semester
+      const student = await db.query.users.findFirst({
+        where: eq(users.id, existingResult.userId)
+      });
+      const currentSem = student?.semester || existingResult.semester;
+
+      // 2. Insert into attempt history
+      await db.insert(resultAttempts).values({
+        resultId: existingResult.id,
+        attemptNumber: existingResult.attemptNumber || 1,
+        grade: existingResult.grade,
+        status: existingResult.status,
+        marks: existingResult.marks,
+        semester: existingResult.semester,
+      });
+
+      // 3. Mark updateData as supplementary
+      updateData.passType = "SUPPLEMENTARY";
+      updateData.clearedSemester = currentSem;
+      updateData.attemptNumber = (existingResult.attemptNumber || 1) + 1;
+      updateData.originalSemester = existingResult.originalSemester || existingResult.semester;
+      updateData.originalGrade = existingResult.originalGrade || existingResult.grade;
+    } else if (calculatedStatus === "FAIL" && existingResult.status !== "FAIL") {
+      updateData.originalSemester = existingResult.originalSemester || existingResult.semester;
+      updateData.attemptNumber = existingResult.attemptNumber || 1;
+      updateData.passType = "REGULAR";
+    }
+
     const [updatedResult] = await db.update(results)
       .set(updateData)
       .where(eq(results.id, id))
       .returning();
+
+    // Trigger GPA recalculation for this student if status changed or published status changed
+    const statusChanged = existingResult.status !== calculatedStatus;
+    const publishChanged = existingResult.published !== published;
+    const isPublished = published !== undefined ? published : existingResult.published;
+
+    if (statusChanged || publishChanged || isPublished) {
+      await recalculateStudentGpas(existingResult.userId);
+      
+      // Auto assign learning path if failed and published
+      if (calculatedStatus === "FAIL" && isPublished) {
+        await assignLearningPathOnFail(existingResult.userId, existingResult.courseId || "");
+      }
+    }
 
     return successResponse({ result: updatedResult }, "Result updated successfully");
   } catch (error) {

@@ -209,8 +209,14 @@ export const results = pgTable("Result", {
   published: boolean("published").default(false).notNull(),
   isReevaluationApplied: boolean("isReevaluationApplied").default(false).notNull(),
   graceMarksAdded: integer("graceMarksAdded").default(0).notNull(),
+  originalSemester: integer("originalSemester"),
+  clearedSemester: integer("clearedSemester"),
+  attemptNumber: integer("attemptNumber").default(1).notNull(),
+  passType: text("passType").default("REGULAR").notNull(),
+  originalGrade: text("originalGrade"),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
+
 
 export const studentSemesterSummary = pgTable("StudentSemesterSummary", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -378,6 +384,18 @@ export const studentActivities = pgTable("StudentActivity", {
   verificationStatus: activityStatusEnum("verificationStatus").default("PENDING").notNull(),
   evaluatedBy: text("evaluatedBy").references(() => users.id, { onDelete: "set null" }),
   evaluatedAt: timestamp("evaluatedAt", { precision: 3, mode: "date" }),
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+});
+
+export const academicEvents = pgTable("AcademicEvent", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  startDate: timestamp("startDate", { precision: 3, mode: "date" }).notNull(),
+  endDate: timestamp("endDate", { precision: 3, mode: "date" }).notNull(),
+  category: text("category").notNull(),
+  semester: integer("semester"),
+  createdBy: text("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 
@@ -575,5 +593,98 @@ export const studentSemesterSummaryRelations = relations(studentSemesterSummary,
 export const feeStructureRelations = relations(feeStructure, ({ one, many }) => ({
   user: one(users, { fields: [feeStructure.userId], references: [users.id] }),
   payments: many(payments),
+}));
+
+export const systemSettings = pgTable("SystemSetting", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  key: text("key").notNull().unique(), // e.g. "BACKLOG_POLICY"
+  value: text("value").notNull(), // e.g. "A", "B", "C"
+  updatedAt: timestamp("updatedAt", { precision: 3, mode: "date" })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export const resultAttempts = pgTable("ResultAttempt", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  resultId: text("resultId").notNull().references(() => results.id, { onDelete: "cascade" }),
+  attemptNumber: integer("attemptNumber").notNull(),
+  grade: text("grade").notNull(),
+  status: text("status").notNull(),
+  marks: integer("marks").notNull(),
+  semester: integer("semester").notNull(), // semester in which the attempt was made
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+});
+
+export const learningPaths = pgTable("LearningPath", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  courseId: text("courseId").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  prerequisites: text("prerequisites"),
+  studySequence: text("studySequence").notNull(), // JSON string representing phases/units
+  resources: text("resources"), // JSON string representing notes/notes links/videos
+  mockTests: text("mockTests"), // JSON string representing mock tests
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { precision: 3, mode: "date" })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export const studentLearningPaths = pgTable("StudentLearningPath", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  studentId: text("studentId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  learningPathId: text("learningPathId").notNull().references(() => learningPaths.id, { onDelete: "cascade" }),
+  progress: text("progress").notNull(), // JSON string: { completedUnits: string[], completedAssignments: string[], completedMockTests: string[], completedChecklist: string[] }
+  assignedDate: timestamp("assignedDate", { precision: 3, mode: "date" }).defaultNow().notNull(),
+  completionStatus: text("completionStatus").default("IN_PROGRESS").notNull(), // IN_PROGRESS, COMPLETED
+  readinessScore: integer("readinessScore").default(0).notNull(),
+  updatedAt: timestamp("updatedAt", { precision: 3, mode: "date" })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export const learningPathResources = pgTable("LearningPathResource", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  learningPathId: text("learningPathId").notNull().references(() => learningPaths.id, { onDelete: "cascade" }),
+  resourceType: text("resourceType").notNull(), // NOTES, PYQ, QUESTIONS, VIDEO, ASSIGNMENT
+  resourceUrl: text("resourceUrl").notNull(),
+  sequenceOrder: integer("sequenceOrder").notNull(),
+});
+
+export const resultAttemptsRelations = relations(resultAttempts, ({ one }) => ({
+  result: one(results, {
+    fields: [resultAttempts.resultId],
+    references: [results.id],
+  }),
+}));
+
+export const learningPathsRelations = relations(learningPaths, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [learningPaths.courseId],
+    references: [courses.id],
+  }),
+  studentPaths: many(studentLearningPaths),
+  resources: many(learningPathResources),
+}));
+
+export const learningPathResourcesRelations = relations(learningPathResources, ({ one }) => ({
+  learningPath: one(learningPaths, {
+    fields: [learningPathResources.learningPathId],
+    references: [learningPaths.id],
+  }),
+}));
+
+export const studentLearningPathsRelations = relations(studentLearningPaths, ({ one }) => ({
+  student: one(users, {
+    fields: [studentLearningPaths.studentId],
+    references: [users.id],
+  }),
+  learningPath: one(learningPaths, {
+    fields: [studentLearningPaths.learningPathId],
+    references: [learningPaths.id],
+  }),
 }));
 
