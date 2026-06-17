@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { verifyJwt } from "@/lib/jwt";
 import { errorResponse } from "@/lib/api-response";
 
-const SPRING_BOOT_API_URL = "http://localhost:8080/api/skills/search";
+const SPRING_BOOT_API_URL = "http://127.0.0.1:8080/api/skills/search";
 
 export async function GET(req: Request) {
   try {

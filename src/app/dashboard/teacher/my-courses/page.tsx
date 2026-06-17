@@ -6,8 +6,10 @@ import { BookOpen } from "lucide-react";
 import { CourseGrid } from "@/components/courses/course-grid";
 import { Course } from "@/components/courses/course-card";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function TeacherMyCoursesPage() {
+  const router = useRouter();
   const { data, isLoading } = useQuery({
     queryKey: ["teacherCourses"],
     queryFn: async () => {
@@ -39,6 +41,10 @@ export default function TeacherMyCoursesPage() {
   const sortedSemesters = useMemo(() => {
     return Object.keys(coursesBySemester).map(Number).sort((a, b) => b - a);
   }, [coursesBySemester]);
+
+  const handleCourseClick = (course: Course) => {
+    router.push(`/dashboard/courses/${course.id}`);
+  };
 
   if (isLoading) {
     return (
@@ -88,7 +94,7 @@ export default function TeacherMyCoursesPage() {
                   {coursesBySemester[sem].length} {coursesBySemester[sem].length === 1 ? 'Course' : 'Courses'}
                 </span>
               </div>
-              <CourseGrid courses={coursesBySemester[sem]} />
+              <CourseGrid courses={coursesBySemester[sem]} onCourseClick={handleCourseClick} />
             </div>
           ))}
         </div>

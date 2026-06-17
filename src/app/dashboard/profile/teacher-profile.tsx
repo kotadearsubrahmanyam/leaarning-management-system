@@ -110,7 +110,7 @@ export function TeacherProfileView({ user }: UserProfileProps) {
             </h3>
             <div className="space-y-5">
               <ProfileDetail icon={Award} label="Faculty ID" value={derivedProfile.facultyId} />
-              <ProfileDetail icon={Mail} label="University Email" value={derivedProfile.email} />
+              <ProfileDetail icon={Mail} label="University Email" value={user.email} />
               <ProfileDetail icon={Phone} label="Contact Number" value={derivedProfile.phone} />
               <ProfileDetail icon={MapPin} label="Office Location" value={derivedProfile.location} />
               <ProfileDetail icon={Calendar} label="Date of Joining" value={derivedProfile.joinDate} />

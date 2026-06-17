@@ -9,6 +9,10 @@ const routeRoles: Record<string, string[]> = {
   "/api/student": ["ADMIN", "TEACHER", "STUDENT"],
   "/dashboard/admin": ["ADMIN"],
   "/dashboard/teacher": ["ADMIN", "TEACHER"],
+  "/dashboard/resume-builder": ["STUDENT"],
+  "/dashboard/interview": ["STUDENT"],
+  "/api/resume": ["STUDENT"],
+  "/api/ai/interview": ["STUDENT"],
   "/dashboard/activities": ["STUDENT"],
   "/dashboard": ["ADMIN", "TEACHER", "STUDENT"],
 };
