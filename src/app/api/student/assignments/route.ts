@@ -20,10 +20,16 @@ export async function GET() {
         id: assignments.id,
         title: assignments.title,
         description: assignments.description,
+        instructions: assignments.instructions,
+        questions: assignments.questions,
+        attachmentUrl: assignments.attachmentUrl,
+        totalMarks: assignments.totalMarks,
+        publishDate: assignments.publishDate,
         dueDate: assignments.dueDate,
         courseName: courses.title,
         submissionStatus: submissions.status,
         marks: submissions.marks,
+        feedback: submissions.feedback,
         submissionContent: submissions.content,
         submissionFileUrl: submissions.fileUrl,
         facultyName: users.name,
@@ -36,7 +42,12 @@ export async function GET() {
         eq(submissions.assignmentId, assignments.id),
         eq(submissions.userId, payload.id as string)
       ))
-      .where(eq(enrollments.studentId, payload.id as string))
+      .where(
+        and(
+          eq(enrollments.studentId, payload.id as string),
+          eq(assignments.status, "PUBLISHED")
+        )
+      )
       .orderBy(desc(assignments.dueDate));
 
     return successResponse({ assignments: studentAssignments }, "Fetched assignments successfully");

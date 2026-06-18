@@ -29,7 +29,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     const assignmentId = params.id;
     const body = await req.json();
-    const { title, description, dueDate } = body;
+    const { title, description, instructions, questions, attachmentUrl, dueDate, totalMarks, status } = body;
 
     // Check ownership
     const assignment = await db.query.assignments.findFirst({ where: eq(assignments.id, assignmentId) });
@@ -38,17 +38,28 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const isOwner = await isTeacherOfCourse(payload.id as string, assignment.courseId);
     if (!isOwner) return errorResponse("Forbidden", 403);
 
-    // Lockdown Check: Are there any submissions?
-    const existingSubmissions = await db.query.submissions.findMany({
-      where: eq(submissions.assignmentId, assignmentId)
-    });
+    // Edit is allowed even after submissions occur (per requirements, it shouldn't modify already graded submissions).
+    // Updating the assignment record will not alter rows in the submissions table.
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (instructions !== undefined) updateData.instructions = instructions;
+    if (questions !== undefined) updateData.questions = questions;
+    if (attachmentUrl !== undefined) updateData.attachmentUrl = attachmentUrl;
+    if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
+    if (totalMarks !== undefined) updateData.totalMarks = parseInt(totalMarks, 10);
+    if (status !== undefined) updateData.status = status;
 
-    if (existingSubmissions.length > 0) {
-      return errorResponse("Cannot edit an assignment after students have begun submitting. Please post an Announcement instead.", 400);
+    // Maintain backwards compatibility for description/instructions alignment
+    if (instructions !== undefined && description === undefined) {
+      updateData.description = instructions;
+    }
+    if (description !== undefined && instructions === undefined) {
+      updateData.instructions = description;
     }
 
     const [updated] = await db.update(assignments)
-      .set({ title, description, dueDate: new Date(dueDate) })
+      .set(updateData)
       .where(eq(assignments.id, assignmentId))
       .returning();
 

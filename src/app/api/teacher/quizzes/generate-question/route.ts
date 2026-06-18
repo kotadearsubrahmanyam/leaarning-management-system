@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { quizzes, quizQuestions, courses, courseFaculty } from "@/db/schema";
+import { courses, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { courseId, count = 10, prompt = "", difficulty = "Medium", questionType = "MCQ" } = body;
+    const { courseId, prompt = "", difficulty = "Medium", questionType = "MCQ", existingQuestions = [] } = body;
 
     if (!courseId) return errorResponse("courseId is required", 400);
 
@@ -42,29 +42,32 @@ export async function POST(req: Request) {
       return errorResponse("AI is not configured on the server", 500);
     }
 
+    const avoidSection = existingQuestions.length > 0 
+      ? `CRITICAL REQUIREMENT: Avoid generating any of the following questions (do not reuse them or make very similar questions):
+${existingQuestions.map((q: string, idx: number) => `${idx + 1}. "${q}"`).join("\n")}`
+      : "";
+
     const systemInstruction = `You are an expert professor. The course topic is "${course.title}".
-Generate exactly ${count} questions for a quiz.
+Generate exactly 1 single question for a quiz.
     
 Teacher's specific instructions / topics to cover:
 "${prompt}"
 
 Difficulty Level: ${difficulty}
-Question Format: ${questionType} (MCQ: 4 choices; True/False: 2 choices: "True" and "False"; Mixed: a mix of MCQ and True/False)
+Question Format: ${questionType} (MCQ: 4 choices; True/False: 2 choices: ["True", "False"]; Mixed: MCQ or True/False)
+
+${avoidSection}
 
 You must output ONLY valid JSON in the exact following format:
 {
-  "questions": [
-    {
-      "question": "What is the primary function of...?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "Option B"
-    }
-  ]
+  "question": "What is the primary function of...?",
+  "options": ["Option A", "Option B", "Option C", "Option D"],
+  "correctAnswer": "Option B"
 }
 Requirements:
 1. For MCQ, "options" must be an array of exactly 4 strings. "correctAnswer" must be identical to one of them.
 2. For True/False, "options" must be exactly ["True", "False"]. "correctAnswer" must be either "True" or "False".
-3. Make the questions challenging and relevant to university-level ${course.title}.`;
+3. Make the question challenging and relevant to university-level ${course.title}.`;
 
     const aiRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -76,23 +79,23 @@ Requirements:
         model: "llama-3.3-70b-versatile",
         messages: [{ role: "system", content: systemInstruction }],
         response_format: { type: "json_object" },
-        temperature: 0.3
+        temperature: 0.5
       })
     });
 
     if (!aiRes.ok) throw new Error("AI request failed");
 
     const groqData = await aiRes.json();
-    const aiMessage = JSON.parse(groqData.choices[0].message.content);
+    const aiQuestion = JSON.parse(groqData.choices[0].message.content);
 
-    if (!aiMessage.questions || !Array.isArray(aiMessage.questions)) {
-      throw new Error("AI returned an invalid format");
+    if (!aiQuestion.question || !aiQuestion.options || !aiQuestion.correctAnswer) {
+      throw new Error("AI returned an invalid format for the single question");
     }
 
-    return successResponse({ questions: aiMessage.questions }, "AI Questions Generated successfully", 200);
+    return successResponse({ question: aiQuestion }, "Question generated successfully", 200);
 
   } catch (error: any) {
-    console.error("AI Quiz error:", error);
+    console.error("AI Single Question error:", error);
     return errorResponse(error.message || "Internal server error", 500);
   }
 }

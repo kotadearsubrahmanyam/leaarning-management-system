@@ -54,6 +54,7 @@ interface CourseSelectProps {
   placeholder?: string;
   onRefresh?: () => void;
   showClear?: boolean;
+  compact?: boolean;
 }
 
 export function CourseSelect({
@@ -63,7 +64,8 @@ export function CourseSelect({
   label = "Select Course",
   placeholder = "Choose a course...",
   onRefresh,
-  showClear = true
+  showClear = true,
+  compact = false
 }: CourseSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,6 +112,46 @@ export function CourseSelect({
           (() => {
             const aesthetics = getCourseAesthetics(currentCourseDetails);
             const Icon = aesthetics.IconComponent;
+            if (compact) {
+              return (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="w-full bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between text-left shadow-sm hover:shadow-md hover:border-emerald-500 transition-all duration-300 relative group"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="flex-1 flex items-center gap-3 text-left focus:outline-none min-w-0"
+                  >
+                    <div className={`p-2 bg-gradient-to-tr ${aesthetics.gradient} text-white rounded-xl shadow-sm shrink-0`}>
+                      <Icon size={20} className="stroke-[2]" />
+                    </div>
+                    <div className="min-w-0 pr-6">
+                      <span className="font-bold text-slate-800 truncate block text-sm">
+                        {currentCourseDetails.title}
+                      </span>
+                      <p className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
+                        {getCourseCode(currentCourseDetails)} • Sem {currentCourseDetails.semester}
+                      </p>
+                    </div>
+                  </button>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 shrink-0 bg-white pl-2">
+                    {showClear && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCourse("")}
+                        title="Deselect"
+                        className="p-1.5 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-100"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                    <ChevronDown size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  </div>
+                </motion.div>
+              );
+            }
             return (
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}

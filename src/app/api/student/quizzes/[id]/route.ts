@@ -4,7 +4,7 @@ import { quizzes, quizQuestions } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -17,7 +17,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
     const quizId = params.id;
 
-    const quiz = await db.query.quizzes.findFirst({ where: eq(quizzes.id, quizId) });
+    const quiz = await db.query.quizzes.findFirst({
+      where: and(
+        eq(quizzes.id, quizId),
+        eq(quizzes.status, "PUBLISHED")
+      )
+    });
     if (!quiz) return errorResponse("Quiz not found", 404);
 
     const questions = await db.query.quizQuestions.findMany({ where: eq(quizQuestions.quizId, quizId) });

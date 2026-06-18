@@ -569,11 +569,19 @@ export default function AttendancePage() {
                             key={record.id}
                             className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100/50 transition-colors"
                           >
-                            <span className="font-semibold text-sm text-foreground/80 truncate max-w-[200px]">
-                              {record.courseName}
-                            </span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-bold text-sm text-foreground/80 truncate max-w-[200px]">
+                                {record.courseName}
+                              </span>
+                              {record.startTime && record.endTime && (
+                                <span className="text-[10px] text-slate-400 font-semibold mt-0.5 flex items-center gap-1">
+                                  <Clock size={10} className="text-slate-400" />
+                                  {record.startTime} - {record.endTime} • {record.sessionType}
+                                </span>
+                              )}
+                            </div>
                             <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold ${
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold shrink-0 ${
                                 record.status === "PRESENT"
                                   ? "bg-green-200 text-green-800 border border-green-300"
                                   : record.status === "ABSENT"

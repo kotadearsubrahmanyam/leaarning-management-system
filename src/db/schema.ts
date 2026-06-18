@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, pgEnum, boolean, integer, unique } from "drizzle-orm/pg-core";
 import { sql, relations } from "drizzle-orm";
 
 export const roleEnum = pgEnum("Role", ["ADMIN", "TEACHER", "STUDENT", "ALUMNI"]);
@@ -178,18 +178,31 @@ export const payments = pgTable("Payment", {
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 
+export const classSessions = pgTable("ClassSession", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  courseId: text("courseId").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  facultyId: text("facultyId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sectionId: text("sectionId").notNull(),
+  date: timestamp("date", { precision: 3, mode: "date" }).notNull(),
+  startTime: text("startTime").notNull(),
+  endTime: text("endTime").notNull(),
+  sessionType: text("sessionType").notNull(), // LECTURE, TUTORIAL, LABORATORY, SEMINAR
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+});
+
 export const attendance = pgTable("Attendance", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
-  courseId: text("courseId").notNull().references(() => courses.id, { onDelete: "cascade" }),
-  date: timestamp("date", { precision: 3, mode: "date" }).notNull(),
-  status: text("status").notNull(),
+  studentId: text("studentId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sessionId: text("sessionId").notNull().references(() => classSessions.id, { onDelete: "cascade" }),
+  status: text("status").notNull(), // PRESENT, ABSENT, LATE, EXCUSED
+  timestamp: timestamp("timestamp", { precision: 3, mode: "date" }).defaultNow().notNull(),
   updatedBy: text("updatedBy").references(() => users.id, { onDelete: "set null" }),
   updatedAt: timestamp("updatedAt", { precision: 3, mode: "date" })
     .default(sql`CURRENT_TIMESTAMP`)
     .$onUpdate(() => new Date()),
-  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
-});
+}, (t) => ({
+  studentSessionUnique: unique("student_session_unique").on(t.studentId, t.sessionId),
+}));
 
 export const results = pgTable("Result", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -239,7 +252,13 @@ export const assignments = pgTable("Assignment", {
   courseId: text("courseId").notNull().references(() => courses.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
+  instructions: text("instructions"),
+  questions: text("questions"),
+  attachmentUrl: text("attachmentUrl"),
+  publishDate: timestamp("publishDate", { precision: 3, mode: "date" }).defaultNow().notNull(),
   dueDate: timestamp("dueDate", { precision: 3, mode: "date" }).notNull(),
+  totalMarks: integer("totalMarks").default(100).notNull(),
+  status: text("status").default("PUBLISHED").notNull(),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 
@@ -251,6 +270,7 @@ export const submissions = pgTable("Submission", {
   fileUrl: text("fileUrl"),
   status: text("status").notNull().default("SUBMITTED"),
   marks: integer("marks"),
+  feedback: text("feedback"),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 
@@ -278,6 +298,7 @@ export const quizzes = pgTable("Quiz", {
   teacherId: text("teacherId").notNull().references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   timeLimit: integer("timeLimit").default(15).notNull(), // minutes
+  status: text("status").default("PUBLISHED").notNull(),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 
@@ -405,7 +426,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   materialProgress: many(materialProgress),
   notifications: many(notifications),
   payments: many(payments),
-  attendance: many(attendance),
+  attendance: many(attendance, { relationName: "studentAttendance" }),
   results: many(results),
   submissions: many(submissions),
   schedules: many(schedule),
@@ -433,7 +454,7 @@ export const coursesRelations = relations(courses, ({ one, many }) => ({
   }),
   materials: many(materials),
   enrollments: many(enrollments),
-  attendance: many(attendance),
+  classSessions: many(classSessions),
   results: many(results),
   assignments: many(assignments),
   schedules: many(schedule),
@@ -519,9 +540,21 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   feeStructure: one(feeStructure, { fields: [payments.feeStructureId], references: [feeStructure.id] }),
 }));
 
+export const classSessionsRelations = relations(classSessions, ({ one, many }) => ({
+  course: one(courses, {
+    fields: [classSessions.courseId],
+    references: [courses.id],
+  }),
+  faculty: one(users, {
+    fields: [classSessions.facultyId],
+    references: [users.id],
+  }),
+  attendanceRecords: many(attendance),
+}));
+
 export const attendanceRelations = relations(attendance, ({ one }) => ({
-  user: one(users, { fields: [attendance.userId], references: [users.id] }),
-  course: one(courses, { fields: [attendance.courseId], references: [courses.id] }),
+  student: one(users, { fields: [attendance.studentId], references: [users.id], relationName: "studentAttendance" }),
+  session: one(classSessions, { fields: [attendance.sessionId], references: [classSessions.id] }),
 }));
 
 export const resultsRelations = relations(results, ({ one }) => ({
@@ -687,16 +720,4 @@ export const studentLearningPathsRelations = relations(studentLearningPaths, ({ 
     references: [learningPaths.id],
   }),
 }));
-
-export const academicEvents = pgTable("AcademicEvent", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  title: text("title").notNull(),
-  description: text("description"),
-  startDate: timestamp("startDate", { precision: 3, mode: "date" }).notNull(),
-  endDate: timestamp("endDate", { precision: 3, mode: "date" }).notNull(),
-  category: text("category").notNull(),
-  semester: integer("semester"),
-  createdBy: text("createdBy"),
-  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
-});
 

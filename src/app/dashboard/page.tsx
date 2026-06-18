@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { AnalyticsCard } from "@/components/ui/analytics-card";
 import { ContinueLearningCard } from "@/components/dashboard/continue-learning-card";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { ChatAssistant } from "@/components/ui/ai-assistant";
 import { AnimatedChart } from "@/components/dashboard/animated-chart";
 import { Users, BookOpen, GraduationCap, TrendingUp, Clock, FileEdit, CheckSquare, Calendar, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
@@ -206,7 +205,7 @@ export default function DashboardPage() {
 
       {role === "TEACHER" && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5">
             <AnalyticsCard 
               title="Courses Managed" 
               value={stats.coursesCreated || 0} 
@@ -216,18 +215,10 @@ export default function DashboardPage() {
               onClick={() => router.push("/dashboard/teacher/my-courses")} 
             />
             <AnalyticsCard 
-              title="Total Students" 
-              value={stats.totalStudentsEnrolled || 0} 
-              icon={<Users size={20} />} 
-              delay={0.2} 
-              className="cursor-pointer hover:border-primary transition-all duration-300"
-              onClick={() => router.push("/dashboard/teacher/students")} 
-            />
-            <AnalyticsCard 
               title="Total Assignments" 
               value={stats.totalAssignments || 0} 
               icon={<FileEdit size={20} />} 
-              delay={0.3} 
+              delay={0.2} 
               className="cursor-pointer hover:border-primary transition-all duration-300"
               onClick={() => router.push("/dashboard/teacher/assignments")} 
             />
@@ -235,7 +226,7 @@ export default function DashboardPage() {
               title="Pending Evaluations" 
               value={stats.pendingEvaluations || 0} 
               icon={<CheckSquare size={20} className="text-orange-500" />} 
-              delay={0.4} 
+              delay={0.3} 
               className="cursor-pointer hover:border-primary transition-all duration-300"
               onClick={() => router.push("/dashboard/teacher/evaluation")} 
             />
@@ -538,12 +529,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </>
-      )}
-
-      {role === "STUDENT" && (
-        <div className="mt-10">
-          <ChatAssistant userId={authData.data.user.id} role={role} />
-        </div>
       )}
     </div>
   );
