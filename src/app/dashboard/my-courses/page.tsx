@@ -8,13 +8,28 @@ import { Course } from "@/components/courses/course-card";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-type FilterStatus = "ALL" | "ONGOING" | "COMPLETED";
+const getCleanCourseCode = (course: any) => {
+  const t = course.title?.toLowerCase() || "";
+  if (t.includes("database management")) return "CS301";
+  if (t.includes("theory of computation")) return "CS302";
+  if (t.includes("agile software")) return "CS303";
+  if (t.includes("operating system")) return "CS304";
+  
+  if (!course.title) return "CRS-101";
+  const acronym = course.title
+    .split(" ")
+    .filter((w: string) => w.length > 1 && !["and", "for", "the", "using", "of", "&"].includes(w.toLowerCase()))
+    .map((w: string) => w[0])
+    .join("")
+    .toUpperCase();
+  const sem = course.semester || 1;
+  return `${acronym}-${sem}01`;
+};
 
 export default function MyCoursesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("ALL");
-
+ 
   const { data, isLoading } = useQuery({
     queryKey: ["enrolledCourses"],
     queryFn: async () => {
@@ -23,25 +38,20 @@ export default function MyCoursesPage() {
       return res.json();
     },
   });
-
+ 
   const courses: Course[] = data?.data?.courses || [];
-
+ 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
-      // Search Match
-      const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Status Match
-      let matchesStatus = true;
-      if (filterStatus === "ONGOING") {
-        matchesStatus = course.status !== "COMPLETED";
-      } else if (filterStatus === "COMPLETED") {
-        matchesStatus = course.status === "COMPLETED";
-      }
-
-      return matchesSearch && matchesStatus;
+      const q = searchQuery.toLowerCase();
+      const code = course.subjectCode || getCleanCourseCode(course);
+      const matchesSearch = 
+        course.title.toLowerCase().includes(q) ||
+        code.toLowerCase().includes(q) ||
+        (course.teacherName || "").toLowerCase().includes(q);
+      return matchesSearch;
     });
-  }, [courses, searchQuery, filterStatus]);
+  }, [courses, searchQuery]);
 
   const coursesBySemester = useMemo(() => {
     const grouped: Record<number, Course[]> = {};
@@ -84,49 +94,29 @@ export default function MyCoursesPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-3xl font-bold text-primary mb-2">My Courses</h1>
-          <p className="text-foreground/70">
-            Pick up where you left off and track your learning progress.
+          <h1 className="text-3xl font-bold text-primary mb-2">My Academic Courses</h1>
+          <p className="text-foreground/70 text-sm">
+            Access your university subjects, syllabus, notes, and preparation resources.
           </p>
         </motion.div>
       </div>
-
-      {/* Search and Filters */}
+ 
+      {/* Search Bar */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="flex flex-col md:flex-row gap-4 mb-8 items-center justify-between bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200/85"
+        className="flex flex-col md:flex-row gap-4 mb-8 items-center bg-white/95 backdrop-blur-md p-4 rounded-3xl border border-slate-200/85"
       >
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+          <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
-            placeholder="Search my courses..."
+            placeholder="Search by course name, code, or faculty..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-300 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            className="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-11 pr-4 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 font-semibold transition-all shadow-sm"
           />
-        </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-          <div className="flex items-center text-sm text-slate-600 mr-2 font-bold">
-            <Filter size={16} className="mr-2" />
-            Filter:
-          </div>
-          {(["ALL", "ONGOING", "COMPLETED"] as FilterStatus[]).map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilterStatus(status)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap border ${
-                filterStatus === status
-                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border-transparent"
-                  : "bg-slate-50 text-slate-600 border-slate-300 hover:bg-slate-100"
-              }`}
-            >
-              {status.charAt(0) + status.slice(1).toLowerCase()}
-            </button>
-          ))}
         </div>
       </motion.div>
 

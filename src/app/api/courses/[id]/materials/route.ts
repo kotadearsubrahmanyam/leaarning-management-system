@@ -4,7 +4,7 @@ import { courses, enrollments, materials, materialProgress } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const createMaterialSchema = z.object({
@@ -12,11 +12,22 @@ const createMaterialSchema = z.object({
   fileUrl: z.string().url("Must be a valid URL"),
   fileType: z.string(),
   size: z.string(),
+  category: z.string().default("REFERENCE_MATERIALS"),
 });
 
 // GET all materials for a course
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
+    // Self-healing migration: Ensure "category" column exists in Material table
+    try {
+      await db.execute(sql`
+        ALTER TABLE "Material" 
+        ADD COLUMN IF NOT EXISTS "category" text NOT NULL DEFAULT 'REFERENCE_MATERIALS';
+      `);
+    } catch (e) {
+      console.warn("Material.category migration skipped or already applied:", e);
+    }
+
     const cookieStore = cookies();
     const token = cookieStore.get("token")?.value;
 

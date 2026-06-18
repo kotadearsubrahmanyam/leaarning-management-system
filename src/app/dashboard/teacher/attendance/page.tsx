@@ -299,7 +299,7 @@ export default function TeacherAttendancePage() {
       </motion.div>
 
       {/* Course Selection Row (Spacious Full Width) */}
-      <div className="mb-6">
+      <div className="mb-6 relative z-30">
         <CourseSelect
           courses={courses}
           selectedCourse={selectedCourse}
