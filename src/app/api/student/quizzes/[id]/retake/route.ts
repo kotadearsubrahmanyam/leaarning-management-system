@@ -1,55 +1,49 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { quizzes, quizQuestions, courses, courseFaculty } from "@/db/schema";
+import { quizzes, quizQuestions, courses } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
-async function isTeacherOfCourse(teacherId: string, courseId: string) {
-  const course = await db.query.courses.findFirst({
-    where: eq(courses.id, courseId)
-  });
-  if (course?.teacherId === teacherId) return true;
-
-  const faculty = await db.query.courseFaculty.findFirst({
-    where: and(eq(courseFaculty.courseId, courseId), eq(courseFaculty.teacherId, teacherId))
-  });
-  return !!faculty;
-}
-
-export async function POST(req: Request) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const cookieStore = cookies();
     const token = cookieStore.get("token")?.value;
     if (!token) return errorResponse("Unauthorized", 401);
     
     const payload = await verifyJwt(token);
-    if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
+    if (!payload || payload.role !== "STUDENT") return errorResponse("Forbidden", 403);
 
-    const body = await req.json();
-    const { courseId, count = 10, timeLimit = 15 } = body;
+    const userId = payload.id as string;
+    const originalQuizId = params.id;
 
-    if (!courseId) return errorResponse("courseId is required", 400);
+    // Fetch original quiz
+    const originalQuiz = await db.query.quizzes.findFirst({ where: eq(quizzes.id, originalQuizId) });
+    if (!originalQuiz) return errorResponse("Original quiz not found", 404);
 
-    const isOwner = await isTeacherOfCourse(payload.id as string, courseId);
-    if (!isOwner) return errorResponse("Forbidden", 403);
-
-    const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
+    const course = await db.query.courses.findFirst({ where: eq(courses.id, originalQuiz.courseId) });
     if (!course) return errorResponse("Course not found", 404);
+
+    // Fetch original questions count to keep it consistent
+    const originalQuestions = await db.query.quizQuestions.findMany({
+      where: eq(quizQuestions.quizId, originalQuizId)
+    });
+    const count = originalQuestions.length || 10;
 
     if (!process.env.GROQ_API_KEY) {
       return errorResponse("AI is not configured on the server", 500);
     }
 
+    // Generate fresh questions via GROQ
     const systemInstruction = `You are an expert professor. The course topic is "${course.title}".
-Generate exactly ${count} multiple-choice questions for a quiz.
+Generate exactly ${count} multiple-choice questions for a practice quiz.
     
 You must output ONLY valid JSON in the exact following format:
 {
   "questions": [
     {
-      "question": "What is the primary function of...?",
+      "question": "What is...?",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correctAnswer": "Option B",
       "explanation": "A short, 2-4 lines beginner-friendly, educational explanation of why the correct answer is right and why it is important."
@@ -57,8 +51,8 @@ You must output ONLY valid JSON in the exact following format:
   ]
 }
 Requirements:
-1. "options" must be an array of exactly 4 strings, or exactly ["True", "False"] for True/False questions.
-2. "correctAnswer" must be identical to one of the options.
+1. "options" must be an array of exactly 4 strings.
+2. "correctAnswer" must be identical to one of the 4 options.
 3. "explanation" must be a beginner-friendly explanation of 2-4 lines.
 4. Make the questions challenging and relevant to university-level ${course.title}.`;
 
@@ -72,7 +66,7 @@ Requirements:
         model: "llama-3.3-70b-versatile",
         messages: [{ role: "system", content: systemInstruction }],
         response_format: { type: "json_object" },
-        temperature: 0.3
+        temperature: 0.5 // slightly higher temperature for variety in retakes
       })
     });
 
@@ -85,15 +79,17 @@ Requirements:
       throw new Error("AI returned an invalid format");
     }
 
-    // Save Quiz to DB
+    // Create a private practice quiz for the student
+    const cleanTitle = originalQuiz.title.replace(" (Practice Retake)", "");
     const [newQuiz] = await db.insert(quizzes).values({
-      courseId,
-      teacherId: payload.id as string,
-      title: `${course.title} - AI Generated Quiz`,
-      timeLimit
+      courseId: originalQuiz.courseId,
+      teacherId: originalQuiz.teacherId,
+      title: `${cleanTitle} (Practice Retake)`,
+      timeLimit: originalQuiz.timeLimit,
+      studentId: userId // Link to the specific student
     }).returning();
 
-    // Save Questions to DB
+    // Save practice questions to DB
     const questionsToInsert = aiMessage.questions.map((q: any) => ({
       quizId: newQuiz.id,
       question: q.question,
@@ -105,10 +101,10 @@ Requirements:
 
     await db.insert(quizQuestions).values(questionsToInsert);
 
-    return successResponse({ quizId: newQuiz.id }, "AI Quiz Generated successfully", 200);
+    return successResponse({ quizId: newQuiz.id }, "Practice quiz generated successfully", 200);
 
   } catch (error: any) {
-    console.error("AI Quiz error:", error);
-    return errorResponse(error.message || "Internal server error", 500);
+    console.error("Quiz retake generation error:", error);
+    return errorResponse(error.message || "Failed to generate practice quiz", 500);
   }
 }
