@@ -1,18 +1,65 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckSquare, X, Check, FileText } from "lucide-react";
+import { 
+  CheckSquare, 
+  X, 
+  Check, 
+  FileText, 
+  Download, 
+  BookOpen, 
+  User, 
+  Award, 
+  Split, 
+  Archive, 
+  ExternalLink,
+  Save
+} from "lucide-react";
 import { AnimatedButton } from "@/components/ui/animated-button";
-import { AnimatedInput } from "@/components/ui/animated-input";
 import { CourseSelect } from "@/components/ui/course-select";
+import { useToast } from "@/hooks/use-toast";
+import { getQuestionsForAssignment } from "@/lib/assignment-questions";
 
 export default function TeacherEvaluationPage() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [evalModal, setEvalModal] = useState<any>(null);
-  const [marks, setMarks] = useState("");
+  
+  // Evaluation States
+  const [questionMarks, setQuestionMarks] = useState<Record<number, string>>({});
+  const [questionFeedbacks, setQuestionFeedbacks] = useState<Record<number, string>>({});
+  const [generalFeedback, setGeneralFeedback] = useState("");
+  
+  // Panel Resize States
+  const [leftWidth, setLeftWidth] = useState(55);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const isResizing = useRef(false);
+
+  // Sidebar Width Observer
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const aside = document.querySelector("aside");
+    if (aside) {
+      setSidebarWidth(aside.getBoundingClientRect().width);
+    }
+    
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setSidebarWidth(entry.borderBoxSize?.[0]?.inlineSize || entry.contentRect.width);
+      }
+    });
+
+    if (aside) {
+      observer.observe(aside);
+    }
+    
+    return () => observer.disconnect();
+  }, []);
 
   const { data: coursesData } = useQuery({
     queryKey: ["teacherCourses"],
@@ -42,32 +89,175 @@ export default function TeacherEvaluationPage() {
     }
   }, [courses, selectedCourse]);
 
+  // Responsive Check
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Panel drag handler
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const container = document.getElementById("split-screen-modal-container");
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left;
+    const percentage = (relativeX / rect.width) * 100;
+    
+    if (percentage >= 30 && percentage <= 70) {
+      setLeftWidth(percentage);
+    }
+  };
+
+  const handleMouseUp = () => {
+    isResizing.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  };
+
+  // Clean up drag events
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   const gradeMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ marks }: { marks: number }) => {
       const res = await fetch("/api/teacher/evaluation", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ submissionId: evalModal.id, marks }),
       });
-      if (!res.ok) throw new Error("Failed to save grade");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to save grade");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacherEvaluations", selectedCourse] });
       setEvalModal(null);
-      setMarks("");
+      toast({
+        title: "Evaluation Submitted",
+        description: "Submission evaluated and graded successfully.",
+      });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Evaluation Failed",
+        description: error.message || "Could not save grade.",
+        variant: "destructive",
+      });
+    }
   });
 
   const openEvalModal = (submission: any) => {
     setEvalModal(submission);
-    setMarks(submission.marks ? submission.marks.toString() : "");
+    
+    // Retrieve questions
+    const questions = getQuestionsForAssignment(submission.assignmentTitle, submission.courseName);
+    
+    // Load local draft
+    const savedDraft = localStorage.getItem(`eval-draft-${submission.id}`);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        setQuestionMarks(parsed.questionMarks || {});
+        setQuestionFeedbacks(parsed.questionFeedbacks || {});
+        setGeneralFeedback(parsed.generalFeedback || "");
+      } catch (err) {
+        console.error("Failed to parse draft:", err);
+      }
+    } else {
+      if (submission.status === "GRADED" && submission.marks !== null) {
+        const defaultScore = Math.floor(submission.marks / questions.length);
+        const remainder = submission.marks % questions.length;
+        const initialMarks: Record<number, string> = {};
+        questions.forEach((q, idx) => {
+          initialMarks[q.questionNumber] = (defaultScore + (idx < remainder ? 1 : 0)).toString();
+        });
+        setQuestionMarks(initialMarks);
+        setQuestionFeedbacks({});
+        setGeneralFeedback("");
+      } else {
+        setQuestionMarks({});
+        setQuestionFeedbacks({});
+        setGeneralFeedback("");
+      }
+    }
   };
 
-  const handleGrade = (e: React.FormEvent) => {
+  const handleSaveDraft = () => {
+    if (!evalModal) return;
+    const draftData = {
+      questionMarks,
+      questionFeedbacks,
+      generalFeedback,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(`eval-draft-${evalModal.id}`, JSON.stringify(draftData));
+    toast({
+      title: "Draft Saved",
+      description: "Evaluation draft has been saved locally.",
+    });
+  };
+
+  // Derive dynamic evaluation values
+  const currentQuestions = evalModal ? getQuestionsForAssignment(evalModal.assignmentTitle, evalModal.courseName) : [];
+  const totalObtained = currentQuestions.reduce((sum, q) => {
+    return sum + (Number(questionMarks[q.questionNumber]) || 0);
+  }, 0);
+
+  const handleSubmitEvaluation = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!marks || isNaN(Number(marks))) return;
-    gradeMutation.mutate();
+    if (!evalModal) return;
+
+    for (const q of currentQuestions) {
+      const scoreRaw = questionMarks[q.questionNumber];
+      if (scoreRaw === undefined || scoreRaw === "") {
+        toast({
+          title: "Incomplete Grading",
+          description: `Please enter score for Question ${q.questionNumber}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const score = Number(scoreRaw);
+      if (isNaN(score) || score < 0 || score > q.marks) {
+        toast({
+          title: "Invalid Score",
+          description: `Question ${q.questionNumber} must be graded between 0 and ${q.marks}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Persist draft backup
+    const draftData = {
+      questionMarks,
+      questionFeedbacks,
+      generalFeedback,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(`eval-draft-${evalModal.id}`, JSON.stringify(draftData));
+
+    // Submit evaluation
+    gradeMutation.mutate({ marks: totalObtained });
   };
 
   return (
@@ -143,59 +333,274 @@ export default function TeacherEvaluationPage() {
         )}
       </div>
 
-      {/* Evaluation Modal */}
+      {/* Split-Screen Evaluation Workspace Modal */}
       <AnimatePresence>
         {evalModal && (
           <>
+            {/* Overlay Backdrop */}
             <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setEvalModal(null)}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              style={{ left: isMobile ? 0 : `${sidebarWidth}px` }}
+              className="fixed top-0 bottom-0 right-0 z-[100] bg-black/50 backdrop-blur-sm transition-all duration-300"
             />
+            
+            {/* Centered Large Workspace Modal */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: "10%" }} animate={{ opacity: 1, scale: 1, y: "-50%" }} exit={{ opacity: 0, scale: 0.95, y: "10%" }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 z-50 w-full max-w-lg"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              style={{ 
+                left: isMobile ? "5vw" : `${sidebarWidth + 24}px`, 
+                width: isMobile ? "90vw" : `calc(100vw - ${sidebarWidth + 48}px)` 
+              }}
+              className="fixed top-[2.5vh] h-[95vh] z-[110] flex flex-col bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden text-slate-900 transition-all duration-300"
+              id="split-screen-modal-container"
             >
-              <div className="glass p-8 rounded-3xl border border-white/20 shadow-2xl relative max-h-[80vh] overflow-y-auto">
-                <button onClick={() => setEvalModal(null)} className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
-                  <X size={20} />
-                </button>
-                <h2 className="text-2xl font-bold mb-2 text-primary">Evaluate Submission</h2>
-                <p className="text-foreground/70 mb-6">{evalModal.studentName} - {evalModal.assignmentTitle}</p>
-                
-                <div className="bg-black/30 p-4 rounded-xl border border-white/5 mb-6">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <FileText size={16} className="text-primary"/> Student Submission
-                  </h3>
-                  {evalModal.content ? (
-                    <p className="text-sm text-foreground/80 whitespace-pre-wrap">{evalModal.content}</p>
-                  ) : (
-                    <p className="text-sm text-foreground/50 italic">No text content provided.</p>
-                  )}
-                  {evalModal.fileUrl && (
-                    <a href={evalModal.fileUrl} target="_blank" rel="noreferrer" className="mt-4 block text-sm text-primary hover:underline">
-                      View Attached File
-                    </a>
-                  )}
-                </div>
-
-                <form onSubmit={handleGrade} className="space-y-4">
-                  <AnimatedInput
-                    label="Marks (out of 100)"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={marks}
-                    onChange={(e) => setMarks(e.target.value)}
-                    required
-                  />
-
-                  <div className="pt-4 flex justify-end">
-                    <AnimatedButton type="submit" isLoading={gradeMutation.isPending} className="w-full">
-                      Submit Grade
-                    </AnimatedButton>
+              {/* Header Bar */}
+              <div className="flex items-center justify-between px-6 py-3 bg-slate-50 border-b border-slate-200 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-xl text-[#7C3AED]">
+                    <Split size={20} />
                   </div>
-                </form>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Evaluation Workspace</h2>
+                    <p className="text-[10px] text-slate-500 font-medium">Evaluate submissions side-by-side</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setEvalModal(null)} 
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors text-slate-600 hover:text-slate-900"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              
+              {/* Split Container */}
+              <div className="flex flex-col md:flex-row flex-1 overflow-hidden w-full h-full relative">
+                
+                {/* LEFT PANEL (Document Viewer) */}
+                <div 
+                  style={{ width: isMobile ? '100%' : `${leftWidth}%` }} 
+                  className="h-[45vh] md:h-full flex flex-col bg-slate-100 overflow-hidden border-b md:border-b-0 md:border-r border-slate-200"
+                >
+                  {/* Left Header info */}
+                  <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-slate-200 shrink-0">
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                          View Assignment
+                        </span>
+                        {evalModal.fileUrl && (
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold">
+                            Open PDF/DOC in viewer
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-slate-800 truncate mt-1">
+                        {evalModal.fileUrl ? evalModal.fileUrl.split('/').pop() || 'submission-document' : 'written-response.txt'}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[9px] text-slate-400 font-bold uppercase">Submitted</p>
+                      <p className="text-xs font-bold text-slate-700 mt-0.5">
+                        {new Date(evalModal.submittedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Embedded Doc Viewer Wrapper (Scrollable) */}
+                  <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
+                    {evalModal.fileUrl ? (
+                      (() => {
+                        const ext = evalModal.fileUrl.slice(evalModal.fileUrl.lastIndexOf('.')).toLowerCase();
+                        const isPdf = ext === '.pdf';
+                        const isRelative = !evalModal.fileUrl.startsWith("http") && !evalModal.fileUrl.startsWith("blob:");
+                        const isLocalOrBlob = evalModal.fileUrl.startsWith("blob:") || 
+                                              evalModal.fileUrl.includes("localhost") || 
+                                              evalModal.fileUrl.includes("127.0.0.1") ||
+                                              isRelative;
+                        
+                        const docSrc = (isLocalOrBlob || isPdf)
+                          ? evalModal.fileUrl 
+                          : `https://docs.google.com/gview?url=${encodeURIComponent(evalModal.fileUrl)}&embedded=true`;
+                        return (
+                          <iframe 
+                            src={docSrc}
+                            className="w-full border border-slate-200 rounded-xl bg-white shadow-sm"
+                            style={{ height: "calc(95vh - 110px)" }}
+                            title="Assignment Document Viewer"
+                          />
+                        );
+                      })()
+                    ) : (
+                      /* Styled Written response paper sheet */
+                      <div 
+                        className="bg-white text-slate-800 rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 overflow-y-auto font-sans leading-relaxed text-sm relative"
+                        style={{ minHeight: "calc(95vh - 110px)" }}
+                      >
+                        <div className="absolute top-0 bottom-0 left-8 border-l border-red-200 pointer-events-none" />
+                        <div className="border-b-2 border-slate-200 pb-3 mb-4 font-sans">
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Written Submission</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Submitted via online text editor</p>
+                        </div>
+                        {evalModal.content ? (
+                          <div className="whitespace-pre-wrap pl-6 text-slate-800 leading-relaxed text-sm select-text">
+                            {evalModal.content}
+                          </div>
+                        ) : (
+                          <p className="text-slate-400 pl-6 italic">No text response or files attached to this submission.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* DRAGGABLE RESIZER HANDLE */}
+                {!isMobile && (
+                  <div 
+                    className="w-1 hover:w-1.5 bg-slate-200 hover:bg-purple-600 cursor-col-resize transition-all h-full self-stretch select-none z-10 relative flex items-center justify-center group"
+                    onMouseDown={handleMouseDown}
+                  >
+                    <div className="w-0.5 h-8 bg-slate-400 group-hover:bg-white rounded-full transition-colors opacity-60" />
+                  </div>
+                )}
+                
+                {/* RIGHT PANEL (Evaluation Workspace Sidebar) */}
+                <div 
+                  style={{ width: isMobile ? '100%' : `${100 - leftWidth}%` }} 
+                  className="flex-1 md:h-full flex flex-col bg-[#F8FAFC] overflow-hidden"
+                >
+                  {/* Scrollable contents wrapper */}
+                  <form onSubmit={handleSubmitEvaluation} className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+                      
+                      {/* Section 1: Assignment Information */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                        <h3 className="text-xs font-black uppercase text-[#7C3AED] tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                          <User size={14} className="text-[#7C3AED]" /> Assignment Info
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Student</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.studentName}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Roll Number</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.studentRollNumber || "N/A"}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Course</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.courseName}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Assignment Title</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.assignmentTitle}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Section 2: Question-wise Grading */}
+                      <div className="space-y-3">
+                        <h3 className="text-xs font-black uppercase text-[#7C3AED] tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                          <BookOpen size={14} className="text-[#7C3AED]" /> Question-Wise Grading
+                        </h3>
+                        <div className="space-y-3">
+                          {currentQuestions.map((q) => (
+                            <div key={q.questionNumber} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all space-y-3">
+                              <div className="flex justify-between items-start gap-4">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-[#7C3AED] font-bold text-xs leading-none mt-0.5">{q.questionNumber}.</span>
+                                  <p className="text-xs text-slate-800 font-medium leading-relaxed">{q.description}</p>
+                                </div>
+                                <span className="text-[9px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded shrink-0">
+                                  {q.marks} Max
+                                </span>
+                              </div>
+                              
+                              <div className="grid grid-cols-4 gap-3 items-center pt-1.5">
+                                <div className="col-span-1 flex flex-col gap-1">
+                                  <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Score</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={q.marks}
+                                    placeholder="0"
+                                    value={questionMarks[q.questionNumber] || ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setQuestionMarks(prev => ({ ...prev, [q.questionNumber]: val }));
+                                    }}
+                                    className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all"
+                                  />
+                                </div>
+                                <div className="col-span-3 flex flex-col gap-1">
+                                  <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Feedback comments</label>
+                                  <textarea
+                                    placeholder="Specific question feedback..."
+                                    rows={1}
+                                    value={questionFeedbacks[q.questionNumber] || ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setQuestionFeedbacks(prev => ({ ...prev, [q.questionNumber]: val }));
+                                    }}
+                                    className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all resize-none min-h-[35px] max-h-[80px]"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Section 3: Overall Evaluation */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 className="text-xs font-black uppercase text-[#7C3AED] tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                          <Award size={14} className="text-[#7C3AED]" /> Overall Evaluation
+                        </h3>
+                        
+                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex justify-between items-center">
+                          <span className="text-xs font-bold text-slate-700">Total Marks Obtained</span>
+                          <span className="text-xl font-black text-slate-900">
+                            {totalObtained} <span className="text-xs text-slate-400 font-normal">/ 100</span>
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">General Feedback</label>
+                          <textarea
+                            placeholder="Enter comprehensive general feedback and advice for the student..."
+                            rows={5}
+                            value={generalFeedback}
+                            onChange={(e) => setGeneralFeedback(e.target.value)}
+                            className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all resize-none leading-relaxed"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Section 4: Action Footer (Sticky bottom) */}
+                    <div className="px-5 py-3.5 bg-white border-t border-slate-200 flex justify-end gap-3 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+                      >
+                        <Save size={14} /> Save Draft
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={gradeMutation.isPending}
+                        className="px-5 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                      >
+                        Submit Evaluation
+                      </button>
+                    </div>
+                  </form>
+                </div>
+                
               </div>
             </motion.div>
           </>

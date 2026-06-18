@@ -29,6 +29,7 @@ export async function GET(req: Request) {
       courseName: courses.title,
       studentName: users.name,
       studentEmail: users.email,
+      studentRollNumber: users.rollNumber,
       content: submissions.content,
       fileUrl: submissions.fileUrl,
       status: submissions.status,
