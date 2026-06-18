@@ -110,21 +110,27 @@ export async function POST(req: Request) {
     if (!isAuthorized) return errorResponse("Forbidden", 403);
 
     const targetDate = new Date(session.date);
-
-    // Future Lockout
-    if (targetDate > new Date()) {
-      return errorResponse("Cannot mark attendance for a future date.", 400);
-    }
+    
+    // Parse the start and end times string "HH:MM"
+    const [startH, startM] = session.startTime.split(":").map(Number);
+    const [endH, endM] = session.endTime.split(":").map(Number);
+    
+    const sessionStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), startH, startM, 0);
+    const sessionEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), endH, endM, 0);
+    const now = new Date();
 
     // Weekend Lockout (Sunday = 0)
     if (targetDate.getDay() === 0) {
       return errorResponse("Cannot mark attendance on a Sunday. Sundays are official holidays.", 400);
     }
 
-    // 24-hour lock check
-    const timeDiffMs = new Date().getTime() - targetDate.getTime();
-    if (timeDiffMs > 24 * 60 * 60 * 1000) {
-      return errorResponse("Attendance is locked. You can only modify attendance within 24 hours of the class date.", 400);
+    // STRICT TIMETABLE LOCKOUT
+    if (now < sessionStart) {
+      return errorResponse("Attendance is locked. The class session has not started yet.", 400);
+    }
+    
+    if (now > sessionEnd) {
+      return errorResponse("Attendance is locked. The time window for this class session has ended.", 400);
     }
 
     // Fetch existing attendance for this session to support upserts

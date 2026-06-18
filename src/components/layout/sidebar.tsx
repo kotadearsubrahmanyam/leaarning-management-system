@@ -45,6 +45,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
         { href: "/dashboard/academic-calendar", icon: Calendar, label: "Academic Calendar" },
         { href: "/dashboard/admin", icon: Shield, label: "Admin Control" },
+        { href: "/dashboard/admin/timetable", icon: Clock, label: "Timetable Editor" },
         { href: "/dashboard/admin/academic", icon: Library, label: "Academic" },
         { href: "/dashboard/admin/users", icon: Users, label: "Users" },
         { href: "/dashboard/admin/courses", icon: BookOpen, label: "Courses" },
@@ -57,6 +58,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
     } else if (role === "TEACHER") {
       return [
         ...commonBase, 
+        { href: "/dashboard/teacher/timetable", icon: Clock, label: "My Timetable" },
         { href: "/dashboard/teacher/my-courses", icon: BookOpen, label: "My Courses" },
         { href: "/dashboard/teacher/quizzes", icon: Sparkles, label: "AI Quizzes" },
         { href: "/dashboard/teacher/assignments", icon: FileEdit, label: "Assignments" },
@@ -68,6 +70,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
     } else {
       return [
         ...commonBase, 
+        { href: "/dashboard/student/timetable", icon: Clock, label: "My Timetable" },
         { href: "/dashboard/interview", icon: MessageSquare, label: "AI Interview" },
         { href: "/dashboard/resume-builder", icon: FileText, label: "Resume Builder" },
         { href: "/dashboard/student/quizzes", icon: Sparkles, label: "Practice Quizzes" },

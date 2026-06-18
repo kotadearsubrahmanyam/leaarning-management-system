@@ -1,10 +1,10 @@
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\controller\ResumeController.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\controller\SkillMasterController.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\model\DataClasses.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\model\Resume.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\model\SkillMaster.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\repository\ResumeRepository.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\repository\SkillMasterRepository.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\ResumeServiceApplication.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\service\LatexGeneratorService.java
-C:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\resume-service\src\main\java\com\lms\resumeservice\service\PdfGenerationService.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\controller\ResumeController.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\controller\SkillMasterController.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\model\DataClasses.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\model\Resume.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\model\SkillMaster.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\repository\ResumeRepository.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\repository\SkillMasterRepository.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\ResumeServiceApplication.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\service\LatexGeneratorService.java
+C:\Users\kdear\OneDrive\Desktop\final 2nd\resume-service\src\main\java\com\lms\resumeservice\service\PdfGenerationService.java
