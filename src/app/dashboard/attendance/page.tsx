@@ -65,8 +65,22 @@ export default function AttendancePage() {
     },
   });
 
+  const { data: enrolledData, isLoading: isEnrolledLoading } = useQuery({
+    queryKey: ["enrolledCourses"],
+    queryFn: async () => {
+      const res = await fetch("/api/courses/enrolled");
+      if (!res.ok) throw new Error("Failed to fetch enrolled courses");
+      return res.json();
+    },
+  });
+
   const user = authData?.data?.user;
   const semester = user?.semester || 1;
+
+  const enrolledCourses = React.useMemo(() => {
+    const courses = enrolledData?.data?.courses || [];
+    return courses.filter((c: any) => c.semester === semester);
+  }, [enrolledData, semester]);
   const isOddSemester = semester % 2 !== 0;
 
   const joiningYear = React.useMemo(() => {
@@ -301,16 +315,28 @@ export default function AttendancePage() {
   const semesterProgress = Math.min(100, Math.round((elapsedDays / totalSemesterDays) * 100));
 
   // Subject-wise Breakdown
-  const courseStats = attendance.reduce((acc: any, curr: any) => {
-    if (!acc[curr.courseName]) {
-      acc[curr.courseName] = { present: 0, total: 0 };
-    }
-    acc[curr.courseName].total += 1;
-    if (curr.status === "PRESENT") {
-      acc[curr.courseName].present += 1;
-    }
-    return acc;
-  }, {});
+  const courseStats = React.useMemo(() => {
+    const stats: Record<string, { present: number; total: number }> = {};
+    
+    // Initialize with only current semester enrolled courses
+    enrolledCourses.forEach((course: any) => {
+      if (course.title) {
+        stats[course.title] = { present: 0, total: 0 };
+      }
+    });
+
+    // Populate with actual attendance records only if they belong to current semester courses
+    attendance.forEach((curr: any) => {
+      if (curr.courseName && stats[curr.courseName] !== undefined) {
+        stats[curr.courseName].total += 1;
+        if (curr.status === "PRESENT") {
+          stats[curr.courseName].present += 1;
+        }
+      }
+    });
+
+    return stats;
+  }, [enrolledCourses, attendance]);
 
   return (
     <div className="max-w-4xl mx-auto pb-12 relative z-10">
@@ -400,7 +426,7 @@ export default function AttendancePage() {
               </motion.div>
             );
           })}
-          {Object.keys(courseStats).length === 0 && !isLoading && (
+          {Object.keys(courseStats).length === 0 && !isLoading && !isEnrolledLoading && (
             <p className="text-sm text-foreground/50 col-span-2 text-center py-4">No subjects data available.</p>
           )}
         </div>
@@ -411,7 +437,7 @@ export default function AttendancePage() {
       </h2>
 
       <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200">
-        {isLoading || isAuthLoading || !user ? (
+        {isLoading || isAuthLoading || isEnrolledLoading || !user ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-foreground/60 animate-pulse font-medium">Loading attendance data...</p>

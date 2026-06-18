@@ -96,7 +96,7 @@ export default function TeacherCertificatesPage() {
         </AnimatedButton>
       </div>
 
-      <div className="mb-8 max-w-2xl">
+      <div className="mb-8 max-w-2xl relative z-30">
         <CourseSelect
           courses={courses}
           selectedCourse={selectedCourse}

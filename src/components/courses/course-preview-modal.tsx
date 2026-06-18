@@ -68,7 +68,7 @@ export function CoursePreviewModal({
                 <X size={20} />
               </button>
 
-              <div className="h-48 w-full shrink-0 bg-gradient-to-br from-primary/30 to-accent/30 relative">
+              <div className="h-48 w-full shrink-0 bg-gradient-to-br from-primary/30 to-secondary/30 relative">
                 {course.imageUrl ? (
                   <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
                 ) : (
