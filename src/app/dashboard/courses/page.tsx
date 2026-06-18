@@ -1,8 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+
+const getCleanCourseCode = (course: any) => {
+  const t = course.title?.toLowerCase() || "";
+  if (t.includes("database management")) return "CS301";
+  if (t.includes("theory of computation")) return "CS302";
+  if (t.includes("agile software")) return "CS303";
+  if (t.includes("operating system")) return "CS304";
+  
+  if (!course.title) return "CRS-101";
+  const acronym = course.title
+    .split(" ")
+    .filter((w: string) => w.length > 1 && !["and", "for", "the", "using", "of", "&"].includes(w.toLowerCase()))
+    .map((w: string) => w[0])
+    .join("")
+    .toUpperCase();
+  const sem = course.semester || 1;
+  return `${acronym}-${sem}01`;
+};
 import { CourseGrid } from "@/components/courses/course-grid";
 import { Course } from "@/components/courses/course-card";
 import { CoursePreviewModal } from "@/components/courses/course-preview-modal";
@@ -17,6 +35,7 @@ export default function CoursesPage() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch current user role
   const { data: authData } = useQuery({
@@ -44,6 +63,18 @@ export default function CoursesPage() {
   });
 
   const courses: Course[] = coursesData?.data?.courses || [];
+
+  const filteredCourses = useMemo(() => {
+    return courses.filter((course) => {
+      const q = searchQuery.toLowerCase();
+      const code = course.subjectCode || getCleanCourseCode(course);
+      return (
+        course.title.toLowerCase().includes(q) ||
+        code.toLowerCase().includes(q) ||
+        (course.teacherName || "").toLowerCase().includes(q)
+      );
+    });
+  }, [courses, searchQuery]);
 
   // Enroll Mutation
   const enrollMutation = useMutation({
@@ -129,13 +160,13 @@ export default function CoursesPage() {
           <h1 className="text-3xl font-bold text-primary mb-2">
             {role === "TEACHER" ? "My Courses" : "Explore Courses"}
           </h1>
-          <p className="text-foreground/70">
+          <p className="text-foreground/70 text-sm">
             {role === "TEACHER" 
               ? "Manage and create your educational content." 
               : "Discover new skills and expand your knowledge."}
           </p>
         </motion.div>
-
+ 
         {role === "TEACHER" && (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -149,8 +180,27 @@ export default function CoursesPage() {
           </motion.div>
         )}
       </div>
-
-      <CourseGrid courses={courses} onCourseClick={handleCourseClick} />
+ 
+      {/* Search Bar */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="flex flex-col md:flex-row gap-4 mb-8 items-center bg-white/95 backdrop-blur-md p-4 rounded-3xl border border-slate-200/85"
+      >
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+          <input
+            type="text"
+            placeholder="Search by course name, code, or faculty..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-11 pr-4 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 font-semibold transition-all shadow-sm"
+          />
+        </div>
+      </motion.div>
+ 
+      <CourseGrid courses={filteredCourses} onCourseClick={handleCourseClick} />
 
       <CoursePreviewModal
         isOpen={isPreviewOpen}

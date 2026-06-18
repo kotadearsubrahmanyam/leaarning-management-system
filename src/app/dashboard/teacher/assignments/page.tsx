@@ -438,7 +438,7 @@ export default function TeacherAssignmentsPage() {
 
                   {/* Advanced Actions Secondary Row */}
                   <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-100 text-xs">
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => duplicateMutation.mutate(a)}
                         className="text-slate-400 hover:text-slate-600 font-semibold flex items-center gap-1 transition-colors"
@@ -453,6 +453,18 @@ export default function TeacherAssignmentsPage() {
                         title={isArchived ? "Publish Assignment" : "Archive Assignment"}
                       >
                         <Archive size={12} /> {isArchived ? "Unarchive" : "Archive"}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (confirm("Are you sure you want to permanently delete this assignment?")) {
+                            deleteMutation.mutate(a.id);
+                          }
+                        }}
+                        className="text-rose-500 hover:text-rose-600 font-bold flex items-center gap-1 transition-colors"
+                        title="Delete Assignment"
+                      >
+                        <Trash2 size={12} /> Delete
                       </button>
                     </div>
 

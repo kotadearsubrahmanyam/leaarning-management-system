@@ -17,6 +17,7 @@ interface UploadModalProps {
 export function UploadModal({ isOpen, onClose, courseId, onSuccess }: UploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("REFERENCE_MATERIALS");
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +93,7 @@ export function UploadModal({ isOpen, onClose, courseId, onSuccess }: UploadModa
           fileUrl: publicUrl,
           fileType: file.type || "unknown",
           size: sizeStr,
+          category,
         }),
       });
 
@@ -118,6 +120,7 @@ export function UploadModal({ isOpen, onClose, courseId, onSuccess }: UploadModa
     if (!isUploading) {
       setFile(null);
       setTitle("");
+      setCategory("REFERENCE_MATERIALS");
       setProgress(0);
       setError(null);
       onClose();
@@ -193,6 +196,24 @@ export function UploadModal({ isOpen, onClose, courseId, onSuccess }: UploadModa
                     )}
                   </motion.div>
                 )}
+
+                <div className="flex flex-col space-y-1.5 w-full">
+                  <label className="text-sm font-medium text-foreground/80 ml-1">Resource Category</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    disabled={isUploading}
+                    className="flex h-12 w-full rounded-xl border border-input bg-white/50 px-3.5 py-2 text-sm text-foreground shadow-sm transition-all outline-none focus:ring-0 focus:border-primary placeholder:text-muted-foreground font-semibold cursor-pointer"
+                  >
+                    <option value="SYLLABUS">Syllabus</option>
+                    <option value="UNIT_NOTES">Unit Notes</option>
+                    <option value="IMPORTANT_QUESTIONS">Important Questions</option>
+                    <option value="QUESTION_PAPERS">Question Papers</option>
+                    <option value="EXAM_PREP_KIT">Exam Preparation Kit</option>
+                    <option value="REFERENCE_MATERIALS">Reference Materials</option>
+                    <option value="ADDITIONAL_RESOURCES">Additional Resources</option>
+                  </select>
+                </div>
 
                 <AnimatedInput
                   label="Material Title"

@@ -208,7 +208,7 @@ export default function CourseAttendanceAnalyticsPage() {
       </motion.div>
 
       {/* Course Selection */}
-      <div className="mb-8 max-w-2xl bg-white/40 backdrop-blur-md border border-slate-200 p-4 rounded-3xl shadow-sm">
+      <div className="mb-8 max-w-2xl bg-white/40 backdrop-blur-md border border-slate-200 p-4 rounded-3xl shadow-sm relative z-30">
         <CourseSelect
           courses={courses}
           selectedCourse={selectedCourse}

@@ -269,7 +269,8 @@ export default function TeacherEvaluationPage() {
         <p className="text-foreground/70">Review student submissions and assign grades.</p>
       </motion.div>
 
-      <div className="mb-8 max-w-2xl">
+      {/* Course Filter */}
+      <div className="mb-8 max-w-2xl bg-white/40 backdrop-blur-md border border-slate-200 p-4 rounded-3xl shadow-sm relative z-30">
         <CourseSelect
           courses={courses}
           selectedCourse={selectedCourse}
