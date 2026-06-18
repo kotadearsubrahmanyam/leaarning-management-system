@@ -66,7 +66,7 @@ export async function GET() {
       deptCourses = rawCourses;
     }
 
-    // 1. Fetch only published subject results for this student with course details
+    // 1. Fetch all subject results (both published and unpublished) for this student with course details
     const dbResultsRaw = await db
       .select({
         result: results,
@@ -74,7 +74,7 @@ export async function GET() {
       })
       .from(results)
       .leftJoin(courses, eq(results.courseId, courses.id))
-      .where(and(eq(results.userId, userId), eq(results.published, true)))
+      .where(eq(results.userId, userId))
       .orderBy(desc(results.createdAt));
 
     const dbResults = dbResultsRaw.map(row => {
@@ -99,14 +99,14 @@ export async function GET() {
       ));
 
     // 3. Find which semesters have published results
-    const uniqueSemesters = Array.from(new Set(dbResults.map(r => r.semester))).sort((a, b) => a - b);
+    const uniqueSemesters = Array.from(new Set(dbResults.filter(r => r.published).map(r => r.semester))).sort((a, b) => a - b);
 
     // 4. Build summaries (calculating or overriding SGPA / CGPA) for each semester
     const summaries: Record<number, { sgpa: string; cgpa: string; totalCredits: number; passedCount: number; failedCount: number; status: string; backlogCount: number }> = {};
 
     for (const sem of uniqueSemesters) {
-      // Find all results for this semester
-      const semResults = dbResults.filter(r => r.semester === sem);
+      // Find all results for this semester (only count published ones in the official summaries)
+      const semResults = dbResults.filter(r => r.semester === sem && r.published);
       const totalCredits = semResults.reduce((sum, r) => sum + (r.credits || 0), 0);
       const passedCount = semResults.filter(r => r.status === "PASS").length;
       const failedCount = semResults.filter(r => r.status === "FAIL").length;
@@ -126,6 +126,7 @@ export async function GET() {
 
     const mappedResults = dbResults.map(r => ({
       id: r.id,
+      courseId: r.courseId,
       marks: r.marks,
       grade: r.grade,
       courseName: r.subjectName || "Subject",
@@ -136,6 +137,12 @@ export async function GET() {
       semester: r.semester,
       status: r.status,
       isPass: r.status === "PASS",
+      published: r.published,
+      passType: r.passType,
+      clearedSemester: r.clearedSemester,
+      attemptNumber: r.attemptNumber,
+      originalSemester: r.originalSemester,
+      originalGrade: r.originalGrade,
     }));
 
     return successResponse({

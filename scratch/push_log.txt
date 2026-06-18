@@ -1,0 +1,110 @@
+--- Start Drizzle Push Log ---
+STDERR: Failed to find Response internal state key
+
+STDOUT: drizzle-kit: v0.20.18
+drizzle-orm: v0.30.10
+
+
+STDOUT: No config path provided, using default path
+Reading config file 'c:\Users\susanna\OneDrive\Desktop\INTERN\leaarning-management-system\drizzle.config.ts'
+
+STDOUT: · You're about to add SystemSetting_key_unique unique constraint to the table, which contains 1 items. If this statement fails, you will receive an error from the database. Do you want to truncate SystemSetting table?
+
+
+AUTO-RESPONDING: y\n
+STDOUT: [?25l
+AUTO-RESPONDING: y\n
+STDOUT: ❯ No, add the constraint without truncating the table
+  Yes, truncate the table
+STDOUT: [2K[1G
+STDOUT: [?25h[?25h
+AUTO-RESPONDING: y\n
+STDOUT:  Warning  Found data-loss statements:
+· You're about to delete resumes table with 9 items
+· You're about to delete skill_master table with 310 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change dueDate column type from timestamp(3) to timestamp (3) with 80 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 80 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 80 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 88 items
+· You're about to change date column type from timestamp(3) to timestamp (3) with 1083 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1083 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1800 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 1800 items
+· You're about to change startDate column type from timestamp(3) to timestamp (3) with 20 items
+· You're about to change endDate column type from timestamp(3) to timestamp (3) with 20 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 20 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 805 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 805 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 9839 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change dueDate column type from timestamp(3) to timestamp (3) with 88 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 88 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 132 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 88 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 3 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 2640 items
+
+THIS ACTION WILL CAUSE DATA LOSS AND CANNOT BE REVERTED
+
+Do you still want to push changes?
+[?25l❯ No, abort
+  Yes, I want to remove 2 tables, truncate 16 tables
+AUTO-RESPONDING: y\n
+STDOUT: [2K[1G[?25h[?25h[x] All changes were aborted
+
+AUTO-RESPONDING: y\n
+EXIT CODE: 0
+STDOUT: · You're about to add SystemSetting_key_unique unique constraint to the table, which contains 1 items. If this statement fails, you will receive an error from the database. Do you want to truncate SystemSetting table?
+
+
+AUTO-RESPONDING: y\n
+STDOUT: [?25l
+AUTO-RESPONDING: y\n
+STDOUT: ❯ No, add the constraint without truncating the table
+  Yes, truncate the table
+STDOUT: [2K[1G
+STDOUT: [?25h[?25h
+AUTO-RESPONDING: y\n
+STDOUT:  Warning  Found data-loss statements:
+· You're about to delete resumes table with 9 items
+· You're about to delete skill_master table with 310 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change dueDate column type from timestamp(3) to timestamp (3) with 80 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 80 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 80 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 88 items
+· You're about to change date column type from timestamp(3) to timestamp (3) with 1083 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1083 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1800 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 1800 items
+· You're about to change startDate column type from timestamp(3) to timestamp (3) with 20 items
+· You're about to change endDate column type from timestamp(3) to timestamp (3) with 20 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 20 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 805 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 805 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 9839 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change updatedAt column type from timestamp(3) to timestamp (3) with 1 items
+· You're about to change dueDate column type from timestamp(3) to timestamp (3) with 88 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 88 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 132 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 88 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 3 items
+· You're about to change createdAt column type from timestamp(3) to timestamp (3) with 2640 items
+
+THIS ACTION WILL CAUSE DATA LOSS AND CANNOT BE REVERTED
+
+Do you still want to push changes?
+[?25l
+AUTO-RESPONDING: y\n
+STDOUT: ❯ No, abort
+  Yes, I want to remove 2 tables, truncate 16 tables[2K[1G[?25h[?25h[x] All changes were aborted
+
+AUTO-RESPONDING: y\n
+EXIT CODE: 0

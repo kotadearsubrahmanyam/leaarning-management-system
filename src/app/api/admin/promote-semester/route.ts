@@ -67,11 +67,11 @@ export async function POST(req: Request) {
 
     // 3b. Attendance Checking (Condonation & Detention)
     const attendanceRecords = await db.select({
-       userId: attendance.userId,
+       userId: attendance.studentId,
        status: attendance.status
     })
     .from(attendance)
-    .where(inArray(attendance.userId, studentIds));
+    .where(inArray(attendance.studentId, studentIds));
 
     const studentAttendance = new Map();
     for (const id of studentIds) {

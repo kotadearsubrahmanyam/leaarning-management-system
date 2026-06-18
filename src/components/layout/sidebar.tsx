@@ -57,14 +57,12 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
     } else if (role === "TEACHER") {
       return [
         ...commonBase, 
-        { href: "/dashboard/teacher/students", icon: Users, label: "Students" },
         { href: "/dashboard/teacher/my-courses", icon: BookOpen, label: "My Courses" },
         { href: "/dashboard/teacher/quizzes", icon: Sparkles, label: "AI Quizzes" },
         { href: "/dashboard/teacher/assignments", icon: FileEdit, label: "Assignments" },
-        { href: "/dashboard/teacher/progress", icon: BarChart, label: "Progress" },
+        { href: "/dashboard/teacher/progress", icon: BarChart, label: "Student Tracker" },
         { href: "/dashboard/teacher/attendance", icon: Calendar, label: "Attendance" },
         { href: "/dashboard/teacher/evaluation", icon: CheckSquare, label: "Evaluation" },
-        { href: "/dashboard/teacher/certificates", icon: FileCheck, label: "Certification" },
         { href: "/dashboard/community", icon: Users, label: "Community" },
       ];
     } else {
@@ -80,7 +78,6 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         { href: "/dashboard/activities", icon: Award, label: "Activities" },
         { href: "/dashboard/attendance", icon: Calendar, label: "Attendance" },
         { href: "/dashboard/results", icon: Award, label: "Results" },
-        { href: "/dashboard/certificates", icon: FileCheck, label: "Certificates" },
         { href: "/dashboard/payments", icon: CreditCard, label: "Payments" },
         { href: "/dashboard/downloads", icon: DownloadCloud, label: "Downloads" },
         { href: "/dashboard/community", icon: Users, label: "Community" }

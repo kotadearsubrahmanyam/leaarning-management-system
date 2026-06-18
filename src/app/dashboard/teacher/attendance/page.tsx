@@ -24,7 +24,8 @@ import {
   AlertCircle,
   ClipboardList,
   Play,
-  UserCheck
+  UserCheck,
+  Clock
 } from "lucide-react";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { CourseSelect } from "@/components/ui/course-select";
@@ -97,6 +98,15 @@ export default function TeacherAttendancePage() {
     return timeDiffMs > 24 * 60 * 60 * 1000;
   }, [selectedDate]);
 
+  const [selectedSession, setSelectedSession] = useState<string>("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newSessionData, setNewSessionData] = useState({
+    startTime: "09:00",
+    endTime: "10:00",
+    sessionType: "LECTURE",
+    sectionId: "CSE-A",
+  });
+
   const { data: coursesData } = useQuery({
     queryKey: ["teacherCourses"],
     queryFn: async () => {
@@ -106,15 +116,39 @@ export default function TeacherAttendancePage() {
     },
   });
 
-  const { data: attendanceData, isLoading, refetch } = useQuery({
-    queryKey: ["teacherAttendance", selectedCourse, selectedDate],
+  const { data: sessionsData, isLoading: isSessionsLoading, refetch: refetchSessions } = useQuery({
+    queryKey: ["teacherSessions", selectedCourse, selectedDate],
     queryFn: async () => {
       if (!selectedCourse || !selectedDate) return null;
-      const res = await fetch(`/api/teacher/attendance?courseId=${selectedCourse}&date=${selectedDate}`);
-      if (!res.ok) throw new Error("Failed to fetch attendance");
+      const res = await fetch(`/api/teacher/sessions?courseId=${selectedCourse}&date=${selectedDate}`);
+      if (!res.ok) throw new Error("Failed to fetch sessions");
       return res.json();
     },
     enabled: !!selectedCourse && !!selectedDate,
+  });
+
+  const sessions = sessionsData?.data?.sessions || [];
+
+  useEffect(() => {
+    if (sessions.length > 0) {
+      const exists = sessions.some((s: any) => s.id === selectedSession);
+      if (!exists) {
+        setSelectedSession(sessions[0].id);
+      }
+    } else {
+      setSelectedSession("");
+    }
+  }, [sessions, selectedSession]);
+
+  const { data: attendanceData, isLoading, refetch } = useQuery({
+    queryKey: ["teacherAttendance", selectedSession],
+    queryFn: async () => {
+      if (!selectedSession) return null;
+      const res = await fetch(`/api/teacher/attendance?sessionId=${selectedSession}`);
+      if (!res.ok) throw new Error("Failed to fetch attendance");
+      return res.json();
+    },
+    enabled: !!selectedSession,
   });
 
   const students = attendanceData?.data?.attendance || [];
@@ -169,7 +203,7 @@ export default function TeacherAttendancePage() {
       const res = await fetch("/api/teacher/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId: selectedCourse, date: selectedDate, records }),
+        body: JSON.stringify({ sessionId: selectedSession, records }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -178,13 +212,43 @@ export default function TeacherAttendancePage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teacherAttendance", selectedCourse, selectedDate] });
+      queryClient.invalidateQueries({ queryKey: ["teacherAttendance", selectedSession] });
       alert("Attendance saved successfully!");
     },
     onError: (err: any) => {
       if (err.message !== "Save aborted by teacher to complete markings.") {
         alert(err.message);
       }
+    }
+  });
+
+  const createSessionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/teacher/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: selectedCourse,
+          date: selectedDate,
+          ...newSessionData,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to create session");
+      }
+      return res.json();
+    },
+    onSuccess: (resData) => {
+      queryClient.invalidateQueries({ queryKey: ["teacherSessions", selectedCourse, selectedDate] });
+      setIsCreateModalOpen(false);
+      if (resData?.data?.session?.id) {
+        setSelectedSession(resData.data.session.id);
+      }
+      alert("Extra/Makeup session created successfully!");
+    },
+    onError: (err: any) => {
+      alert(err.message);
     }
   });
 
@@ -234,25 +298,26 @@ export default function TeacherAttendancePage() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 items-start">
-        <div className="lg:col-span-2">
-          <CourseSelect
-            courses={courses}
-            selectedCourse={selectedCourse}
-            setSelectedCourse={(courseId) => {
-              setSelectedCourse(courseId);
-              setIsSessionStarted(false);
-            }}
-            label="Active Course Selection"
-            placeholder="Choose a course to load the roster..."
-            showClear={true}
-            onRefresh={() => {
-              refetch();
-              queryClient.invalidateQueries({ queryKey: ["teacherAttendance", selectedCourse, selectedDate] });
-            }}
-          />
-        </div>
+      {/* Course Selection Row (Spacious Full Width) */}
+      <div className="mb-6">
+        <CourseSelect
+          courses={courses}
+          selectedCourse={selectedCourse}
+          setSelectedCourse={(courseId) => {
+            setSelectedCourse(courseId);
+            setIsSessionStarted(false);
+          }}
+          label="Active Course Selection"
+          placeholder="Choose a course to load the roster..."
+          showClear={true}
+          onRefresh={() => {
+            refetchSessions();
+          }}
+        />
+      </div>
 
+      {/* Date & Session Selection Row (Side-by-Side 2-Column Grid) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-slate-700 ml-1">
             Target Date
@@ -270,16 +335,80 @@ export default function TeacherAttendancePage() {
             />
           </div>
         </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-center ml-1">
+            <label className="block text-sm font-semibold text-slate-700">
+              Class Session
+            </label>
+            {selectedCourse && selectedDate && (
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-bold hover:underline"
+              >
+                + Create Extra Class
+              </button>
+            )}
+          </div>
+          <div className="relative flex items-center bg-white border border-slate-200 rounded-2xl p-1 px-4 shadow-sm hover:border-emerald-500 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100 transition-all duration-300">
+            <Clock className="w-5 h-5 text-emerald-500 mr-2 flex-shrink-0" />
+            <select
+              value={selectedSession}
+              onChange={(e) => {
+                setSelectedSession(e.target.value);
+                setIsSessionStarted(false);
+              }}
+              disabled={!selectedCourse || !selectedDate || sessions.length === 0}
+              className="w-full bg-transparent py-3 text-slate-800 focus:outline-none border-none outline-none font-semibold text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed appearance-none"
+              style={{ border: "none", outline: "none", boxShadow: "none", background: "transparent" }}
+            >
+              {sessions.length === 0 ? (
+                <option value="">No sessions found</option>
+              ) : (
+                sessions.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.startTime} - {s.endTime} ({s.sessionType}) - {s.sectionId}
+                  </option>
+                ))
+              )}
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 pointer-events-none" />
+          </div>
+        </div>
       </div>
 
       {selectedCourse && selectedDate ? (
-        isLoading ? (
+        isSessionsLoading || isLoading ? (
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white animate-pulse rounded-2xl border border-slate-200" />)}
             </div>
             <div className="h-96 bg-white animate-pulse rounded-2xl border border-slate-200" />
           </div>
+        ) : sessions.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white border border-slate-200 rounded-2xl p-16 text-center shadow-sm flex flex-col items-center justify-center gap-6 max-w-2xl mx-auto"
+          >
+            <div className="p-4 bg-amber-50 text-amber-500 rounded-full shadow-inner">
+              <Clock size={36} className="stroke-[2.5]" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-slate-900 text-xl">No Class Sessions Found</h3>
+              <p className="text-sm text-slate-500 max-w-md mx-auto mt-2 leading-relaxed">
+                There are no scheduled timetable classes for <span className="font-semibold text-slate-800">{currentCourseDetails?.title}</span> on this date. You can manually create an Extra class, Makeup class, or Supplementary class session to record attendance.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base rounded-2xl transition-all duration-300 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-700/30 hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
+            >
+              <Play size={18} className="fill-white stroke-none" />
+              Create Class Session
+            </button>
+          </motion.div>
         ) : !isSessionStarted ? (
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
@@ -292,7 +421,7 @@ export default function TeacherAttendancePage() {
             <div>
               <h3 className="font-extrabold text-slate-900 text-xl">Start Attendance Session</h3>
               <p className="text-sm text-slate-500 max-w-md mx-auto mt-2 leading-relaxed">
-                Click below to begin manually taking attendance for <span className="font-semibold text-slate-800">{currentCourseDetails?.title}</span>. Students will start as "Not Marked".
+                Click below to begin manually taking attendance for the selected class session of <span className="font-semibold text-slate-800">{currentCourseDetails?.title}</span>. Students will start as "Not Marked".
               </p>
             </div>
             <button
@@ -569,6 +698,125 @@ export default function TeacherAttendancePage() {
           </div>
         </motion.div>
       )}
+
+      {/* Create Session Modal */}
+      <AnimatePresence>
+        {isCreateModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCreateModalOpen(false)}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: "-40%" }}
+              animate={{ opacity: 1, scale: 1, y: "-50%" }}
+              exit={{ opacity: 0, scale: 0.95, y: "-40%" }}
+              style={{ top: "50%", left: "50%" }}
+              className="fixed -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg p-6"
+            >
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl p-8 relative">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="absolute top-4 right-4 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-slate-500" />
+                </button>
+                <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
+                  <Calendar className="text-emerald-600" size={24} />
+                  Create Class Session
+                </h2>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    createSessionMutation.mutate();
+                  }}
+                  className="space-y-5"
+                >
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        Start Time
+                      </label>
+                      <input
+                        type="time"
+                        value={newSessionData.startTime}
+                        onChange={(e) => setNewSessionData(prev => ({ ...prev, startTime: e.target.value }))}
+                        required
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-semibold focus:outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        End Time
+                      </label>
+                      <input
+                        type="time"
+                        value={newSessionData.endTime}
+                        onChange={(e) => setNewSessionData(prev => ({ ...prev, endTime: e.target.value }))}
+                        required
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-semibold focus:outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        Session Type
+                      </label>
+                      <select
+                        value={newSessionData.sessionType}
+                        onChange={(e) => setNewSessionData(prev => ({ ...prev, sessionType: e.target.value }))}
+                        required
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-semibold focus:outline-none focus:border-emerald-500 transition-colors appearance-none cursor-pointer"
+                      >
+                        <option value="LECTURE">Lecture</option>
+                        <option value="TUTORIAL">Tutorial</option>
+                        <option value="LABORATORY">Laboratory</option>
+                        <option value="SEMINAR">Seminar</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        Section / Batch
+                      </label>
+                      <input
+                        type="text"
+                        value={newSessionData.sectionId}
+                        onChange={(e) => setNewSessionData(prev => ({ ...prev, sectionId: e.target.value }))}
+                        required
+                        placeholder="e.g. CSE-A"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-semibold focus:outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsCreateModalOpen(false)}
+                      className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={createSessionMutation.isPending}
+                      className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-colors"
+                    >
+                      {createSessionMutation.isPending ? "Creating..." : "Create Session"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

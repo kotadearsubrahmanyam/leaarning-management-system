@@ -4,7 +4,7 @@ import { quizzes, enrollments, quizSubmissions } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray, and } from "drizzle-orm";
 
 export async function GET(req: Request) {
   try {
@@ -29,7 +29,10 @@ export async function GET(req: Request) {
     }
 
     const availableQuizzes = await db.query.quizzes.findMany({
-      where: inArray(quizzes.courseId, courseIds),
+      where: and(
+        inArray(quizzes.courseId, courseIds),
+        eq(quizzes.status, "PUBLISHED")
+      ),
       orderBy: desc(quizzes.createdAt)
     });
 

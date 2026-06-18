@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { AnalyticsCard } from "@/components/ui/analytics-card";
 import { ContinueLearningCard } from "@/components/dashboard/continue-learning-card";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { ChatAssistant } from "@/components/ui/ai-assistant";
 import { AnimatedChart } from "@/components/dashboard/animated-chart";
 import { Users, BookOpen, GraduationCap, TrendingUp, Clock, FileEdit, CheckSquare, Calendar, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
@@ -72,6 +71,37 @@ export default function DashboardPage() {
     enabled: !!authData && authData.data.user.role === "STUDENT",
   });
 
+  const { data: studentResultsData } = useQuery({
+    queryKey: ["studentResults"],
+    queryFn: async () => {
+      const res = await fetch("/api/student/results");
+      if (!res.ok) throw new Error("Failed to fetch student results");
+      return res.json();
+    },
+    enabled: !!authData && authData.data.user.role === "STUDENT",
+  });
+
+  const { data: studentPathsData } = useQuery({
+    queryKey: ["studentLearningPaths"],
+    queryFn: async () => {
+      const res = await fetch("/api/student/learning-path");
+      if (!res.ok) throw new Error("Failed to fetch learning paths");
+      return res.json();
+    },
+    enabled: !!authData && authData.data.user.role === "STUDENT",
+  });
+
+  const { data: calendarEventsData } = useQuery({
+    queryKey: ["academicCalendarEvents", authData?.data?.user?.semester],
+    queryFn: async () => {
+      const sem = authData?.data?.user?.semester;
+      const res = await fetch(`/api/academic-calendar?category=EXAM${sem ? `&semester=${sem}` : ""}`);
+      if (!res.ok) throw new Error("Failed to fetch calendar events");
+      return res.json();
+    },
+    enabled: !!authData && authData.data.user.role === "STUDENT",
+  });
+
   if (!authData || isStatsLoading) {
     return (
       <div className="flex space-x-6">
@@ -106,6 +136,39 @@ export default function DashboardPage() {
         { time: "11:30 AM - 01:00 PM", subject: "Blockchain & Applications", room: "Lab Room 3" },
         { time: "02:00 PM - 03:30 PM", subject: "Database Systems", room: "Lecture Hall 105" }
       ];
+
+  const backlogResults = (studentResultsData?.data?.results || []).filter((r: any) => r.status === "FAIL");
+  const backlogCount = backlogResults.length;
+
+  const seeEvent = (calendarEventsData?.data?.events || []).find((e: any) =>
+    e.title.toLowerCase().includes("theory") ||
+    e.title.toLowerCase().includes("external") ||
+    e.title.toLowerCase().includes("semester end")
+  );
+
+  let examStartDate = seeEvent ? new Date(seeEvent.startDate) : null;
+  let examEndDate = seeEvent ? new Date(seeEvent.endDate) : null;
+
+  const assignedExams = backlogResults.map((backlog: any, index: number) => {
+    let examDate = "";
+    if (examStartDate && examEndDate) {
+      const date = new Date(examStartDate.getTime() + index * 2 * 24 * 60 * 60 * 1000);
+      if (date > examEndDate) {
+        examDate = examEndDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      } else {
+        examDate = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+      }
+    } else {
+      const date = new Date();
+      date.setDate(date.getDate() + 15 + index * 3);
+      examDate = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    }
+    return {
+      courseName: backlog.courseName,
+      subjectCode: backlog.subjectCode,
+      date: examDate,
+    };
+  });
 
   return (
     <div className="max-w-6xl mx-auto relative z-10">
@@ -142,7 +205,7 @@ export default function DashboardPage() {
 
       {role === "TEACHER" && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5">
             <AnalyticsCard 
               title="Courses Managed" 
               value={stats.coursesCreated || 0} 
@@ -152,18 +215,10 @@ export default function DashboardPage() {
               onClick={() => router.push("/dashboard/teacher/my-courses")} 
             />
             <AnalyticsCard 
-              title="Total Students" 
-              value={stats.totalStudentsEnrolled || 0} 
-              icon={<Users size={20} />} 
-              delay={0.2} 
-              className="cursor-pointer hover:border-primary transition-all duration-300"
-              onClick={() => router.push("/dashboard/teacher/students")} 
-            />
-            <AnalyticsCard 
               title="Total Assignments" 
               value={stats.totalAssignments || 0} 
               icon={<FileEdit size={20} />} 
-              delay={0.3} 
+              delay={0.2} 
               className="cursor-pointer hover:border-primary transition-all duration-300"
               onClick={() => router.push("/dashboard/teacher/assignments")} 
             />
@@ -171,7 +226,7 @@ export default function DashboardPage() {
               title="Pending Evaluations" 
               value={stats.pendingEvaluations || 0} 
               icon={<CheckSquare size={20} className="text-orange-500" />} 
-              delay={0.4} 
+              delay={0.3} 
               className="cursor-pointer hover:border-primary transition-all duration-300"
               onClick={() => router.push("/dashboard/teacher/evaluation")} 
             />
@@ -226,6 +281,153 @@ export default function DashboardPage() {
               onClick={() => router.push("/dashboard/courses")} 
             />
           </div>
+
+          {/* Active Backlogs & Remedial Support Card */}
+          {backlogCount > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.25 }}
+              className="mb-8"
+            >
+              <div className="bg-gradient-to-br from-rose-50 to-orange-50 dark:from-slate-950 dark:to-orange-950/20 p-6 rounded-3xl border border-rose-200/60 dark:border-rose-900/30 shadow-md hover:shadow-lg transition-all">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-500 text-white animate-pulse">
+                        Attention Required
+                      </span>
+                      <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
+                        {backlogCount} Active Backlog{backlogCount > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-2">
+                      Supplementary Exam & Remedial Support
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400/80 mt-1">
+                      Complete your recovery checklists to boost your exam readiness score before the examinations.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => router.push("/dashboard/student/mentoring")}
+                    className="px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-sm rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center gap-2 group shrink-0"
+                  >
+                    Open Recovery Plans
+                    <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Backlog Subjects and Recovery Path Progress */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      Assigned Recovery Paths
+                    </h4>
+                    <div className="space-y-3">
+                      {backlogResults.map((backlog: any, i: number) => {
+                        const path = (studentPathsData?.data?.learningPaths || []).find(
+                          (p: any) => p.courseId === backlog.courseId
+                        );
+                        const readiness = path ? path.readinessScore : 0;
+
+                        return (
+                          <div
+                            key={backlog.id || i}
+                            className="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/85 flex flex-col justify-between gap-3 hover:border-rose-300 dark:hover:border-rose-950 transition-all cursor-pointer"
+                            onClick={() => router.push("/dashboard/student/mentoring")}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="min-w-0 pr-3">
+                                <h5 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 truncate">
+                                  {backlog.courseName}
+                                </h5>
+                                <p className="text-xs text-slate-400 font-bold mt-0.5">
+                                  {backlog.subjectCode} • Semester {backlog.semester} Fail
+                                </p>
+                              </div>
+                              {path ? (
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                  path.completionStatus === "COMPLETED"
+                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                                    : "bg-amber-50 text-amber-600 border border-amber-200"
+                                }`}>
+                                  {path.completionStatus}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800">
+                                  No Path Configured
+                                </span>
+                              )}
+                            </div>
+
+                            {path && (
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-xs font-bold text-slate-500">
+                                  <span>Readiness Score</span>
+                                  <span className={readiness >= 75 ? "text-emerald-500" : "text-amber-500"}>
+                                    {readiness}%
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      readiness >= 75
+                                        ? "bg-emerald-500"
+                                        : readiness >= 40
+                                        ? "bg-amber-500"
+                                        : "bg-rose-500"
+                                    }`}
+                                    style={{ width: `${readiness}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Supplementary Exam Schedule */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      Assigned Supplementary Exam Dates
+                    </h4>
+                    <div className="space-y-3">
+                      {assignedExams.map((exam: any, i: number) => (
+                        <div
+                          key={i}
+                          className="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/85 flex items-center justify-between hover:border-rose-300 dark:hover:border-rose-950 transition-all"
+                        >
+                          <div className="min-w-0 pr-3">
+                            <h5 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 truncate">
+                              {exam.courseName}
+                            </h5>
+                            <p className="text-xs text-slate-400 font-bold mt-0.5">
+                              {exam.subjectCode} • Supp. Exam
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <span className="block text-xs font-black text-slate-800 dark:text-slate-200">
+                                {exam.date}
+                              </span>
+                              <span className="block text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                SEE Period
+                              </span>
+                            </div>
+                            <div className="h-10 w-10 bg-rose-500/10 text-rose-500 rounded-xl flex items-center justify-center border border-rose-500/20">
+                              <Calendar size={18} />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Timetable & Deadlines Horizontal section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -327,12 +529,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </>
-      )}
-
-      {role === "STUDENT" && (
-        <div className="mt-10">
-          <ChatAssistant userId={authData.data.user.id} role={role} />
-        </div>
       )}
     </div>
   );

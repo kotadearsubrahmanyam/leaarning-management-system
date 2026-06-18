@@ -85,7 +85,14 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
 
   const isSubmitted = a.submissionStatus !== null;
   const isGraded = a.submissionStatus === "GRADED";
-  const questions = getQuestionsForAssignment(a.title, a.courseName);
+  
+  const questions = a.questions 
+    ? a.questions.split("\n").filter((q: string) => q.trim().length > 0).map((q: string, idx: number) => ({
+        questionNumber: idx + 1,
+        description: q,
+        marks: Math.round((a.totalMarks || 100) / a.questions.split("\n").filter((q: string) => q.trim().length > 0).length) || 10
+      }))
+    : getQuestionsForAssignment(a.title, a.courseName);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -186,7 +193,7 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Marks</p>
-              <p className="text-sm font-bold text-slate-700">100 Marks</p>
+              <p className="text-sm font-bold text-slate-700">{a.totalMarks || 100} Marks</p>
             </div>
           </div>
 
@@ -239,8 +246,12 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
         <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
           <BookOpen size={18} className="text-primary" /> Instructions
         </h3>
-        <div className="text-sm text-slate-600 space-y-2 leading-relaxed">
-          <p>Please read each question carefully and address all elements in your report. Standard submission guidelines apply:</p>
+        <div className="text-sm text-slate-600 space-y-3 leading-relaxed">
+          {a.instructions || a.description ? (
+            <p className="font-semibold text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-100 whitespace-pre-wrap">{a.instructions || a.description}</p>
+          ) : (
+            <p>Please read each question carefully and address all elements in your report. Standard submission guidelines apply:</p>
+          )}
           <ul className="list-disc pl-5 space-y-1.5 text-slate-500 text-xs">
             <li>All submissions should follow normal formatting, citing sources correctly.</li>
             <li>You can write your response in the rich text area below, or link to external documents.</li>
@@ -261,24 +272,43 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
           <Paperclip size={18} className="text-primary" /> Reference Materials & Attachments
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 cursor-pointer transition-colors">
-            <div className="p-2 bg-primary/10 text-primary rounded-lg">
-              <FileText size={16} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-700 truncate">Course Syllabus Guide.pdf</p>
-              <p className="text-[10px] text-slate-400 font-semibold">1.4 MB • PDF Document</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 cursor-pointer transition-colors">
-            <div className="p-2 bg-primary/10 text-primary rounded-lg">
-              <BookOpen size={16} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-700 truncate">Core Reference Textbook.epub</p>
-              <p className="text-[10px] text-slate-400 font-semibold">12.8 MB • EPUB Book</p>
-            </div>
-          </div>
+          {a.attachmentUrl ? (
+            <a 
+              href={a.attachmentUrl} 
+              target="_blank" 
+              rel="noreferrer"
+              className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 cursor-pointer transition-colors"
+            >
+              <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                <Paperclip size={16} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-slate-700 truncate">{a.attachmentUrl.split("/").pop()}</p>
+                <p className="text-[10px] text-slate-400 font-semibold">Attached Reference Material</p>
+              </div>
+            </a>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 cursor-pointer transition-colors">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                  <FileText size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-700 truncate">Course Syllabus Guide.pdf</p>
+                  <p className="text-[10px] text-slate-400 font-semibold">1.4 MB • PDF Document</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 cursor-pointer transition-colors">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                  <BookOpen size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-700 truncate">Core Reference Textbook.epub</p>
+                  <p className="text-[10px] text-slate-400 font-semibold">12.8 MB • EPUB Book</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </motion.div>
 
@@ -309,11 +339,17 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
             )}
             
             {isGraded ? (
-              <div className="mt-4 pt-4 border-t border-slate-200/80 bg-green-500/5 p-4 rounded-xl border border-green-500/10">
+              <div className="mt-4 pt-4 border-t border-slate-200/80 bg-green-500/5 p-4 rounded-xl border border-green-500/10 space-y-2.5">
                 <p className="text-xs text-slate-500 font-semibold mb-0.5">Teacher Grade Remarks</p>
                 <p className="text-2xl font-black text-green-500">
-                  {a.marks} <span className="text-sm font-normal text-slate-400">/ 100</span>
+                  {a.marks} <span className="text-sm font-normal text-slate-400">/ {a.totalMarks || 100}</span>
                 </p>
+                {a.feedback && (
+                  <div className="bg-white border border-slate-150 rounded-2xl p-4 text-xs font-semibold text-slate-600 leading-relaxed shadow-sm mt-2">
+                    <strong className="block text-[10px] uppercase tracking-wider text-slate-400 mb-1">Teacher Feedback:</strong>
+                    {a.feedback}
+                  </div>
+                )}
                 <p className="text-xs text-slate-400 mt-1 italic">Submission graded. Review complete.</p>
               </div>
             ) : (

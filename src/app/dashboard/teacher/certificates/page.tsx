@@ -104,6 +104,7 @@ export default function TeacherCertificatesPage() {
           label="Filter Issued by Course"
           placeholder="Choose a course to filter certificates..."
           showClear={true}
+          compact={true}
         />
       </div>
 

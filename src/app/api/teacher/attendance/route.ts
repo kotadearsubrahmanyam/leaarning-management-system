@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { attendance, enrollments, users, courses, courseFaculty } from "@/db/schema";
+import { attendance, enrollments, users, courses, courseFaculty, classSessions } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -16,12 +16,14 @@ export async function GET(req: Request) {
     if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
 
     const { searchParams } = new URL(req.url);
-    const courseId = searchParams.get("courseId");
-    const dateStr = searchParams.get("date"); // YYYY-MM-DD
+    const sessionId = searchParams.get("sessionId");
 
-    if (!courseId || !dateStr) return errorResponse("Missing courseId or date", 400);
+    if (!sessionId) return errorResponse("Missing sessionId", 400);
 
-    const date = new Date(dateStr);
+    const session = await db.query.classSessions.findFirst({ where: eq(classSessions.id, sessionId) });
+    if (!session) return errorResponse("Session not found", 404);
+
+    const courseId = session.courseId;
     
     // Check ownership
     const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
@@ -51,18 +53,13 @@ export async function GET(req: Request) {
     .innerJoin(users, eq(enrollments.studentId, users.id))
     .where(eq(enrollments.courseId, courseId));
 
-    // Get existing attendance for this date
+    // Get existing attendance for this session
     const attendanceRecords = await db.select()
       .from(attendance)
-      .where(
-        and(
-          eq(attendance.courseId, courseId),
-          sql`date_trunc('day', ${attendance.date}) = date_trunc('day', ${date.toISOString()}::timestamp)`
-        )
-      );
+      .where(eq(attendance.sessionId, sessionId));
 
     const data = enrolledStudents.map(student => {
-      const record = attendanceRecords.find(a => a.userId === student.id);
+      const record = attendanceRecords.find(a => a.studentId === student.id);
       return {
         ...student,
         status: record ? record.status : null,
@@ -86,9 +83,14 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { courseId, date, records } = body; // records: { userId, status }[]
+    const { sessionId, records } = body; // records: { studentId/userId, status }[]
 
-    if (!courseId || !date || !records) return errorResponse("Missing fields", 400);
+    if (!sessionId || !records) return errorResponse("Missing fields", 400);
+
+    const session = await db.query.classSessions.findFirst({ where: eq(classSessions.id, sessionId) });
+    if (!session) return errorResponse("Session not found", 404);
+
+    const courseId = session.courseId;
 
     // Check ownership
     const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
@@ -107,7 +109,7 @@ export async function POST(req: Request) {
     
     if (!isAuthorized) return errorResponse("Forbidden", 403);
 
-    const targetDate = new Date(date);
+    const targetDate = new Date(session.date);
 
     // Future Lockout
     if (targetDate > new Date()) {
@@ -125,17 +127,15 @@ export async function POST(req: Request) {
       return errorResponse("Attendance is locked. You can only modify attendance within 24 hours of the class date.", 400);
     }
 
-    // Fetch existing attendance for this date to support upserts
+    // Fetch existing attendance for this session to support upserts
     const existingRecords = await db.select().from(attendance).where(
-      and(
-        eq(attendance.courseId, courseId),
-        sql`date_trunc('day', ${attendance.date}) = date_trunc('day', ${targetDate.toISOString()}::timestamp)`
-      )
+      eq(attendance.sessionId, sessionId)
     );
 
     // Process attendance (Insert or Update)
     for (const record of records) {
-      const existing = existingRecords.find(a => a.userId === record.userId);
+      const studentId = record.studentId || record.userId;
+      const existing = existingRecords.find(a => a.studentId === studentId);
       
       if (existing) {
         // Update existing record
@@ -149,9 +149,8 @@ export async function POST(req: Request) {
       } else {
         // Insert new record
         await db.insert(attendance).values({
-          courseId,
-          userId: record.userId,
-          date: targetDate,
+          studentId,
+          sessionId,
           status: record.status,
           updatedBy: payload.id as string,
           updatedAt: new Date(),

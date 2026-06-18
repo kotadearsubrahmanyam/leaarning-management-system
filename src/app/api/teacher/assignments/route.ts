@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { assignments, courses, courseFaculty } from "@/db/schema";
+import { assignments, courses, courseFaculty, submissions, enrollments } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, sql } from "drizzle-orm";
 
 async function isTeacherOfCourse(teacherId: string, courseId: string) {
   const course = await db.query.courses.findFirst({
@@ -43,21 +43,50 @@ export async function GET(req: Request) {
        conditions.push(eq(assignments.courseId, courseId));
     }
 
-    let query = db.select({
+    const data = await db.select({
       id: assignments.id,
       title: assignments.title,
       description: assignments.description,
+      instructions: assignments.instructions,
+      questions: assignments.questions,
+      attachmentUrl: assignments.attachmentUrl,
+      publishDate: assignments.publishDate,
       dueDate: assignments.dueDate,
+      totalMarks: assignments.totalMarks,
+      status: assignments.status,
+      courseId: assignments.courseId,
       courseName: courses.title,
+      semester: courses.semester,
     })
     .from(assignments)
     .innerJoin(courses, eq(assignments.courseId, courses.id))
-    .where(and(...conditions));
+    .where(and(...conditions))
+    .orderBy(desc(assignments.createdAt));
 
-    const data = await query.orderBy(desc(assignments.createdAt));
+    // Append submission counts and enrolled student counts
+    const dataWithCounts = await Promise.all(data.map(async (a) => {
+      const [subCountResult] = await db.select({
+        count: sql<number>`count(*)::int`
+      })
+      .from(submissions)
+      .where(eq(submissions.assignmentId, a.id));
 
-    return successResponse({ assignments: data }, "Fetched assignments successfully", 200);
+      const [enrollCountResult] = await db.select({
+        count: sql<number>`count(*)::int`
+      })
+      .from(enrollments)
+      .where(eq(enrollments.courseId, a.courseId));
+
+      return {
+        ...a,
+        submissionCount: subCountResult?.count || 0,
+        enrolledCount: enrollCountResult?.count || 0,
+      };
+    }));
+
+    return successResponse({ assignments: dataWithCounts }, "Fetched assignments successfully", 200);
   } catch (error) {
+    console.error("Fetch assignments error", error);
     return errorResponse("Internal error", 500);
   }
 }
@@ -72,7 +101,7 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { courseId, title, description, dueDate } = body;
+    const { courseId, title, description, instructions, questions, attachmentUrl, dueDate, totalMarks, status } = body;
 
     if (!courseId || !title || !dueDate) return errorResponse("Missing required fields", 400);
     
@@ -82,8 +111,14 @@ export async function POST(req: Request) {
     const [newAssignment] = await db.insert(assignments).values({
       courseId,
       title,
-      description,
+      description: description || instructions || "",
+      instructions: instructions || description || "",
+      questions: questions || "",
+      attachmentUrl: attachmentUrl || null,
       dueDate: new Date(dueDate),
+      totalMarks: totalMarks ? parseInt(totalMarks, 10) : 100,
+      status: status || "PUBLISHED",
+      publishDate: new Date(),
     }).returning();
 
     return successResponse({ assignment: newAssignment }, "Assignment created", 201);
