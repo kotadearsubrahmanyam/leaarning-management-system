@@ -75,7 +75,6 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         { href: "/dashboard/my-courses", icon: BookOpen, label: "My Courses" },
         { href: "/dashboard/courses", icon: Compass, label: "Explore" },
         { href: "/dashboard/assignments", icon: FileEdit, label: "Assignments" },
-        { href: "/dashboard/activities", icon: Award, label: "Activities" },
         { href: "/dashboard/attendance", icon: Calendar, label: "Attendance" },
         { href: "/dashboard/results", icon: Award, label: "Results" },
         { href: "/dashboard/payments", icon: CreditCard, label: "Payments" },
