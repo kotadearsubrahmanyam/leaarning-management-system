@@ -19,11 +19,13 @@ import { AnimatedButton } from "@/components/ui/animated-button";
 import { getQuestionsForAssignment } from "@/lib/assignment-questions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AssignmentDetailsPage({ params }: { params: { id: string } }) {
   const assignmentId = params.id;
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [submissionContent, setSubmissionContent] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -43,19 +45,43 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
   const a = assignments.find((item: any) => item.id === assignmentId);
 
   const submitMutation = useMutation({
-    mutationFn: async ({ content, fileUrl }: { content: string; fileUrl?: string }) => {
+    mutationFn: async ({
+      content,
+      fileUrl,
+      fileName,
+      fileSize
+    }: {
+      content: string;
+      fileUrl?: string;
+      fileName?: string;
+      fileSize?: number;
+    }) => {
       const res = await fetch(`/api/student/assignments/${assignmentId}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, fileUrl }),
+        body: JSON.stringify({ content, fileUrl, fileName, fileSize }),
       });
-      if (!res.ok) throw new Error("Failed to submit assignment");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || "Failed to submit assignment");
+      }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
       setSubmissionContent("");
       setSelectedFile(null);
+      toast({
+        title: "Assignment Submitted",
+        description: data.message || "Your assignment has been submitted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Submission Failed",
+        description: error.message || "There was an error submitting your assignment.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -118,6 +144,14 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
 
     let fileUrl = undefined;
     if (selectedFile) {
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "File size exceeds the 10MB limit.",
+          variant: "destructive",
+        });
+        return;
+      }
       setIsUploading(true);
       // Mock file upload delay
       await new Promise((r) => setTimeout(r, 1000));
@@ -128,6 +162,8 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
     submitMutation.mutate({
       content: submissionContent,
       fileUrl,
+      fileName: selectedFile?.name,
+      fileSize: selectedFile?.size,
     });
   };
 
@@ -221,7 +257,7 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
         </h3>
         <div className="bg-white border border-slate-200 rounded-2xl p-5 max-h-[300px] overflow-y-auto scrollbar-thin">
           <div className="space-y-4 text-sm font-medium text-slate-700">
-            {questions.map((q) => (
+            {questions.map((q: any) => (
               <div key={q.questionNumber} className="flex gap-2 items-start justify-between border-b border-slate-100 last:border-0 pb-3 last:pb-0">
                 <div className="flex items-start gap-2.5">
                   <span className="text-primary font-bold">{q.questionNumber}.</span>
@@ -403,7 +439,7 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
                   {selectedFile ? selectedFile.name : "Drag and drop your file here, or click to browse"}
                 </span>
                 <span className="text-[10px] text-slate-400 font-semibold">
-                  Supports PDF, DOCX, and ZIP formats (Max 50MB)
+                  Supports PDF, DOCX, and ZIP formats (Max 10MB)
                 </span>
               </div>
             </div>

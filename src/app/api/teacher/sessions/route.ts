@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { classSessions, courses, courseFaculty, schedule } from "@/db/schema";
+import { classSessions, courses, courseFaculty, systemSettings } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -53,43 +53,53 @@ export async function GET(req: Request) {
       );
 
     // Fetch schedules/timetable slots
-    const schedules = await db.select()
-      .from(schedule)
-      .where(
-        and(
-          eq(schedule.courseId, courseId),
-          sql`${schedule.date}::date = ${dateStr}::date`
-        )
-      );
+    const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' }); // e.g. "Monday"
+    
+    const settings = await db.select().from(systemSettings).where(eq(systemSettings.key, `WEEKLY_TIMETABLE_${course.semester}`));
+    
+    let timetable: any = null;
+    if (settings.length > 0) {
+      try {
+        const parsed = JSON.parse(settings[0].value || "{}");
+        timetable = parsed.timetable || parsed;
+      } catch(e) {}
+    }
 
-    // Auto-create sessions from timetable schedules if not already present
-    for (const sched of schedules) {
-      const match = existingSessions.find(
-        (s) => s.startTime === sched.time && s.facultyId === sched.teacherId
-      );
-      if (!match) {
-        // Auto-calculate end time 1 hour after start time
-        let endTimeStr = "10:00";
-        try {
-          const [hoursStr, minutesStr] = sched.time.split(":");
-          const hours = parseInt(hoursStr, 10);
-          const nextHour = (hours + 1) % 24;
-          endTimeStr = `${String(nextHour).padStart(2, "0")}:${minutesStr || "00"}`;
-        } catch (e) {
-          // fallback
+    const TIME_SLOTS: Record<string, { start: string, end: string }> = {
+      "slot1": { start: "09:30", end: "10:30" },
+      "slot2": { start: "10:30", end: "11:30" },
+      "slot3": { start: "11:30", end: "12:30" },
+      "slot4": { start: "13:30", end: "14:30" },
+      "slot5": { start: "14:30", end: "15:30" },
+    };
+
+    if (timetable && timetable[dayOfWeek]) {
+      const daySchedule = timetable[dayOfWeek];
+      for (const slotId of Object.keys(daySchedule)) {
+        if (slotId === "lunch") continue;
+        const cell = daySchedule[slotId];
+        
+        if (cell && cell.name === course.title && TIME_SLOTS[slotId]) {
+          const slotTimes = TIME_SLOTS[slotId];
+          
+          const match = existingSessions.find(
+            (s) => s.startTime === slotTimes.start && s.endTime === slotTimes.end
+          );
+          
+          if (!match) {
+            const [newSession] = await db.insert(classSessions).values({
+              courseId,
+              facultyId: payload.id as string,
+              sectionId: "CSE-A", // default section
+              date: dateObj,
+              startTime: slotTimes.start,
+              endTime: slotTimes.end,
+              sessionType: "LECTURE",
+            }).returning();
+
+            existingSessions.push(newSession);
+          }
         }
-
-        const [newSession] = await db.insert(classSessions).values({
-          courseId,
-          facultyId: sched.teacherId,
-          sectionId: "CSE-A", // default section
-          date: dateObj,
-          startTime: sched.time,
-          endTime: endTimeStr,
-          sessionType: "LECTURE", // default type for timetable
-        }).returning();
-
-        existingSessions.push(newSession);
       }
     }
 
@@ -101,51 +111,5 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return errorResponse("Unauthorized", 401);
-    
-    const payload = await verifyJwt(token);
-    if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
-
-    const body = await req.json();
-    const { courseId, date, startTime, endTime, sessionType, sectionId } = body;
-
-    if (!courseId || !date || !startTime || !endTime || !sessionType || !sectionId) {
-      return errorResponse("Missing required fields", 400);
-    }
-
-    // Check course ownership
-    const course = await db.query.courses.findFirst({ where: eq(courses.id, courseId) });
-    if (!course) return errorResponse("Course not found", 404);
-    
-    let isAuthorized = course.teacherId === payload.id;
-    if (!isAuthorized) {
-       const [coTeacher] = await db.select().from(courseFaculty).where(
-         and(
-           eq(courseFaculty.courseId, courseId),
-           eq(courseFaculty.teacherId, payload.id as string)
-         )
-       );
-       if (coTeacher) isAuthorized = true;
-    }
-    
-    if (!isAuthorized) return errorResponse("Forbidden", 403);
-
-    const [newSession] = await db.insert(classSessions).values({
-      courseId,
-      facultyId: payload.id as string,
-      sectionId,
-      date: new Date(date),
-      startTime,
-      endTime,
-      sessionType,
-    }).returning();
-
-    return successResponse({ session: newSession }, "Session created successfully", 201);
-  } catch (error) {
-    console.error("Create session error:", error);
-    return errorResponse("Internal server error", 500);
-  }
+  return errorResponse("Manual session creation is disabled. Sessions are strictly generated from the Timetable.", 403);
 }

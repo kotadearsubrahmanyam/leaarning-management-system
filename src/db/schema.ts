@@ -300,6 +300,7 @@ export const quizzes = pgTable("Quiz", {
   title: text("title").notNull(),
   timeLimit: integer("timeLimit").default(15).notNull(), // minutes
   status: text("status").default("PUBLISHED").notNull(),
+  studentId: text("studentId").references(() => users.id, { onDelete: "cascade" }), // student-specific practice quizzes
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 
@@ -310,6 +311,7 @@ export const quizQuestions = pgTable("QuizQuestion", {
   options: text("options").notNull(), // JSON array of 4 options
   correctAnswer: text("correctAnswer").notNull(),
   points: integer("points").default(1).notNull(),
+  explanation: text("explanation"), // educational explanation
 });
 
 export const quizSubmissions = pgTable("QuizSubmission", {
@@ -320,6 +322,7 @@ export const quizSubmissions = pgTable("QuizSubmission", {
   totalPoints: integer("totalPoints").notNull(),
   answers: text("answers"), // JSON string
   isMalpractice: boolean("isMalpractice").default(false).notNull(),
+  timeTaken: integer("timeTaken"), // time taken in seconds
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
 });
 
@@ -721,4 +724,14 @@ export const studentLearningPathsRelations = relations(studentLearningPaths, ({ 
     references: [learningPaths.id],
   }),
 }));
+
+export const importHistory = pgTable("ImportHistory", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  uploadDate: timestamp("uploadDate", { precision: 3, mode: "date" }).defaultNow().notNull(),
+  uploadedBy: text("uploadedBy").notNull(),
+  createdCount: integer("createdCount").notNull(),
+  failedCount: integer("failedCount").notNull(),
+  status: text("status").default("COMPLETED").notNull(),
+  roleType: text("roleType").notNull(),
+});
 

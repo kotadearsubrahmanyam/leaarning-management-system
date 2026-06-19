@@ -23,6 +23,7 @@ export async function GET() {
         title: courses.title,
         description: courses.description,
         level: courses.level,
+        semester: courses.semester,
         teacherName: users.name,
         departmentName: departments.name,
         createdAt: courses.createdAt,

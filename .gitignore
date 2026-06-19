@@ -18,6 +18,9 @@
 .DS_Store
 *.pem
 
+target/
+*.class
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -51,3 +54,7 @@ env/
 
 # OS generated files
 Thumbs.db
+
+# Java/Maven build output
+target/
+resume-service/target/

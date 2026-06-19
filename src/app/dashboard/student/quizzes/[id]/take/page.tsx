@@ -122,13 +122,17 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
         await document.exitFullscreen().catch(e => console.error(e));
       }
 
+      const timeLimitSeconds = quiz.timeLimit * 60;
+      const timeTaken = Math.max(0, timeLimitSeconds - timeLeft);
+
       const res = await fetch("/api/student/quizzes/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           quizId: quiz.id,
           answers,
-          isMalpractice
+          isMalpractice,
+          timeTaken
         })
       });
       const data = await res.json();

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -8,25 +8,58 @@ import {
   X, 
   Check, 
   FileText, 
-  Clock, 
   Download, 
-  Info, 
-  Send,
-  Award,
-  BookOpen,
-  Mail,
-  FileDown
+  BookOpen, 
+  User, 
+  Award, 
+  Split, 
+  Archive, 
+  ExternalLink,
+  Save
 } from "lucide-react";
+import { AnimatedButton } from "@/components/ui/animated-button";
 import { CourseSelect } from "@/components/ui/course-select";
+import { useToast } from "@/hooks/use-toast";
+import { getQuestionsForAssignment } from "@/lib/assignment-questions";
 
 export default function TeacherEvaluationPage() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [selectedCourse, setSelectedCourse] = useState<string>("");
-  
-  // Evaluation modal contains the currently active submission for split-screen review
   const [evalModal, setEvalModal] = useState<any>(null);
-  const [marks, setMarks] = useState("");
-  const [feedback, setFeedback] = useState("");
+  
+  // Evaluation States
+  const [questionMarks, setQuestionMarks] = useState<Record<number, string>>({});
+  const [questionFeedbacks, setQuestionFeedbacks] = useState<Record<number, string>>({});
+  const [generalFeedback, setGeneralFeedback] = useState("");
+  
+  // Panel Resize States
+  const [leftWidth, setLeftWidth] = useState(55);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const isResizing = useRef(false);
+
+  // Sidebar Width Observer
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const aside = document.querySelector("aside");
+    if (aside) {
+      setSidebarWidth(aside.getBoundingClientRect().width);
+    }
+    
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setSidebarWidth(entry.borderBoxSize?.[0]?.inlineSize || entry.contentRect.width);
+      }
+    });
+
+    if (aside) {
+      observer.observe(aside);
+    }
+    
+    return () => observer.disconnect();
+  }, []);
 
   const { data: coursesData } = useQuery({
     queryKey: ["teacherCourses"],
@@ -56,103 +89,184 @@ export default function TeacherEvaluationPage() {
     }
   }, [courses, selectedCourse]);
 
+  // Responsive Check
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Panel drag handler
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.current) return;
+    const container = document.getElementById("split-screen-modal-container");
+    if (!container) return;
+    
+    const rect = container.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left;
+    const percentage = (relativeX / rect.width) * 100;
+    
+    if (percentage >= 30 && percentage <= 70) {
+      setLeftWidth(percentage);
+    }
+  };
+
+  const handleMouseUp = () => {
+    isResizing.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+  };
+
+  // Clean up drag events
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   const gradeMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ marks }: { marks: number }) => {
       const res = await fetch("/api/teacher/evaluation", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          submissionId: evalModal.id, 
-          marks,
-          feedback
-        }),
+        body: JSON.stringify({ submissionId: evalModal.id, marks }),
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to save grade");
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to save grade");
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teacherEvaluations", selectedCourse] });
       setEvalModal(null);
-      setMarks("");
-      setFeedback("");
-      alert("Submission graded successfully!");
+      toast({
+        title: "Evaluation Submitted",
+        description: "Submission evaluated and graded successfully.",
+      });
     },
-    onError: (err: any) => {
-      alert(`Error grading submission: ${err.message}`);
+    onError: (error: any) => {
+      toast({
+        title: "Evaluation Failed",
+        description: error.message || "Could not save grade.",
+        variant: "destructive",
+      });
     }
   });
 
   const openEvalModal = (submission: any) => {
     setEvalModal(submission);
-    setMarks(submission.marks !== null ? submission.marks.toString() : "");
-    setFeedback(submission.feedback || "");
-  };
-
-  const handleGradeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!marks || isNaN(Number(marks))) return;
-    gradeMutation.mutate();
-  };
-
-  // Helper to render file previews based on extensions
-  const renderFilePreview = (url: string) => {
-    if (!url) return null;
-    const ext = url.split(".").pop()?.toLowerCase() || "";
-    const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext);
-    const isPdf = ext === "pdf";
-
-    if (isImage) {
-      return (
-        <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm max-w-full bg-slate-50 p-2 mt-2">
-          <img src={url} alt="Submission preview" className="max-h-80 w-auto rounded-lg mx-auto object-contain" />
-        </div>
-      );
-    }
     
-    if (isPdf) {
-      return (
-        <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm h-[420px] mt-2">
-          <iframe src={`${url}#toolbar=0`} className="w-full h-full" title="Submission PDF Preview" />
-        </div>
-      );
+    // Retrieve questions
+    const questions = getQuestionsForAssignment(submission.assignmentTitle, submission.courseName);
+    
+    // Load local draft
+    const savedDraft = localStorage.getItem(`eval-draft-${submission.id}`);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        setQuestionMarks(parsed.questionMarks || {});
+        setQuestionFeedbacks(parsed.questionFeedbacks || {});
+        setGeneralFeedback(parsed.generalFeedback || "");
+      } catch (err) {
+        console.error("Failed to parse draft:", err);
+      }
+    } else {
+      if (submission.status === "GRADED" && submission.marks !== null) {
+        const defaultScore = Math.floor(submission.marks / questions.length);
+        const remainder = submission.marks % questions.length;
+        const initialMarks: Record<number, string> = {};
+        questions.forEach((q, idx) => {
+          initialMarks[q.questionNumber] = (defaultScore + (idx < remainder ? 1 : 0)).toString();
+        });
+        setQuestionMarks(initialMarks);
+        setQuestionFeedbacks({});
+        setGeneralFeedback("");
+      } else {
+        setQuestionMarks({});
+        setQuestionFeedbacks({});
+        setGeneralFeedback("");
+      }
+    }
+  };
+
+  const handleSaveDraft = () => {
+    if (!evalModal) return;
+    const draftData = {
+      questionMarks,
+      questionFeedbacks,
+      generalFeedback,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(`eval-draft-${evalModal.id}`, JSON.stringify(draftData));
+    toast({
+      title: "Draft Saved",
+      description: "Evaluation draft has been saved locally.",
+    });
+  };
+
+  // Derive dynamic evaluation values
+  const currentQuestions = evalModal ? getQuestionsForAssignment(evalModal.assignmentTitle, evalModal.courseName) : [];
+  const totalObtained = currentQuestions.reduce((sum, q) => {
+    return sum + (Number(questionMarks[q.questionNumber]) || 0);
+  }, 0);
+
+  const handleSubmitEvaluation = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!evalModal) return;
+
+    for (const q of currentQuestions) {
+      const scoreRaw = questionMarks[q.questionNumber];
+      if (scoreRaw === undefined || scoreRaw === "") {
+        toast({
+          title: "Incomplete Grading",
+          description: `Please enter score for Question ${q.questionNumber}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const score = Number(scoreRaw);
+      if (isNaN(score) || score < 0 || score > q.marks) {
+        toast({
+          title: "Invalid Score",
+          description: `Question ${q.questionNumber} must be graded between 0 and ${q.marks}.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
-    return (
-      <div className="flex items-center gap-4 p-4 border border-slate-200 bg-slate-50/50 rounded-2xl mt-2">
-        <div className="p-3 bg-white border border-slate-200 text-emerald-600 rounded-xl shadow-sm font-bold text-xs uppercase">
-          {ext.toUpperCase() || "FILE"}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-800 truncate">{url.split("/").pop()}</p>
-          <p className="text-xs text-slate-500 font-semibold mt-0.5">Format: {ext.toUpperCase()}</p>
-        </div>
-        <a 
-          href={url} 
-          download 
-          target="_blank" 
-          rel="noreferrer" 
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
-        >
-          Download File
-        </a>
-      </div>
-    );
+    // Persist draft backup
+    const draftData = {
+      questionMarks,
+      questionFeedbacks,
+      generalFeedback,
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(`eval-draft-${evalModal.id}`, JSON.stringify(draftData));
+
+    // Submit evaluation
+    gradeMutation.mutate({ marks: totalObtained });
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 relative z-10 px-4 md:px-0">
-      
-      {/* Page Title */}
+    <div className="max-w-6xl mx-auto pb-12 relative z-10">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-3">
-          <CheckSquare size={32} className="text-emerald-500" /> Evaluation & Grading
+          <CheckSquare size={32} /> Evaluation & Grading
         </h1>
-        <p className="text-foreground/70 text-sm">
-          Review student submissions, evaluate responses side-by-side with original questions, and provide scores and feedback.
-        </p>
+        <p className="text-foreground/70">Review student submissions and assign grades.</p>
       </motion.div>
 
       {/* Course Filter */}
@@ -164,302 +278,333 @@ export default function TeacherEvaluationPage() {
           label="Filter by Course"
           placeholder="Choose a course to filter submissions..."
           showClear={true}
-          compact={true}
         />
       </div>
 
-      {/* Evaluations Table */}
-      <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="grid grid-cols-6 bg-slate-50/70 p-4 font-bold text-slate-500 uppercase tracking-wider text-xs border-b border-slate-200">
-          <div className="col-span-2">Student Info & Assignment</div>
-          <div className="col-span-2">Course Subject</div>
+      <div className="glass rounded-3xl border border-white/10 overflow-hidden">
+        <div className="grid grid-cols-6 bg-white/5 p-4 font-semibold text-foreground/80 border-b border-white/10 text-sm">
+          <div className="col-span-2">Student & Assignment</div>
+          <div className="col-span-2">Course</div>
           <div>Status</div>
           <div className="text-right">Action</div>
         </div>
         
         {isLoading ? (
           <div className="p-4 space-y-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-16 bg-slate-50 animate-pulse rounded-2xl border border-slate-100" />
-            ))}
+            {[1,2,3,4].map(i => <div key={i} className="h-16 bg-white/5 animate-pulse rounded-xl" />)}
           </div>
         ) : evaluations.length === 0 ? (
-          <div className="p-16 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
-            <Info size={32} className="text-slate-300" />
-            <p className="text-sm font-semibold">No submissions found matching filters.</p>
+          <div className="p-12 text-center text-foreground/50">
+            No submissions found.
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
-            {evaluations.map((sub: any, i: number) => {
-              const isGraded = sub.status === "GRADED";
-              
-              return (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  transition={{ delay: i * 0.03 }}
-                  key={sub.id} 
-                  className="grid grid-cols-6 p-4 items-center hover:bg-slate-50/50 transition-colors text-sm"
-                >
-                  <div className="col-span-2 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-600 shadow-sm shrink-0 text-xs">
-                      {sub.studentName.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-bold text-slate-800 truncate">{sub.studentName}</span>
-                      <span className="text-emerald-600 text-xs font-bold truncate">{sub.assignmentTitle}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="col-span-2 text-slate-500 font-semibold truncate pr-4">
-                    {sub.courseName}
-                  </div>
-                  
-                  <div>
-                    {isGraded ? (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center w-max gap-1">
-                        <Check size={12} className="stroke-[3]" /> Graded: {sub.marks}/{sub.assignmentTotalMarks || 100}
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-black bg-orange-50 border border-orange-100 text-orange-600 w-max block">
-                        Pending Review
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="text-right">
-                    <button 
-                      onClick={() => openEvalModal(sub)}
-                      className={`px-4 py-2 border font-bold text-xs rounded-xl shadow-sm transition-all ${
-                        isGraded 
-                          ? "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100" 
-                          : "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"
-                      }`}
-                    >
-                      {isGraded ? "Edit Grade" : "Evaluate"}
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
+          <div className="divide-y divide-white/5 max-h-[60vh] overflow-y-auto">
+            {evaluations.map((sub: any, i: number) => (
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
+                key={sub.id} 
+                className="grid grid-cols-6 p-4 items-center hover:bg-white/5 transition-colors text-sm"
+              >
+                <div className="col-span-2 flex flex-col">
+                  <span className="font-bold text-foreground">{sub.studentName}</span>
+                  <span className="text-primary text-xs font-semibold">{sub.assignmentTitle}</span>
+                </div>
+                <div className="col-span-2 text-foreground/70">
+                  {sub.courseName}
+                </div>
+                <div>
+                  {sub.status === "GRADED" ? (
+                    <span className="px-2 py-1 rounded text-xs font-bold bg-green-500/20 text-green-500 flex items-center w-max gap-1">
+                      <Check size={12} /> Graded: {sub.marks}/100
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 rounded text-xs font-bold bg-orange-500/20 text-orange-500 w-max block">
+                      Pending Review
+                    </span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <AnimatedButton onClick={() => openEvalModal(sub)}>
+                    {sub.status === "GRADED" ? "Edit" : "Evaluate"}
+                  </AnimatedButton>
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Split-Screen Evaluation Screen Modal */}
+      {/* Split-Screen Evaluation Workspace Modal */}
       <AnimatePresence>
         {evalModal && (
-          <div className="fixed inset-0 z-50 flex flex-col bg-[#F8FAFC]">
+          <>
+            {/* Overlay Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEvalModal(null)}
+              style={{ left: isMobile ? 0 : `${sidebarWidth}px` }}
+              className="fixed top-0 bottom-0 right-0 z-[100] bg-black/50 backdrop-blur-sm transition-all duration-300"
+            />
             
-            {/* Header Row */}
-            <div className="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 shadow-sm">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 border border-emerald-100 rounded-lg uppercase tracking-wider">
-                  {evalModal.courseName}
-                </span>
-                <span className="text-slate-300">|</span>
-                <h2 className="text-sm font-black text-slate-800">
-                  Review Submission: <span className="text-emerald-600 font-bold">{evalModal.assignmentTitle}</span>
-                </h2>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs font-bold text-slate-800">{evalModal.studentName}</p>
-                  <p className="text-[10px] text-slate-400 font-mono font-bold mt-0.5">
-                    Roll: {evalModal.studentRollNumber || "N/A"}
-                  </p>
+            {/* Centered Large Workspace Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              style={{ 
+                left: isMobile ? "5vw" : `${sidebarWidth + 24}px`, 
+                width: isMobile ? "90vw" : `calc(100vw - ${sidebarWidth + 48}px)` 
+              }}
+              className="fixed top-[2.5vh] h-[95vh] z-[110] flex flex-col bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden text-slate-900 transition-all duration-300"
+              id="split-screen-modal-container"
+            >
+              {/* Header Bar */}
+              <div className="flex items-center justify-between px-6 py-3 bg-slate-50 border-b border-slate-200 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-xl text-[#7C3AED]">
+                    <Split size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Evaluation Workspace</h2>
+                    <p className="text-[10px] text-slate-500 font-medium">Evaluate submissions side-by-side</p>
+                  </div>
                 </div>
                 <button 
                   onClick={() => setEvalModal(null)} 
-                  className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:border-slate-300 bg-white text-slate-600 font-bold text-xs rounded-xl shadow-sm transition-all"
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors text-slate-600 hover:text-slate-900"
                 >
-                  <X size={14} /> Close Review
+                  <X size={16} />
                 </button>
               </div>
-            </div>
-
-            {/* Split Screen Layout */}
-            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
               
-              {/* LEFT PANEL: Original Assignment Details */}
-              <div className="overflow-y-auto p-6 md:p-8 border-r border-slate-200 bg-slate-50 flex flex-col gap-6">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Original Assignment</h3>
-                  <h2 className="text-2xl font-black text-slate-800 leading-snug">{evalModal.assignmentTitle}</h2>
-                </div>
-
-                {/* Instructions */}
-                <div className="space-y-2.5">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-                    <Info size={14} className="text-slate-400" /> Instructions & Description
-                  </h4>
-                  <p className="text-sm text-slate-600 bg-white border border-slate-150 p-4 rounded-2xl whitespace-pre-wrap leading-relaxed shadow-sm">
-                    {evalModal.assignmentInstructions || evalModal.assignmentDescription || "No instructions provided."}
-                  </p>
-                </div>
-
-                {/* Assignment Questions */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-                    <BookOpen size={14} className="text-slate-400" /> Assigned Questions
-                  </h4>
-                  {!evalModal.assignmentQuestions || evalModal.assignmentQuestions.trim().length === 0 ? (
-                    <p className="text-sm text-slate-400 italic bg-white border border-slate-150 p-4 rounded-2xl shadow-sm">
-                      No specific questions entered. Please review the instructions list above.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {evalModal.assignmentQuestions.split("\n").filter((q: string) => q.trim().length > 0).map((question: string, index: number) => (
-                        <div key={index} className="flex gap-4 p-4 border border-slate-150 bg-white rounded-2xl shadow-sm">
-                          <div className="w-7 h-7 bg-emerald-50 text-emerald-600 font-extrabold text-sm border border-emerald-100 rounded-full flex items-center justify-center shrink-0 shadow-inner">
-                            {index + 1}
-                          </div>
-                          <p className="text-sm font-semibold text-slate-700 leading-relaxed self-center">
-                            {question}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Attachment */}
-                {evalModal.assignmentAttachmentUrl && (
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-                      <FileDown size={14} className="text-slate-400" /> Attached Reference file
-                    </h4>
-                    <div className="flex items-center gap-4 p-4 border border-slate-200 bg-white rounded-2xl shadow-sm">
-                      <div className="p-3 bg-slate-50 border border-slate-200 text-emerald-600 rounded-xl font-bold text-xs uppercase">
-                        {evalModal.assignmentAttachmentUrl.split(".").pop()?.toUpperCase() || "FILE"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-800 truncate">{evalModal.assignmentAttachmentUrl.split("/").pop()}</p>
-                        <p className="text-xs text-slate-500 font-semibold mt-0.5">Reference Material</p>
-                      </div>
-                      <a 
-                        href={evalModal.assignmentAttachmentUrl} 
-                        download 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition-all"
-                      >
-                        Download File
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* RIGHT PANEL: Student Submission & Evaluation Form */}
-              <div className="overflow-y-auto p-6 md:p-8 bg-white flex flex-col gap-6">
+              {/* Split Container */}
+              <div className="flex flex-col md:flex-row flex-1 overflow-hidden w-full h-full relative">
                 
-                {/* Submission Meta Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Student Submission</h4>
-                    <h3 className="text-lg font-black text-slate-800 mt-0.5">{evalModal.studentName}</h3>
+                {/* LEFT PANEL (Document Viewer) */}
+                <div 
+                  style={{ width: isMobile ? '100%' : `${leftWidth}%` }} 
+                  className="h-[45vh] md:h-full flex flex-col bg-slate-100 overflow-hidden border-b md:border-b-0 md:border-r border-slate-200"
+                >
+                  {/* Left Header info */}
+                  <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-slate-200 shrink-0">
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                          View Assignment
+                        </span>
+                        {evalModal.fileUrl && (
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold">
+                            Open PDF/DOC in viewer
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-slate-800 truncate mt-1">
+                        {evalModal.fileUrl ? evalModal.fileUrl.split('/').pop() || 'submission-document' : 'written-response.txt'}
+                      </span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[9px] text-slate-400 font-bold uppercase">Submitted</p>
+                      <p className="text-xs font-bold text-slate-700 mt-0.5">
+                        {new Date(evalModal.submittedAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
                   
-                  <div className="flex items-center gap-1 text-xs text-slate-400 font-semibold bg-slate-50 border border-slate-150 px-3 py-1.5 rounded-xl self-start">
-                    <Clock size={12} className="text-slate-400" />
-                    <span>Submitted: {new Date(evalModal.submittedAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                  {/* Embedded Doc Viewer Wrapper (Scrollable) */}
+                  <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
+                    {evalModal.fileUrl ? (
+                      (() => {
+                        const ext = evalModal.fileUrl.slice(evalModal.fileUrl.lastIndexOf('.')).toLowerCase();
+                        const isPdf = ext === '.pdf';
+                        const isRelative = !evalModal.fileUrl.startsWith("http") && !evalModal.fileUrl.startsWith("blob:");
+                        const isLocalOrBlob = evalModal.fileUrl.startsWith("blob:") || 
+                                              evalModal.fileUrl.includes("localhost") || 
+                                              evalModal.fileUrl.includes("127.0.0.1") ||
+                                              isRelative;
+                        
+                        const docSrc = (isLocalOrBlob || isPdf)
+                          ? evalModal.fileUrl 
+                          : `https://docs.google.com/gview?url=${encodeURIComponent(evalModal.fileUrl)}&embedded=true`;
+                        return (
+                          <iframe 
+                            src={docSrc}
+                            className="w-full border border-slate-200 rounded-xl bg-white shadow-sm"
+                            style={{ height: "calc(95vh - 110px)" }}
+                            title="Assignment Document Viewer"
+                          />
+                        );
+                      })()
+                    ) : (
+                      /* Styled Written response paper sheet */
+                      <div 
+                        className="bg-white text-slate-800 rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 overflow-y-auto font-sans leading-relaxed text-sm relative"
+                        style={{ minHeight: "calc(95vh - 110px)" }}
+                      >
+                        <div className="absolute top-0 bottom-0 left-8 border-l border-red-200 pointer-events-none" />
+                        <div className="border-b-2 border-slate-200 pb-3 mb-4 font-sans">
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Written Submission</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Submitted via online text editor</p>
+                        </div>
+                        {evalModal.content ? (
+                          <div className="whitespace-pre-wrap pl-6 text-slate-800 leading-relaxed text-sm select-text">
+                            {evalModal.content}
+                          </div>
+                        ) : (
+                          <p className="text-slate-400 pl-6 italic">No text response or files attached to this submission.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* Submission Text content */}
-                <div className="space-y-2.5">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Submission Content</h4>
-                  {evalModal.content ? (
-                    <div className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-2xl p-5 leading-relaxed whitespace-pre-wrap shadow-inner">
-                      {evalModal.content}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-slate-400 italic bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-inner">
-                      No text description submitted.
-                    </div>
-                  )}
-                </div>
-
-                {/* Uploaded File attachments Preview / Download */}
-                {evalModal.fileUrl && (
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Attached Work File</h4>
-                    {renderFilePreview(evalModal.fileUrl)}
+                
+                {/* DRAGGABLE RESIZER HANDLE */}
+                {!isMobile && (
+                  <div 
+                    className="w-1 hover:w-1.5 bg-slate-200 hover:bg-purple-600 cursor-col-resize transition-all h-full self-stretch select-none z-10 relative flex items-center justify-center group"
+                    onMouseDown={handleMouseDown}
+                  >
+                    <div className="w-0.5 h-8 bg-slate-400 group-hover:bg-white rounded-full transition-colors opacity-60" />
                   </div>
                 )}
-
-                {/* Evaluation Form */}
-                <form onSubmit={handleGradeSubmit} className="border-t border-slate-100 pt-6 mt-6 space-y-5">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-                    <Award size={14} className="text-slate-400" /> Grading & Evaluation
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Marks Input */}
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">
-                        Score Awarded (Max: {evalModal.assignmentTotalMarks || 100}) *
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          type="number"
-                          min="0"
-                          max={evalModal.assignmentTotalMarks || 100}
-                          value={marks}
-                          onChange={(e) => setMarks(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:outline-none focus:border-emerald-500 transition-colors"
-                          required
-                        />
-                        <span className="absolute right-4 text-xs font-bold text-slate-400 uppercase">
-                          / {evalModal.assignmentTotalMarks || 100} Marks
-                        </span>
+                
+                {/* RIGHT PANEL (Evaluation Workspace Sidebar) */}
+                <div 
+                  style={{ width: isMobile ? '100%' : `${100 - leftWidth}%` }} 
+                  className="flex-1 md:h-full flex flex-col bg-[#F8FAFC] overflow-hidden"
+                >
+                  {/* Scrollable contents wrapper */}
+                  <form onSubmit={handleSubmitEvaluation} className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+                      
+                      {/* Section 1: Assignment Information */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                        <h3 className="text-xs font-black uppercase text-[#7C3AED] tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                          <User size={14} className="text-[#7C3AED]" /> Assignment Info
+                        </h3>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Student</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.studentName}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Roll Number</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.studentRollNumber || "N/A"}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Course</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.courseName}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Assignment Title</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.assignmentTitle}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Section 2: Question-wise Grading */}
+                      <div className="space-y-3">
+                        <h3 className="text-xs font-black uppercase text-[#7C3AED] tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                          <BookOpen size={14} className="text-[#7C3AED]" /> Question-Wise Grading
+                        </h3>
+                        <div className="space-y-3">
+                          {currentQuestions.map((q) => (
+                            <div key={q.questionNumber} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all space-y-3">
+                              <div className="flex justify-between items-start gap-4">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-[#7C3AED] font-bold text-xs leading-none mt-0.5">{q.questionNumber}.</span>
+                                  <p className="text-xs text-slate-800 font-medium leading-relaxed">{q.description}</p>
+                                </div>
+                                <span className="text-[9px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded shrink-0">
+                                  {q.marks} Max
+                                </span>
+                              </div>
+                              
+                              <div className="grid grid-cols-4 gap-3 items-center pt-1.5">
+                                <div className="col-span-1 flex flex-col gap-1">
+                                  <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Score</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={q.marks}
+                                    placeholder="0"
+                                    value={questionMarks[q.questionNumber] || ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setQuestionMarks(prev => ({ ...prev, [q.questionNumber]: val }));
+                                    }}
+                                    className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all"
+                                  />
+                                </div>
+                                <div className="col-span-3 flex flex-col gap-1">
+                                  <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Feedback comments</label>
+                                  <textarea
+                                    placeholder="Specific question feedback..."
+                                    rows={1}
+                                    value={questionFeedbacks[q.questionNumber] || ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setQuestionFeedbacks(prev => ({ ...prev, [q.questionNumber]: val }));
+                                    }}
+                                    className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all resize-none min-h-[35px] max-h-[80px]"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Section 3: Overall Evaluation */}
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 className="text-xs font-black uppercase text-[#7C3AED] tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
+                          <Award size={14} className="text-[#7C3AED]" /> Overall Evaluation
+                        </h3>
+                        
+                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex justify-between items-center">
+                          <span className="text-xs font-bold text-slate-700">Total Marks Obtained</span>
+                          <span className="text-xl font-black text-slate-900">
+                            {totalObtained} <span className="text-xs text-slate-400 font-normal">/ 100</span>
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">General Feedback</label>
+                          <textarea
+                            placeholder="Enter comprehensive general feedback and advice for the student..."
+                            rows={5}
+                            value={generalFeedback}
+                            onChange={(e) => setGeneralFeedback(e.target.value)}
+                            className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all resize-none leading-relaxed"
+                          />
+                        </div>
                       </div>
                     </div>
-
-                    {/* Student email reminder (read-only info) */}
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">
-                        Contact Info
-                      </label>
-                      <div className="flex items-center gap-2 py-3 px-4 bg-slate-50 border border-slate-100 rounded-xl text-slate-500 text-xs font-semibold">
-                        <Mail size={14} className="text-slate-400" />
-                        <span className="truncate">{evalModal.studentEmail}</span>
-                      </div>
+                    
+                    {/* Section 4: Action Footer (Sticky bottom) */}
+                    <div className="px-5 py-3.5 bg-white border-t border-slate-200 flex justify-end gap-3 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+                      >
+                        <Save size={14} /> Save Draft
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={gradeMutation.isPending}
+                        className="px-5 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold text-xs rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                      >
+                        Submit Evaluation
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Feedback Textarea */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">
-                      Grading Feedback / Comments
-                    </label>
-                    <textarea
-                      rows={4}
-                      value={feedback}
-                      onChange={(e) => setFeedback(e.target.value)}
-                      placeholder="Add grading comments, highlight areas for improvement..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm font-semibold text-slate-800 focus:outline-none focus:border-emerald-500 transition-colors resize-none leading-relaxed"
-                    />
-                  </div>
-
-                  {/* Submit Button */}
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={gradeMutation.isPending}
-                      className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      <Send size={14} />
-                      {gradeMutation.isPending ? "Submitting Grade..." : "Submit Score & Feedback"}
-                    </button>
-                  </div>
-                </form>
+                  </form>
+                </div>
+                
               </div>
-
-            </div>
-          </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

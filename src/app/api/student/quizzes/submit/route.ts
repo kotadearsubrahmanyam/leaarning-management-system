@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "STUDENT") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { quizId, answers, isMalpractice } = body;
+    const { quizId, answers, isMalpractice, timeTaken } = body;
     // answers is expected to be an object: { [questionId]: "Selected Option String" }
 
     if (!quizId) return errorResponse("quizId is required", 400);
@@ -48,7 +48,8 @@ export async function POST(req: Request) {
       score,
       totalPoints,
       answers: JSON.stringify(answers || {}),
-      isMalpractice: isMalpractice || false
+      isMalpractice: isMalpractice || false,
+      timeTaken: timeTaken || null
     }).returning();
 
     return successResponse({ score: submission.score, totalPoints: submission.totalPoints, isMalpractice: submission.isMalpractice }, "Quiz submitted successfully", 200);
