@@ -16,7 +16,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (!payload || payload.role !== "TEACHER") return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 
     const { id } = params;
-    const { marks } = await req.json();
+    const { marks, comments } = await req.json();
 
     if (marks === undefined || marks < 0 || marks > 100) {
       return NextResponse.json({ success: false, error: "Invalid marks" }, { status: 400 });
@@ -36,7 +36,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     // 2. Update the Blind Evaluation status
     await db.update(blindEvaluations)
-      .set({ marks: Number(marks), status: "EVALUATED" })
+      .set({ marks: Number(marks), status: "EVALUATED", comments: comments || null })
       .where(eq(blindEvaluations.id, id));
 
     // 3. Automatically sync to Results table (Magic Sync)

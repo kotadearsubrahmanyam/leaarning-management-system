@@ -450,9 +450,17 @@ export default function AdminEvaluationsPage() {
               </div>
               
               {ev.status === "EVALUATED" && (
-                <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center">
-                  <span className="text-sm font-bold text-foreground/50">Marks Awarded</span>
-                  <span className="text-2xl font-black text-emerald-400">{ev.marks}</span>
+                <div className="mt-6 pt-4 border-t border-white/10 flex flex-col gap-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold text-foreground/50">Marks Awarded</span>
+                    <span className="text-2xl font-black text-emerald-400">{ev.marks}</span>
+                  </div>
+                  {ev.comments && (
+                    <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-3 text-xs leading-relaxed text-slate-600 mt-1">
+                      <span className="font-bold text-[#7C3AED] block mb-1">Evaluator Notes:</span>
+                      {ev.comments}
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -463,31 +471,45 @@ export default function AdminEvaluationsPage() {
       {/* Bulk Distribution Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsModalOpen(false);
+            }}
+            className="fixed inset-0 bg-[#2E1065]/20 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-6 transition-all duration-300 modal-backdrop-layout"
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-5xl max-h-[90vh] shadow-2xl overflow-hidden flex flex-col"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.45, bounce: 0.15 }}
+              className="bg-white/95 backdrop-blur-md border border-purple-200/80 rounded-[24px] w-full max-w-5xl max-h-[90vh] shadow-[0_25px_60px_-15px_rgba(124,58,237,0.22)] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950 shrink-0">
+              {/* Header with Purple Gradient */}
+              <div className="p-6 bg-gradient-to-r from-[#5B21B6] via-[#7C3AED] to-[#9333EA] text-white flex justify-between items-center shrink-0 border-b border-purple-500/30 shadow-md">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Settings className="text-primary" /> Bulk Distribution Engine
+                  <Settings className="text-purple-200" size={24} /> Bulk Distribution Engine
                 </h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
-                  <X size={24} />
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-xl border border-white/10 animate-hover"
+                >
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gradient-to-b from-[#FAF5FF]/50 to-white">
                 {/* Step 1: Upload Scanned Exam Papers */}
-                <div className="bg-slate-950/50 p-6 rounded-2xl border border-slate-800 space-y-4">
+                <div className="bg-purple-50/40 p-6 rounded-2xl border border-purple-100/80 space-y-4 shadow-sm hover:shadow-md transition-shadow duration-200">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <Upload size={20} className="text-primary" /> Step 1: Upload Scanned Exam Papers
+                      <h3 className="text-lg font-bold text-purple-950 flex items-center gap-2">
+                        <Upload size={20} className="text-[#7C3AED]" /> Step 1: Upload Scanned Exam Papers
                       </h3>
-                      <p className="text-xs text-slate-400 mt-1">
+                      <p className="text-xs text-purple-800/70 mt-1">
                         Select multiple PDF files at once. The system will auto-detect the students and subjects based on filenames.
                       </p>
                     </div>
@@ -495,7 +517,7 @@ export default function AdminEvaluationsPage() {
                       <button
                         type="button"
                         onClick={handleResetFiles}
-                        className="text-xs font-bold bg-rose-500/20 text-rose-300 px-3 py-1.5 rounded-lg hover:bg-rose-500/30 transition-colors border border-rose-500/20"
+                        className="text-xs font-bold bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-colors border border-rose-200"
                       >
                         Reset Uploaded Files
                       </button>
@@ -508,30 +530,30 @@ export default function AdminEvaluationsPage() {
                       multiple
                       accept="application/pdf"
                       onChange={(e) => handleFileChange(Array.from(e.target.files || []))}
-                      className="flex-1 text-sm text-slate-400 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 transition-colors"
+                      className="flex-1 text-sm text-purple-800/60 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border file:border-purple-200 file:text-sm file:font-bold file:bg-white file:text-[#7C3AED] hover:file:bg-purple-50 transition-colors cursor-pointer"
                     />
                   </div>
 
                   {files.length > 0 && (
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <div className="bg-white/90 border border-purple-100/60 rounded-xl p-4 space-y-3 shadow-xs">
                       <div className="flex flex-wrap gap-4 text-xs font-bold">
-                        <span className="text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
+                        <span className="text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60 shadow-xs">
                           ✓ {files.length} Total PDF Files Uploaded
                         </span>
-                        <span className="text-purple-400 bg-purple-400/10 px-2.5 py-1 rounded-full border border-purple-400/20">
+                        <span className="text-[#7C3AED] bg-[#7C3AED]/5 px-2.5 py-1 rounded-full border border-[#7C3AED]/15 shadow-xs">
                           ✓ {detectedStudents.length} Students Detected
                         </span>
-                        <span className="text-emerald-300 bg-emerald-300/10 px-2.5 py-1 rounded-full border border-emerald-300/20">
+                        <span className="text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200/60 shadow-xs">
                           ✓ {detectedCourses.length} Courses Detected
                         </span>
                       </div>
 
                       {unmatchedFiles.length > 0 && (
-                        <div className="pt-2 border-t border-slate-800 text-xs">
-                          <p className="text-amber-400 font-bold mb-1">
+                        <div className="pt-2 border-t border-purple-100/60 text-xs">
+                          <p className="text-amber-700 font-bold mb-1">
                             ⚠ {unmatchedFiles.length} files could not be mapped to any student or course (verify filenames):
                           </p>
-                          <div className="max-h-24 overflow-y-auto text-slate-500 font-mono space-y-0.5 scrollbar-thin">
+                          <div className="max-h-24 overflow-y-auto text-purple-900/60 font-mono space-y-0.5 scrollbar-thin">
                             {unmatchedFiles.map((name, idx) => (
                               <div key={idx}>{name}</div>
                             ))}
@@ -544,16 +566,16 @@ export default function AdminEvaluationsPage() {
 
                 {/* Auto-Detected Cohort Details (only shown when files are uploaded) */}
                 {files.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-950/50 p-6 rounded-2xl border border-slate-800">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-purple-50/40 p-6 rounded-2xl border border-purple-100/80 shadow-sm">
                     <div>
-                      <label className="block text-sm font-bold text-slate-400 mb-1">Detected Department</label>
-                      <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold">
+                      <label className="block text-sm font-bold text-purple-900/60 mb-1">Detected Department</label>
+                      <div className="bg-white/90 border border-purple-100/60 rounded-xl px-4 py-3 text-purple-950 font-bold shadow-xs">
                         {departments.find((d: any) => d.id === selectedDept)?.name || "Unknown Department"}
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-400 mb-1">Detected Semester</label>
-                      <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-white font-bold">
+                      <label className="block text-sm font-bold text-purple-900/60 mb-1">Detected Semester</label>
+                      <div className="bg-white/90 border border-purple-100/60 rounded-xl px-4 py-3 text-purple-950 font-bold shadow-xs">
                         Semester {selectedSemester || "N/A"}
                       </div>
                     </div>
@@ -564,23 +586,23 @@ export default function AdminEvaluationsPage() {
                   {/* Student Batch Selection */}
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <Users size={20} className="text-purple-400" /> Target Students
+                      <h3 className="text-lg font-bold text-purple-950 flex items-center gap-2">
+                        <Users size={20} className="text-[#7C3AED]" /> Target Students
                       </h3>
                     </div>
 
                     {/* Navigation Tabs */}
-                    <div className="flex gap-2 p-1 bg-slate-950 border border-slate-800 rounded-xl mb-3">
+                    <div className="flex gap-2 p-1 bg-purple-100/50 border border-purple-200/40 rounded-xl mb-3">
                       <button
                         type="button"
                         onClick={() => {
                           setStudentTab("unassigned");
                           setSelectedStudentIds([]);
                         }}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
                           studentTab === "unassigned"
-                            ? "bg-primary text-white shadow-lg"
-                            : "text-slate-400 hover:text-white"
+                            ? "bg-gradient-to-r from-[#7C3AED] to-[#9333EA] text-white shadow-md shadow-purple-500/10"
+                            : "text-purple-700/80 hover:text-purple-950 hover:bg-purple-100/30"
                         }`}
                       >
                         Unassigned Queue ({unassignedStudents.length})
@@ -591,10 +613,10 @@ export default function AdminEvaluationsPage() {
                           setStudentTab("assigned");
                           setSelectedStudentIds([]);
                         }}
-                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 ${
                           studentTab === "assigned"
-                            ? "bg-slate-800 text-white"
-                            : "text-slate-400 hover:text-white"
+                            ? "bg-gradient-to-r from-[#5B21B6] to-[#7C3AED] text-white shadow-md shadow-purple-500/10"
+                            : "text-purple-700/80 hover:text-purple-950 hover:bg-purple-100/30"
                         }`}
                       >
                         Assigned Archive ({assignedStudents.length})
@@ -603,7 +625,7 @@ export default function AdminEvaluationsPage() {
 
                     {/* Controls Bar */}
                     <div className="flex justify-between items-center mb-3 h-8">
-                      <span className="text-xs text-slate-400 font-medium">
+                      <span className="text-xs text-purple-800/60 font-semibold">
                         {studentTab === "unassigned" 
                           ? `${selectedStudentIds.length} of ${unassignedStudents.length} selected`
                           : `${assignedStudents.length} students assigned`
@@ -614,14 +636,14 @@ export default function AdminEvaluationsPage() {
                           <button 
                             type="button" 
                             onClick={handleSelectTop20}
-                            className="text-xs font-bold bg-purple-500/20 text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-500/30 transition-colors border border-purple-500/20"
+                            className="text-xs font-bold bg-purple-50 text-[#7C3AED] px-3 py-1.5 rounded-lg hover:bg-purple-100/60 transition-colors border border-purple-200/50"
                           >
                             Select Top 20
                           </button>
                           <button 
                             type="button" 
                             onClick={handleSelectAllStudents}
-                            className="text-xs font-bold bg-primary/20 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/30 transition-colors border border-primary/20"
+                            className="text-xs font-bold bg-gradient-to-r from-[#7C3AED] to-[#9333EA] text-white px-3 py-1.5 rounded-lg hover:from-[#6D28D9] hover:to-[#805AD5] transition-colors shadow-xs shadow-purple-500/10"
                           >
                             {selectedStudentIds.length === unassignedStudents.length ? "Deselect All" : "Select All"}
                           </button>
@@ -629,33 +651,33 @@ export default function AdminEvaluationsPage() {
                       )}
                     </div>
                     
-                    <div className="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden h-72 overflow-y-auto">
+                    <div className="bg-purple-50/20 border border-purple-100 rounded-2xl overflow-hidden h-72 overflow-y-auto shadow-inner">
                       {files.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500 flex flex-col justify-center items-center h-full">
-                          <Users size={36} className="mb-2 text-slate-600 opacity-60" />
-                          <p className="text-sm font-bold text-slate-400">Not uploaded anything yet</p>
-                          <p className="text-xs mt-1">Please upload scanned exam papers in Step 1.</p>
+                        <div className="p-8 text-center text-purple-400/80 flex flex-col justify-center items-center h-full bg-white/70">
+                          <Users size={36} className="mb-2 text-purple-300" />
+                          <p className="text-sm font-bold text-purple-700/70">Not uploaded anything yet</p>
+                          <p className="text-xs mt-1 text-purple-600/50">Please upload scanned exam papers in Step 1.</p>
                         </div>
                       ) : studentTab === "unassigned" ? (
                         unassignedStudents.length === 0 ? (
-                          <div className="p-8 text-center text-slate-500 flex flex-col justify-center items-center h-full">
-                            <CheckCircle2 size={36} className="mb-2 text-emerald-400 opacity-60 animate-bounce" />
-                            <p className="text-sm font-bold text-slate-400">All Students Assigned!</p>
-                            <p className="text-xs mt-1">No pending students in this department/semester.</p>
+                          <div className="p-8 text-center text-purple-400 flex flex-col justify-center items-center h-full bg-white/70">
+                            <CheckCircle2 size={36} className="mb-2 text-emerald-500 opacity-80 animate-bounce" />
+                            <p className="text-sm font-bold text-emerald-700">All Students Assigned!</p>
+                            <p className="text-xs mt-1 text-purple-600/60">No pending students in this department/semester.</p>
                           </div>
                         ) : (
-                          <div className="divide-y divide-slate-800">
+                          <div className="divide-y divide-purple-100 bg-white">
                             {unassignedStudents.map((s: any) => (
-                              <label key={s.id} className="flex items-center gap-3 p-3 hover:bg-slate-900 cursor-pointer transition-colors">
+                              <label key={s.id} className="flex items-center gap-3 p-3.5 hover:bg-purple-50/50 cursor-pointer transition-colors bg-white">
                                 <input 
                                   type="checkbox" 
                                   checked={selectedStudentIds.includes(s.id)}
                                   onChange={() => handleToggleStudent(s.id)}
-                                  className="w-4 h-4 rounded border-slate-700 text-primary bg-slate-900 focus:ring-primary focus:ring-offset-slate-950"
+                                  className="w-4 h-4 rounded border-purple-200 text-[#7C3AED] bg-white focus:ring-[#7C3AED] focus:ring-offset-0"
                                 />
                                 <div>
-                                  <p className="text-sm font-bold text-white">{s.name}</p>
-                                  <p className="text-xs font-mono text-slate-500">{s.rollNumber}</p>
+                                  <p className="text-sm font-bold text-purple-950">{s.name}</p>
+                                  <p className="text-xs font-mono text-purple-600/60 mt-0.5">{s.rollNumber}</p>
                                 </div>
                               </label>
                             ))}
@@ -663,18 +685,18 @@ export default function AdminEvaluationsPage() {
                         )
                       ) : (
                         assignedStudents.length === 0 ? (
-                          <div className="p-8 text-center text-sm text-slate-500 flex flex-col justify-center items-center h-full">
-                            <p className="text-slate-400">No assigned students found for these filters.</p>
+                          <div className="p-8 text-center text-sm text-purple-600/60 flex flex-col justify-center items-center h-full bg-white/70">
+                            <p className="font-semibold">No assigned students found for these filters.</p>
                           </div>
                         ) : (
-                          <div className="divide-y divide-slate-800">
+                          <div className="divide-y divide-purple-100 bg-white">
                             {assignedStudents.map((s: any) => (
-                              <div key={s.id} className="flex items-center justify-between p-3 hover:bg-slate-900 transition-colors">
+                              <div key={s.id} className="flex items-center justify-between p-3.5 hover:bg-purple-50/30 transition-colors bg-white">
                                 <div>
-                                  <p className="text-sm font-bold text-white">{s.name}</p>
-                                  <p className="text-xs font-mono text-slate-500">{s.rollNumber}</p>
+                                  <p className="text-sm font-bold text-purple-950">{s.name}</p>
+                                  <p className="text-xs font-mono text-purple-600/60 mt-0.5">{s.rollNumber}</p>
                                 </div>
-                                <span className="flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-400/20">
+                                <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-200 shadow-xs">
                                   <CheckCircle2 size={12} /> Assigned
                                 </span>
                               </div>
@@ -687,26 +709,26 @@ export default function AdminEvaluationsPage() {
 
                   {/* Course-Faculty Matrix */}
                   <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
-                      <FolderOpen size={20} className="text-emerald-400" /> Course-Faculty Matrix
+                    <h3 className="text-lg font-bold text-purple-950 flex items-center gap-2 mb-4">
+                      <FolderOpen size={20} className="text-[#10B981]" /> Course-Faculty Matrix
                     </h3>
-                    <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 h-72 overflow-y-auto space-y-4">
+                    <div className="bg-purple-50/20 border border-purple-100 rounded-2xl p-4 h-72 overflow-y-auto space-y-4 shadow-inner">
                       {files.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500 flex flex-col justify-center items-center h-full">
-                          <FolderOpen size={36} className="mb-2 text-slate-600 opacity-60" />
-                          <p className="text-sm font-bold text-slate-400">Not uploaded anything yet</p>
-                          <p className="text-xs mt-1">Please upload scanned exam papers in Step 1.</p>
+                        <div className="p-8 text-center text-purple-400/80 flex flex-col justify-center items-center h-full bg-white/70">
+                          <FolderOpen size={36} className="mb-2 text-purple-300" />
+                          <p className="text-sm font-bold text-purple-700/70">Not uploaded anything yet</p>
+                          <p className="text-xs mt-1 text-purple-600/50">Please upload scanned exam papers in Step 1.</p>
                         </div>
                       ) : filteredCourses.length === 0 ? (
-                        <p className="text-sm text-slate-500">No courses detected in uploaded files.</p>
+                        <p className="text-sm text-purple-600/60 font-semibold">No courses detected in uploaded files.</p>
                       ) : (
                         filteredCourses.map((course: any) => (
-                          <div key={course.id} className="p-3 bg-slate-900 border border-slate-800 rounded-xl">
-                            <p className="text-sm font-bold text-white mb-2">{course.title}</p>
+                          <div key={course.id} className="p-3.5 bg-white border border-purple-100/60 rounded-xl shadow-xs hover:border-purple-200 transition-all duration-200">
+                            <p className="text-sm font-bold text-purple-950 mb-2">{course.title}</p>
                             <select
                               value={courseFacultyMap[course.id] || ""}
                               onChange={(e) => setCourseFacultyMap(prev => ({...prev, [course.id]: e.target.value}))}
-                              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 transition-colors"
+                              className="w-full bg-white border border-purple-200 rounded-lg px-3 py-2 text-sm text-purple-950 focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/10 transition-all cursor-pointer"
                             >
                               <option value="">-- Assign Faculty for this Subject --</option>
                               {courseFaculties(course).map((f: any) => {
@@ -726,25 +748,29 @@ export default function AdminEvaluationsPage() {
                 </div>
               </div>
 
-              <div className="p-6 border-t border-slate-800 bg-slate-950 shrink-0 flex justify-between items-center">
-                <p className="text-sm text-slate-400 font-bold">
-                  Total Pending Slots: <span className="text-white text-lg ml-1">{selectedStudentIds.length * filteredCourses.length}</span>
+              <div className="p-6 border-t border-purple-100 bg-[#FAF5FF]/70 shrink-0 flex justify-between items-center shadow-inner">
+                <p className="text-sm text-purple-800 font-bold">
+                  Total Pending Slots: <span className="text-[#7C3AED] text-lg font-black ml-1">{selectedStudentIds.length * filteredCourses.length}</span>
                 </p>
                 <div className="flex gap-3">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 rounded-xl font-bold text-slate-300 hover:bg-slate-800 transition-colors">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsModalOpen(false)} 
+                    className="px-6 py-2.5 rounded-xl font-bold text-purple-700 hover:bg-purple-50 border border-purple-200 transition-colors"
+                  >
                     Cancel
                   </button>
                   <button 
                     onClick={handleSubmit}
                     disabled={uploadMutation.isPending || selectedStudentIds.length === 0 || Object.keys(courseFacultyMap).length !== filteredCourses.length} 
-                    className="px-6 py-3 rounded-xl font-bold bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl font-bold bg-gradient-to-r from-[#7C3AED] to-[#9333EA] text-white hover:from-[#6D28D9] hover:to-[#805AD5] transition-all duration-200 disabled:opacity-50 flex items-center gap-2 shadow-md shadow-purple-500/20 hover:scale-102 cursor-pointer disabled:pointer-events-none"
                   >
                     {uploadMutation.isPending ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "Deploy Bulk Distribution"}
                   </button>
                 </div>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
