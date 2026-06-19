@@ -79,23 +79,53 @@
   h1.text-primary, h2.text-primary, h3.text-primary, h4.text-primary, h5.text-primary, h6.text-primary {
     color: #111827 !important;
   }
-  input[type="text"], input[type="number"], input[type="email"], input[type="password"], textarea, select {
+  input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select {
     background-color: #ffffff !important;
-    color: #0f172a !important;
-    border: 1px solid #94a3b8 !important;
-    transition: all 0.25s ease !important;
-  }
-  input[type="text"]:hover, input[type="number"]:hover, input[type="email"]:hover, input[type="password"]:hover, textarea:hover, select:hover {
-    border-color: #7c3aed !important;
-  }
-  input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
+    color: #111827 !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 16px !important;
+    padding: 12px 18px !important;
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.08) !important;
+    min-height: 48px !important;
+    font-size: 0.875rem !important;
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     outline: none !important;
-    border-color: #6d28d9 !important;
-    box-shadow: 0 0 0 4px rgba(109, 40, 217, 0.15) !important;
   }
+  
+  input[type="text"]::placeholder, 
+  input[type="number"]::placeholder, 
+  input[type="email"]::placeholder, 
+  input[type="password"]::placeholder, 
+  input[type="date"]::placeholder,
+  textarea::placeholder {
+    color: #9ca3af !important;
+  }
+
+  input[type="text"]:hover, input[type="number"]:hover, input[type="email"]:hover, input[type="password"]:hover, input[type="date"]:hover, textarea:hover, select:hover {
+    border-color: #7c3aed !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.12) !important;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, input[type="password"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
+    outline: none !important;
+    border-color: #7c3aed !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15), 0 6px 20px rgba(124, 58, 237, 0.12) !important;
+  }
+
+  select {
+    appearance: none !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 16px center !important;
+    background-size: 16px !important;
+    padding-right: 40px !important;
+  }
+
   select option {
     background-color: #ffffff !important;
-    color: #0f172a !important;
+    color: #111827 !important;
   }
 }
 

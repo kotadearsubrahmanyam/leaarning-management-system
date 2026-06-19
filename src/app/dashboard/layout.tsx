@@ -42,10 +42,7 @@ export default function DashboardLayout({
 
   return (
     <div 
-      className="min-h-screen relative overflow-hidden text-slate-800"
-      style={{
-        background: "linear-gradient(135deg, #DBEAFE 0%, #EDE9FE 50%, #F8FAFC 100%)"
-      }}
+      className="min-h-screen relative overflow-hidden text-slate-800 bg-[#F8FAFC]"
     >
       <AnimatedBackgroundPattern />
       <Sidebar 

@@ -6,9 +6,91 @@ import { AnalyticsCard } from "@/components/ui/analytics-card";
 import { ContinueLearningCard } from "@/components/dashboard/continue-learning-card";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { AnimatedChart } from "@/components/dashboard/animated-chart";
-import { Users, BookOpen, GraduationCap, TrendingUp, Clock, FileEdit, CheckSquare, Calendar, CreditCard } from "lucide-react";
+import { Users, BookOpen, GraduationCap, TrendingUp, Clock, FileEdit, CheckSquare, Calendar, CreditCard, Activity, Building, Award } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
+import { AdminDashboardView } from "./admin-overview";
+
+const COLORS = ["#7C3AED", "#A855F7", "#E2E8F0"];
+
+const assignmentCompletionData = [
+  { name: "Graded", value: 65 },
+  { name: "Pending", value: 20 },
+  { name: "Unsubmitted", value: 15 },
+];
+
+const quizPerformanceData = [
+  { name: "DBMS Quiz", score: 82 },
+  { name: "Web Tech Quiz", score: 75 },
+  { name: "Cloud Quiz", score: 90 },
+  { name: "Dist. Systems", score: 85 },
+];
+
+const attendanceTrendsData = [
+  { week: "Wk 1", attendance: 88 },
+  { week: "Wk 2", attendance: 91 },
+  { week: "Wk 3", attendance: 85 },
+  { week: "Wk 4", attendance: 92 },
+  { week: "Wk 5", attendance: 95 },
+  { week: "Wk 6", attendance: 89 },
+];
+
+const ChartTooltip = ({ active, payload, label, unit }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="p-3 rounded-xl border border-slate-100 shadow-lg bg-white text-slate-800 min-w-[120px] font-sans">
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-1">{label}</p>
+        <div className="flex items-center space-x-2 mt-1">
+          <div className="w-2 h-2 rounded-full bg-[#7C3AED] shadow-[0_0_8px_rgba(124,58,237,0.4)]" />
+          <p className="text-sm text-slate-900 font-extrabold">
+            {payload[0].value}{unit || ""}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+function ActivityItem({ emoji, text, time }: { emoji: string; text: string; time: string }) {
+  return (
+    <div className="flex gap-3 text-xs items-start">
+      <span className="text-base select-none shrink-0 mt-0.5">{emoji}</span>
+      <div className="flex-1">
+        <p className="font-semibold text-slate-800 leading-snug">{text}</p>
+        <span className="text-[10px] text-slate-400 font-bold block mt-0.5">{time}</span>
+      </div>
+    </div>
+  );
+}
+
+function TaskItem({ type, text, time }: { type: 'eval' | 'lecture' | 'exam'; text: string; time: string }) {
+  let badgeColor = "bg-purple-50 text-[#7C3AED] border-purple-100";
+  let label = "Task";
+  if (type === "eval") {
+    badgeColor = "bg-orange-50 text-orange-600 border-orange-100";
+    label = "Grading";
+  } else if (type === "lecture") {
+    badgeColor = "bg-blue-50 text-blue-650 border-blue-100";
+    label = "Lecture";
+  } else if (type === "exam") {
+    badgeColor = "bg-red-50 text-red-650 border-red-100";
+    label = "Exam";
+  }
+
+  return (
+    <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-1.5 text-xs font-sans">
+      <div className="flex justify-between items-center">
+        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${badgeColor}`}>
+          {label}
+        </span>
+        <span className="text-[10px] text-slate-450 font-bold">{time}</span>
+      </div>
+      <p className="font-extrabold text-[#111827]">{text}</p>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -29,6 +111,16 @@ export default function DashboardPage() {
       return res.json();
     },
     enabled: !!authData,
+  });
+
+  const { data: adminStatsData, isLoading: isAdminStatsLoading } = useQuery({
+    queryKey: ["adminStatsOverview"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/stats");
+      if (!res.ok) throw new Error("Failed to fetch admin stats");
+      return res.json();
+    },
+    enabled: !!authData && authData.data.user.role === "ADMIN",
   });
 
   const { data: continueData, isLoading: isContinueLoading } = useQuery({
@@ -102,7 +194,10 @@ export default function DashboardPage() {
     enabled: !!authData && authData.data.user.role === "STUDENT",
   });
 
-  if (!authData || isStatsLoading) {
+  const isAdmin = authData?.data?.user?.role === "ADMIN";
+  const statsLoading = isAdmin ? isAdminStatsLoading : isStatsLoading;
+
+  if (!authData || statsLoading) {
     return (
       <div className="flex space-x-6">
         {[1, 2, 3].map((i) => (
@@ -184,62 +279,224 @@ export default function DashboardPage() {
       </motion.div>
 
       {role === "ADMIN" && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5">
-            <AnalyticsCard title="Total Users" value={stats.totalUsers || 0} icon={<Users size={20} />} delay={0.1} />
-            <AnalyticsCard title="Total Courses" value={stats.totalCourses || 0} icon={<BookOpen size={20} />} delay={0.2} />
-            <AnalyticsCard title="Total Enrollments" value={stats.totalEnrollments || 0} icon={<TrendingUp size={20} />} delay={0.3} />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground/80">Platform Growth</h2>
-              <AnimatedChart data={stats.platformGrowth?.length ? stats.platformGrowth : emptyData} dataKey="value" type="line" delay={0.4} />
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground/80">Enrollment Trends</h2>
-              <AnimatedChart data={stats.enrollmentTrends?.length ? stats.enrollmentTrends : emptyData} dataKey="value" type="bar" delay={0.5} />
-            </div>
-          </div>
-        </>
+        <AdminDashboardView adminStats={adminStatsData?.data?.stats} />
       )}
 
       {role === "TEACHER" && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5">
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <AnalyticsCard 
               title="Courses Managed" 
               value={stats.coursesCreated || 0} 
-              icon={<BookOpen size={20} />} 
+              icon={<BookOpen size={20} className="text-[#7C3AED]" />} 
               delay={0.1} 
               className="cursor-pointer hover:border-primary transition-all duration-300"
               onClick={() => router.push("/dashboard/teacher/my-courses")} 
             />
             <AnalyticsCard 
-              title="Total Assignments" 
+              title="Enrolled Students" 
+              value={stats.totalStudentsEnrolled || 0} 
+              icon={<Users size={20} className="text-[#7C3AED]" />} 
+              delay={0.15} 
+              className="cursor-pointer hover:border-primary transition-all duration-300"
+              onClick={() => router.push("/dashboard/teacher/students")} 
+            />
+            <AnalyticsCard 
+              title="Assignments Created" 
               value={stats.totalAssignments || 0} 
-              icon={<FileEdit size={20} />} 
+              icon={<FileEdit size={20} className="text-[#7C3AED]" />} 
               delay={0.2} 
               className="cursor-pointer hover:border-primary transition-all duration-300"
               onClick={() => router.push("/dashboard/teacher/assignments")} 
             />
             <AnalyticsCard 
+              title="Quizzes Created" 
+              value={stats.totalQuizzes || 0} 
+              icon={<GraduationCap size={20} className="text-[#7C3AED]" />} 
+              delay={0.25} 
+              className="cursor-pointer hover:border-primary transition-all duration-300"
+              onClick={() => router.push("/dashboard/teacher/quizzes")} 
+            />
+            <AnalyticsCard 
               title="Pending Evaluations" 
               value={stats.pendingEvaluations || 0} 
-              icon={<CheckSquare size={20} className="text-orange-500" />} 
+              icon={<CheckSquare size={20} className={stats.pendingEvaluations > 0 ? "text-orange-505 animate-pulse" : "text-[#7C3AED]"} />} 
               delay={0.3} 
-              className="cursor-pointer hover:border-primary transition-all duration-300"
+              className="cursor-pointer hover:border-primary transition-all duration-300 border-orange-100 hover:border-orange-500"
               onClick={() => router.push("/dashboard/teacher/evaluation")} 
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground/80">Student Enrollment History</h2>
-              <AnimatedChart data={stats.studentEnrollmentHistory?.length ? stats.studentEnrollmentHistory : emptyData} dataKey="value" type="line" delay={0.3} />
+
+          {/* Interactive Recharts Performance Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {/* Chart 1: Assignment Completion */}
+            <div className="bg-white p-5 rounded-3xl border border-[#E5E7EB] shadow-sm flex flex-col justify-between h-[360px]">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Assignment Completion</h3>
+                <span className="text-[10px] bg-purple-50 text-[#7C3AED] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple-100">Grading</span>
+              </div>
+              <div className="h-[220px] flex items-center justify-center relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={assignmentCompletionData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={75}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {assignmentCompletionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<ChartTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute flex flex-col items-center justify-center">
+                  <span className="text-2xl font-black text-[#111827]">85%</span>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rate</span>
+                </div>
+              </div>
+              <div className="flex justify-center gap-4 text-[10px] font-bold text-[#6B7280]">
+                {assignmentCompletionData.map((item, index) => (
+                  <div key={index} className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index] }} />
+                    <span>{item.name} ({item.value}%)</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-foreground/80">Course Popularity</h2>
-              <AnimatedChart data={stats.coursePopularity?.length ? stats.coursePopularity : emptyData} dataKey="value" type="bar" delay={0.4} />
+
+            {/* Chart 2: Quiz Average Scores */}
+            <div className="bg-white p-5 rounded-3xl border border-[#E5E7EB] shadow-sm flex flex-col justify-between h-[360px]">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Quiz Performance</h3>
+                <span className="text-[10px] bg-purple-50 text-[#7C3AED] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple-100">Class Averages</span>
+              </div>
+              <div className="h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={quizPerformanceData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="purpleBarGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#7C3AED" />
+                        <stop offset="100%" stopColor="#A855F7" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="name" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} unit="%" />
+                    <Tooltip content={<ChartTooltip unit="%" />} />
+                    <Bar dataKey="score" fill="url(#purpleBarGrad)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
+
+            {/* Chart 3: Student Attendance Trends */}
+            <div className="bg-white p-5 rounded-3xl border border-[#E5E7EB] shadow-sm flex flex-col justify-between h-[360px]">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Attendance Overview</h3>
+                <span className="text-[10px] bg-purple-50 text-[#7C3AED] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple-100">Weekly Avg</span>
+              </div>
+              <div className="h-[260px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={attendanceTrendsData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#7C3AED" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="week" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} unit="%" />
+                    <Tooltip content={<ChartTooltip unit="%" />} />
+                    <Area type="monotone" dataKey="attendance" stroke="#7C3AED" strokeWidth={2.5} fill="url(#purpleAreaGrad)" dot={{ r: 3, fill: "#7C3AED", strokeWidth: 1.5, stroke: "#fff" }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Managed Courses Grid & Feeds Split Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8 items-start">
+            
+            {/* Left Part: Managed Courses Card Grid (8 cols) */}
+            <div className="lg:col-span-8 space-y-6">
+              <h3 className="text-lg font-black text-[#111827] flex items-center gap-2">
+                <BookOpen className="text-[#7C3AED]" size={22} /> Managed Courses Overview
+              </h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {stats.coursesOverview?.map((course: any) => (
+                  <div 
+                    key={course.id} 
+                    className="bg-white border border-[#E5E7EB] rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between h-52 cursor-pointer"
+                    onClick={() => router.push(`/dashboard/teacher/my-courses`)}
+                  >
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] font-black text-[#7C3AED] uppercase tracking-wider bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
+                          {course.id.substring(0, 6).toUpperCase()}
+                        </span>
+                        <span className="text-xs text-[#6B7280] font-bold">Sem {course.semester}</span>
+                      </div>
+                      <h4 className="text-base font-black text-[#111827] line-clamp-1">{course.title}</h4>
+                      <p className="text-xs text-[#6B7280] font-semibold mt-1">Level: {course.level}</p>
+                    </div>
+
+                    <div className="space-y-4 border-t border-slate-100 pt-3">
+                      <div className="flex justify-between items-center text-xs text-[#6B7280] font-bold">
+                        <span className="flex items-center gap-1"><Users size={14} /> {course.studentCount} Students Enrolled</span>
+                        <span>{course.completionRate || 85}% Syllabus Done</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-100">
+                        <div className="bg-[#7C3AED] h-full rounded-full transition-all duration-500" style={{ width: `${course.completionRate || 85}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(!stats.coursesOverview || stats.coursesOverview.length === 0) && (
+                  <div className="col-span-2 p-12 text-center border border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold">
+                    No courses assigned under your management yet.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Part: Feeds Column (4 cols) */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* Recent Activity Feed */}
+              <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 shadow-sm">
+                <h3 className="text-base font-black text-[#111827] flex items-center gap-2 mb-4 border-b border-slate-50 pb-2">
+                  <Activity className="text-[#7C3AED]" size={18} />
+                  Recent Activity Feed
+                </h3>
+                <div className="space-y-4">
+                  <ActivityItem emoji="📝" text="Amit Kumar submitted Assignment 2 for DBMS" time="10m ago" />
+                  <ActivityItem emoji="❓" text="New Quiz 'Mid-Term Review' published" time="2h ago" />
+                  <ActivityItem emoji="📚" text="Syllabus unit 4 materials uploaded" time="1d ago" />
+                  <ActivityItem emoji="🎓" text="Preethi Reddy registered for Distributed Systems" time="2d ago" />
+                </div>
+              </div>
+
+              {/* Upcoming Tasks Feed */}
+              <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 shadow-sm">
+                <h3 className="text-base font-black text-[#111827] flex items-center gap-2 mb-4 border-b border-slate-50 pb-2">
+                  <CheckSquare className="text-[#7C3AED]" size={18} />
+                  Upcoming Tasks
+                </h3>
+                <div className="space-y-3">
+                  <TaskItem type="eval" text="Grade 14 pending submissions for Web Tech" time="Due tomorrow" />
+                  <TaskItem type="lecture" text="Lecture: DBMS - Schema Refinement" time="Today, 02:00 PM" />
+                  <TaskItem type="exam" text="Practical Exam: Advanced Web Lab" time="Friday, 10:00 AM" />
+                </div>
+              </div>
+            </div>
+
           </div>
         </>
       )}

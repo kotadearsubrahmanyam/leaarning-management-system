@@ -50,7 +50,6 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         { href: "/dashboard/admin/users", icon: Users, label: "Users" },
         { href: "/dashboard/admin/courses", icon: BookOpen, label: "Courses" },
         { href: "/dashboard/admin/departments", icon: Layers, label: "Departments" },
-        { href: "/dashboard/admin/schedules", icon: Clock, label: "Scheduling" },
         { href: "/dashboard/payments", icon: CreditCard, label: "Payments" },
         { href: "/dashboard/results", icon: Award, label: "Results" },
         { href: "/dashboard/community", icon: Users, label: "Community" },
@@ -97,7 +96,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         isCollapsed ? "w-20" : "w-64"
       )}
       style={{
-        background: "linear-gradient(180deg, #6D28D9, #7C3AED)",
+        background: "linear-gradient(180deg, #5B21B6 0%, #7C3AED 50%, #9333EA 100%)",
         borderRight: "1px solid rgba(255, 255, 255, 0.15)"
       }}
     >
@@ -147,21 +146,21 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
                 "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-300 group",
                 isActive
                   ? "font-bold shadow-lg"
-                  : "text-purple-100/80 hover:bg-white/[0.12] hover:text-white hover:-translate-y-[2px] hover:shadow-[0_4px_15px_rgba(139,92,246,0.25)]"
+                  : "text-purple-100/80 hover:bg-[#A855F7] hover:text-white hover:-translate-y-[2px] hover:shadow-[0_4px_15px_rgba(168,85,247,0.25)]"
               )}
               style={
                 isActive
                   ? {
                       background: "#ffffff",
-                      color: "#6D28D9",
-                      boxShadow: "0 4px 12px rgba(109, 40, 217, 0.15)",
-                      border: "1px solid rgba(139, 92, 246, 0.2)",
+                      color: "#7C3AED",
+                      boxShadow: "0 4px 12px rgba(91, 33, 182, 0.12)",
+                      border: "1px solid rgba(124, 93, 238, 0.15)",
                     }
                   : undefined
               }
               title={isCollapsed ? link.label : undefined}
             >
-              <link.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-[#6D28D9]" : "text-purple-200 group-hover:text-white")} />
+              <link.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-[#7C3AED]" : "text-purple-200 group-hover:text-white")} />
               {!isCollapsed && <span>{link.label}</span>}
             </Link>
           );
