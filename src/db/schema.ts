@@ -241,6 +241,7 @@ export const blindEvaluations = pgTable("BlindEvaluation", {
   facultyId: text("facultyId").notNull().references(() => users.id, { onDelete: "cascade" }),
   pdfUrl: text("pdfUrl").notNull(),
   marks: integer("marks"),
+  comments: text("comments"),
   status: evaluationStatusEnum("status").default("PENDING").notNull(),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updatedAt", { precision: 3, mode: "date" }).defaultNow().$onUpdate(() => new Date()).notNull(),
