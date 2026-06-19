@@ -25,8 +25,8 @@ export async function GET(req: Request, { params }: { params: { studentId: strin
           with: { course: true }
         },
         attendance: {
-          with: { course: true },
-          orderBy: (attendance, { desc }) => [desc(attendance.date)],
+          with: { session: { with: { course: true } } },
+          orderBy: (attendance, { desc }) => [desc(attendance.timestamp)],
         },
         results: {
           with: { course: true },

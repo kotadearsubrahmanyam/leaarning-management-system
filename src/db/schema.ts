@@ -725,3 +725,13 @@ export const studentLearningPathsRelations = relations(studentLearningPaths, ({ 
   }),
 }));
 
+export const importHistory = pgTable("ImportHistory", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  uploadDate: timestamp("uploadDate", { precision: 3, mode: "date" }).defaultNow().notNull(),
+  uploadedBy: text("uploadedBy").notNull(),
+  createdCount: integer("createdCount").notNull(),
+  failedCount: integer("failedCount").notNull(),
+  status: text("status").default("COMPLETED").notNull(),
+  roleType: text("roleType").notNull(),
+});
+

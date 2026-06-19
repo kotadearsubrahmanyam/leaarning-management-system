@@ -39,6 +39,7 @@ import {
   ProfileFieldCard,
 } from "@/components/ui/student-portal-cards";
 import { TeacherProfileView } from "./teacher-profile";
+import { AdminProfileView } from "./admin-profile";
 
 const TABS = ["Overview", "Courses", "Results", "Fees", "Documents"];
 
@@ -430,6 +431,10 @@ export default function ProfilePage() {
     return <TeacherProfileView user={user} />;
   }
 
+  if (user.role === "ADMIN") {
+    return <AdminProfileView user={user} />;
+  }
+
   // Print helper
   const triggerPrint = () => {
     const content = printAreaRef.current?.innerHTML;
@@ -471,14 +476,30 @@ export default function ProfilePage() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-8 rounded-3xl border border-slate-200 mb-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group shadow-[0_8px_32px_rgba(31,38,135,0.04)]"
+        className="relative rounded-3xl overflow-hidden mb-8 shadow-lg shadow-purple-500/10"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        {/* Card Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED] via-[#A855F7] to-indigo-600 z-0"></div>
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay z-0"></div>
+        
+        {/* Animated Glowing Orbs */}
+        <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
+          <motion.div 
+            animate={{ x: [0, 80, 0], y: [0, -30, 0], scale: [1, 1.1, 1] }} 
+            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+            className="absolute -top-24 -left-24 w-[400px] h-[400px] bg-purple-400 rounded-full mix-blend-screen filter blur-[100px] opacity-30"
+          ></motion.div>
+          <motion.div 
+            animate={{ x: [0, -80, 0], y: [0, 30, 0], scale: [1, 1.3, 1] }} 
+            transition={{ duration: 16, repeat: Infinity, ease: "linear" }}
+            className="absolute top-12 -right-24 w-[400px] h-[400px] bg-indigo-400 rounded-full mix-blend-screen filter blur-[100px] opacity-30"
+          ></motion.div>
+        </div>
 
-        {/* Profile Photo Avatar */}
-        <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-accent p-1 shadow-[0_15px_30px_rgba(139,92,246,0.15)] shrink-0 relative group/avatar cursor-pointer">
-          <div className="w-full h-full bg-slate-50 rounded-full flex items-center justify-center relative overflow-hidden">
-            <span className="text-4xl font-black text-primary">
+        <div className="px-6 sm:px-12 py-10 relative z-10 flex flex-col md:flex-row items-center gap-8">
+          {/* Profile Photo Avatar */}
+          <div className="w-32 h-32 rounded-full border-4 border-white/40 bg-white/10 backdrop-blur-md flex items-center justify-center overflow-hidden shadow-2xl shrink-0 transition-transform duration-300 hover:scale-105">
+            <span className="text-4xl font-black text-white drop-shadow-md">
               {user.name
                 .split(" ")
                 .map((n: string) => n[0])
@@ -486,26 +507,23 @@ export default function ProfilePage() {
                 .substring(0, 2)
                 .toUpperCase()}
             </span>
-            <div className="absolute inset-0 bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-all duration-300">
-              <span className="text-[10px] font-black uppercase tracking-wider">Update Photo</span>
-            </div>
           </div>
-        </div>
 
-        {/* Info Column */}
-        <div className="text-center md:text-left flex-1 min-w-0">
-          <h1 className="text-3xl font-black text-slate-800 mb-2 truncate">{user.name}</h1>
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-slate-500 text-sm font-semibold">
-            <span>Roll: {user.rollNumber || "ID Pending"}</span>
-            <span className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
-            <span>{derivedProfile.departmentName}</span>
-            <span className="w-1.5 h-1.5 bg-slate-300 rounded-full" />
-            <span>Sem {user.semester || 1}</span>
-          </div>
-          <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-black uppercase tracking-wider">
-              <ShieldCheck size={14} /> Student Account
-            </span>
+          {/* Info Column */}
+          <div className="text-center md:text-left flex-1 min-w-0">
+            <h1 className="text-3xl font-black text-white tracking-tight drop-shadow-md mb-2">{user.name}</h1>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-white/90 text-sm font-bold">
+              <span>Roll: {user.rollNumber || "ID Pending"}</span>
+              <span className="w-1.5 h-1.5 bg-white/40 rounded-full" />
+              <span>{derivedProfile.departmentName}</span>
+              <span className="w-1.5 h-1.5 bg-white/40 rounded-full" />
+              <span>Semester {user.semester || 1}</span>
+            </div>
+            <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 text-xs font-black uppercase tracking-wider shadow-md">
+                <ShieldCheck size={14} /> Student Account
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -518,8 +536,8 @@ export default function ProfilePage() {
             onClick={() => setActiveTab(tab)}
             className={`px-5 py-3 rounded-full font-black text-sm transition-all whitespace-nowrap border ${
               activeTab === tab
-                ? "bg-primary text-white border-transparent shadow-[0_4px_15px_rgba(139,92,246,0.35)] scale-[1.02]"
-                : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                ? "bg-[#7C3AED] text-white border-transparent shadow-[0_4px_15px_rgba(124,58,237,0.35)] scale-[1.02]"
+                : "bg-white text-slate-600 border-[#E5E7EB] hover:bg-slate-50"
             }`}
           >
             {tab}
@@ -541,172 +559,159 @@ export default function ProfilePage() {
               {/* Personal Info Grid */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Personal Details */}
-                <DashboardCard>
-                  <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <User className="text-primary" size={20} /> Personal Details
+                <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+                  <h3 className="text-lg font-black text-[#111827] flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <User className="text-[#7C3AED]" size={20} /> Personal Details
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <ProfileFieldCard label="Admission No" value={derivedProfile.admissionNo} />
                     <ProfileFieldCard label="Roll Number" value={user.rollNumber} />
                     <ProfileFieldCard label="Full Name" value={user.name} />
                     <ProfileFieldCard label="Course" value={derivedProfile.departmentName.includes("Business") ? "BBA" : "B.Tech"} />
-                    <ProfileFieldCard label="Branch" value={derivedProfile.departmentName} />
+                    <ProfileFieldCard label="Branch" value={derivedProfile.branch} />
                     <ProfileFieldCard label="Semester" value={`Regular (Sem ${user.semester || 1})`} />
                     <ProfileFieldCard label="Gender" value={derivedProfile.gender} />
                     <ProfileFieldCard label="Date of Birth" value={derivedProfile.dateOfBirth} />
                     <ProfileFieldCard label="Religion" value={derivedProfile.religion} />
                     <ProfileFieldCard label="Caste" value={derivedProfile.caste} />
-                    <ProfileFieldCard label="SSC Marks, %" value={derivedProfile.sscMarks} />
-                    <ProfileFieldCard label="Inter Marks, %" value={derivedProfile.interMarks} />
-                    <ProfileFieldCard label="Entrance Type" value={derivedProfile.entranceType} />
                     <ProfileFieldCard label="Seat Type" value={derivedProfile.seatType} />
-                    <ProfileFieldCard label="Email" value={user.email} />
-                    <ProfileFieldCard label="Mobile No" value={derivedProfile.phoneNumber} />
-                    <ProfileFieldCard label="Aadhar No" value={derivedProfile.aadharNo} />
-                    <ProfileFieldCard label="APAAR ID / ABC ID" value={derivedProfile.apaarId} />
                     <ProfileFieldCard label="Joining Date" value={derivedProfile.joiningDate} />
                   </div>
-                </DashboardCard>
+                </div>
 
-                {/* Disciplinary Action */}
-                <DashboardCard>
-                  <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <ShieldAlert className="text-primary" size={20} /> Disciplinary Action
+                {/* Academic Records */}
+                <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+                  <h3 className="text-lg font-black text-[#111827] flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <BookOpen className="text-[#7C3AED]" size={20} /> Academic Records
                   </h3>
-                  <div className="p-4 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center gap-3">
-                    <CheckCircle className="text-green-500 shrink-0" size={20} />
-                    <div>
-                      <span className="text-sm font-black text-green-800 block">No complaints</span>
-                      <span className="text-xs text-green-700/80">Student conducts themselves in accordance with university disciplinary policies.</span>
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <ProfileFieldCard label="SSC Performance" value={derivedProfile.sscMarks} />
+                    <ProfileFieldCard label="Inter Performance" value={derivedProfile.interMarks} />
+                    <ProfileFieldCard label="Entrance Type" value={derivedProfile.entranceType} />
+                    <ProfileFieldCard label="Aadhar Number" value={derivedProfile.aadharNo} />
+                    <ProfileFieldCard label="APAAR ID / ABC ID" value={derivedProfile.apaarId} />
+                    <ProfileFieldCard label="Class Rank" value={derivedProfile.rank} />
                   </div>
-                </DashboardCard>
-
-                {/* Guardian Details */}
-                <DashboardCard>
-                  <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <Users className="text-primary" size={20} /> Guardian Details
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <ProfileFieldCard label="Guardian Name" value="Not Applicable" />
-                    <ProfileFieldCard label="Relationship" value="Not Applicable" />
-                    <ProfileFieldCard label="Mobile No" value="Not Applicable" />
-                    <ProfileFieldCard label="Address" value="Not Applicable" />
-                  </div>
-                </DashboardCard>
+                </div>
 
                 {/* Parent's Details */}
-                <DashboardCard>
-                  <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <Heart className="text-primary" size={20} /> Parent's Details
+                <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+                  <h3 className="text-lg font-black text-[#111827] flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Heart className="text-[#7C3AED]" size={20} /> Parent & Guardian Info
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <ProfileFieldCard label="Father Name" value={derivedProfile.fatherName} />
                     <ProfileFieldCard label="Father Occupation" value={derivedProfile.fatherOccupation} />
-                    <ProfileFieldCard label="Father Mobile" value={derivedProfile.fatherMobile} />
+                    <ProfileFieldCard label="Father Contact" value={derivedProfile.fatherMobile} />
                     
                     <ProfileFieldCard label="Mother Name" value={derivedProfile.motherName} />
                     <ProfileFieldCard label="Mother Occupation" value={derivedProfile.motherOccupation} />
-                    <ProfileFieldCard label="Mother Mobile" value={derivedProfile.motherMobile} />
+                    <ProfileFieldCard label="Mother Contact" value={derivedProfile.motherMobile} />
                     
-                    <ProfileFieldCard label="Annual Income" value={`₹ ${derivedProfile.annualIncome.toLocaleString('en-IN')}`} />
+                    <div className="col-span-1 sm:col-span-3">
+                      <ProfileFieldCard label="Annual Family Income" value={`₹ ${derivedProfile.annualIncome.toLocaleString('en-IN')}`} />
+                    </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
-                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider block mb-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
                         Correspondence Address
                       </span>
-                      <span className="text-sm font-extrabold text-foreground flex items-start gap-2">
-                        <MapPin size={16} className="text-primary mt-0.5 shrink-0" />
+                      <span className="text-sm font-extrabold text-[#111827] flex items-start gap-2">
+                        <MapPin size={16} className="text-[#7C3AED] mt-0.5 shrink-0" />
                         {derivedProfile.correspondenceAddress}
                       </span>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
-                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider block mb-1">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
                         Permanent Address
                       </span>
-                      <span className="text-sm font-extrabold text-foreground flex items-start gap-2">
-                        <MapPin size={16} className="text-primary mt-0.5 shrink-0" />
+                      <span className="text-sm font-extrabold text-[#111827] flex items-start gap-2">
+                        <MapPin size={16} className="text-[#7C3AED] mt-0.5 shrink-0" />
                         {derivedProfile.permanentAddress}
                       </span>
                     </div>
                   </div>
-                </DashboardCard>
+                </div>
+
+                {/* Disciplinary status */}
+                <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-4">
+                  <h3 className="text-lg font-black text-[#111827] flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <ShieldAlert className="text-[#7C3AED]" size={20} /> Conduct Status
+                  </h3>
+                  <div className="p-4 rounded-xl bg-[#ECFDF5] border border-[#10B981]/25 flex items-center gap-3">
+                    <CheckCircle className="text-[#10B981] shrink-0" size={20} />
+                    <div>
+                      <span className="text-sm font-black text-[#10B981] block">No complaints / Exemplary Conduct</span>
+                      <span className="text-xs text-[#10B981]/90">The student conducts themselves in accordance with university academic policies.</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Side Column: Academic Details & Quick Docs */}
               <div className="space-y-6">
                 {/* Academic metrics */}
-                <DashboardCard>
-                  <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <Award className="text-primary" size={20} /> Academic Performance
+                <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
+                  <h3 className="text-lg font-black text-[#111827] mb-6 flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <Award className="text-[#7C3AED]" size={20} /> Academic Performance
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
-                      <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">CGPA</span>
-                      <span className="text-2xl font-black text-foreground mt-1 block">{academicCalculations.cgpa}</span>
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">CGPA</span>
+                      <span className="text-2xl font-black text-[#111827] mt-1 block">{academicCalculations.cgpa}</span>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
-                      <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Sem GPA</span>
-                      <span className="text-2xl font-black text-foreground mt-1 block">{academicCalculations.sgpa}</span>
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">Semester GPA</span>
+                      <span className="text-2xl font-black text-[#111827] mt-1 block">{academicCalculations.sgpa}</span>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
-                      <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Credits Earned</span>
-                      <span className="text-2xl font-black text-foreground mt-1 block">{academicCalculations.creditsEarned}</span>
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">Credits Earned</span>
+                      <span className="text-2xl font-black text-[#111827] mt-1 block">{academicCalculations.creditsEarned}</span>
                     </div>
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
-                      <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Remaining Credits</span>
-                      <span className="text-2xl font-black text-foreground mt-1 block">{academicCalculations.creditsRemaining}</span>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
-                      <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Class Rank</span>
-                      <span className="text-2xl font-black text-foreground mt-1 block">{derivedProfile.rank}</span>
-                    </div>
-                    <div className="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all">
-                      <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Backlogs</span>
-                      <span className={`text-2xl font-black mt-1 block ${academicCalculations.backlogs > 0 ? "text-red-500" : "text-green-500"}`}>
-                        {academicCalculations.backlogs}
-                      </span>
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">Remaining</span>
+                      <span className="text-2xl font-black text-[#111827] mt-1 block">{academicCalculations.creditsRemaining}</span>
                     </div>
                   </div>
-                  <div className="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-center flex items-center justify-center gap-2">
-                    <CheckCircle className="text-green-500" size={16} />
-                    <span className="text-xs font-bold text-green-700">Academic Status: Active</span>
+                  <div className="p-3 rounded-xl bg-[#ECFDF5] border border-[#10B981]/25 text-center flex items-center justify-center gap-2">
+                    <CheckCircle className="text-[#10B981]" size={16} />
+                    <span className="text-xs font-bold text-[#10B981]">University Status: Active</span>
                   </div>
-                </DashboardCard>
+                </div>
 
                 {/* Quick Documents links */}
-                <DashboardCard>
-                  <h3 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <FileText className="text-primary" size={20} /> Quick Credentials
+                <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-4">
+                  <h3 className="text-lg font-black text-[#111827] mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <FileText className="text-[#7C3AED]" size={20} /> Quick Credentials
                   </h3>
                   <div className="space-y-3">
                     <div
                       onClick={() => setActiveDocumentPreview("id-card")}
-                      className="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between cursor-pointer transition-all"
+                      className="p-3 bg-slate-50 hover:bg-purple-50/50 border border-slate-100 hover:border-[#7C3AED]/35 rounded-xl flex items-center justify-between cursor-pointer transition-all"
                     >
-                      <span className="text-xs font-bold text-foreground">Digital ID Card</span>
+                      <span className="text-xs font-bold text-[#111827]">Digital ID Card</span>
                       <ChevronRight size={14} className="text-slate-400" />
                     </div>
                     <div
                       onClick={() => setActiveDocumentPreview("bonafide")}
-                      className="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between cursor-pointer transition-all"
+                      className="p-3 bg-slate-50 hover:bg-purple-50/50 border border-slate-100 hover:border-[#7C3AED]/35 rounded-xl flex items-center justify-between cursor-pointer transition-all"
                     >
-                      <span className="text-xs font-bold text-foreground">Bonafide Certificate</span>
+                      <span className="text-xs font-bold text-[#111827]">Bonafide Certificate</span>
                       <ChevronRight size={14} className="text-slate-400" />
                     </div>
                   </div>
-                </DashboardCard>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === "Courses" && (
-            <DashboardCard>
+            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-slate-100 pb-3">
-                <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                  <BookOpen className="text-primary" size={20} /> Enrolled Courses
+                <h3 className="text-lg font-black text-[#111827] flex items-center gap-2">
+                  <BookOpen className="text-[#7C3AED]" size={20} /> Enrolled Courses
                 </h3>
               </div>
 
@@ -717,10 +722,10 @@ export default function ProfilePage() {
                   ))}
                 </div>
               ) : courses.length === 0 ? (
-                <div className="p-12 text-center border border-dashed border-slate-300 rounded-3xl flex flex-col items-center">
+                <div className="p-12 text-center border border-dashed border-[#E5E7EB] rounded-2xl flex flex-col items-center">
                   <BookOpen size={48} className="text-slate-300 mb-4" />
-                  <h4 className="font-extrabold text-foreground text-lg mb-1">No Registered Courses</h4>
-                  <p className="text-sm text-foreground/50 max-w-sm">
+                  <h4 className="font-extrabold text-[#111827] text-lg mb-1">No Registered Courses</h4>
+                  <p className="text-sm text-[#6B7280] max-w-sm">
                     You have not enrolled in any courses. Discover and register on the Explore page.
                   </p>
                 </div>
@@ -729,9 +734,9 @@ export default function ProfilePage() {
                   {sortedSemestersForCourses.map((sem) => {
                     const semCourses = coursesBySemester[sem];
                     return (
-                      <div key={sem} className="p-5 rounded-2xl bg-slate-100 border border-slate-200">
+                      <div key={sem} className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
                         <h4 className="text-sm font-black text-slate-700 mb-4 uppercase tracking-wider flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-primary" />
+                          <span className="w-2 h-2 rounded-full bg-[#7C3AED]" />
                           Semester {sem}
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -757,15 +762,13 @@ export default function ProfilePage() {
                   })}
                 </div>
               ) : (
-                <div className="p-12 text-center border border-dashed border-slate-300 rounded-3xl flex flex-col items-center">
+                <div className="p-12 text-center border border-dashed border-[#E5E7EB] rounded-2xl flex flex-col items-center">
                   <BookOpen size={48} className="text-slate-300 mb-4" />
-                  <h4 className="font-extrabold text-foreground text-lg mb-1">No Registered Courses</h4>
+                  <h4 className="font-extrabold text-[#111827] text-lg mb-1">No Registered Courses</h4>
                 </div>
               )}
-            </DashboardCard>
+            </div>
           )}
-
-
 
           {activeTab === "Results" && (
             <div className="space-y-6">
@@ -779,9 +782,9 @@ export default function ProfilePage() {
 
               {/* Grades sheet breakdown grouped by semester */}
               {resultsLoading ? (
-                <div className="h-64 bg-slate-100 rounded-3xl border border-slate-200 animate-pulse" />
+                <div className="h-64 bg-slate-100 rounded-3xl border border-[#E5E7EB] animate-pulse" />
               ) : results.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+                <div className="p-12 text-center text-slate-400 border border-dashed border-[#E5E7EB] rounded-2xl">
                   No results have been officially published yet.
                 </div>
               ) : (
@@ -790,24 +793,24 @@ export default function ProfilePage() {
                     const semResults = resultsBySemester[sem];
                     const summary = resultsSummaries[sem];
                     return (
-                      <DashboardCard key={sem}>
+                      <div key={sem} className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-6">
                         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-slate-100 pb-3">
-                          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                            <Award className="text-primary" size={20} /> Semester {sem} Report
+                          <h3 className="text-lg font-black text-[#111827] flex items-center gap-2">
+                            <Award className="text-[#7C3AED]" size={20} /> Semester {sem} Report
                           </h3>
                           {summary && (
                             <div className="flex gap-4 text-xs font-black bg-slate-50 border border-slate-200 px-4 py-2 rounded-2xl">
-                              <span className="text-slate-500">SGPA: <span className="text-primary">{summary.sgpa || "8.50"}</span></span>
+                              <span className="text-[#6B7280]">SGPA: <span className="text-[#7C3AED]">{summary.sgpa || "8.50"}</span></span>
                               <span className="text-slate-300">|</span>
-                              <span className="text-slate-500">CGPA: <span className="text-primary">{summary.cgpa || "8.42"}</span></span>
+                              <span className="text-[#6B7280]">CGPA: <span className="text-[#7C3AED]">{summary.cgpa || "8.42"}</span></span>
                             </div>
                           )}
                         </div>
 
-                        <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white">
+                        <div className="overflow-x-auto border border-[#E5E7EB] rounded-xl bg-white">
                           <table className="w-full text-left border-collapse">
                             <thead>
-                              <tr className="bg-slate-50 text-slate-800 font-extrabold text-xs uppercase tracking-wider border-b border-slate-200">
+                              <tr className="bg-slate-50 text-slate-700 font-extrabold text-xs uppercase tracking-wider border-b border-[#E5E7EB]">
                                 <th className="p-4 pl-6">Code</th>
                                 <th className="p-4">Subject Name</th>
                                 <th className="p-4 text-center">Marks</th>
@@ -816,7 +819,7 @@ export default function ProfilePage() {
                                 <th className="p-4 pr-6 text-center">Status</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                            <tbody className="divide-y divide-slate-100 text-sm text-[#111827]">
                               {semResults.map((res: any, index: number) => (
                                 <StudentResultCard
                                   key={res.id || index}
@@ -832,7 +835,7 @@ export default function ProfilePage() {
                             </tbody>
                           </table>
                         </div>
-                      </DashboardCard>
+                      </div>
                     );
                   })}
                 </div>
@@ -840,140 +843,184 @@ export default function ProfilePage() {
             </div>
           )}
 
-
-
           {activeTab === "Fees" && (
             <div className="space-y-6">
-              {/* Semester billing groups */}
               {paymentsLoading ? (
-                <div className="h-48 bg-slate-100 rounded-3xl border border-slate-200 animate-pulse" />
+                <div className="h-48 bg-slate-100 rounded-3xl border border-[#E5E7EB] animate-pulse" />
               ) : fees.length === 0 ? (
-                <div className="p-8 text-center text-slate-400">No billed items found.</div>
-              ) : (
-                <div className="space-y-8">
-                  {sortedSemestersForFees.map((sem) => {
-                    const semFees = feesBySemester[sem];
-                    
-                    // Calculate totals for this semester
-                    const total = semFees.reduce((sum: number, f: any) => sum + f.amount, 0);
-                    const paid = semFees.reduce((sum: number, f: any) => sum + (f.paidAmount || 0), 0);
-                    const pending = Math.max(0, total - paid);
+                <div className="p-8 text-center text-[#6B7280]">No billed items found.</div>
+              ) : (() => {
+                const total = feeCalculations.total;
+                const paid = feeCalculations.paid;
+                const pending = feeCalculations.pending;
+                const progressPct = total > 0 ? Math.round((paid / total) * 100) : 0;
 
-                    return (
-                      <DashboardCard key={sem}>
-                        {/* Semester Header & Stats Summary */}
-                        <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
-                          <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                            <CreditCard className="text-primary" size={20} /> Semester {sem} Fees
+                // Categories breakdown
+                const currentSemesterFees = fees.filter((f: any) => f.semester === (user.semester || 1));
+                const tuitionItem = currentSemesterFees.find((f: any) => f.feeType === "TUITION");
+                const examItem = currentSemesterFees.find((f: any) => f.feeType === "EXAM");
+                const busItem = currentSemesterFees.find((f: any) => f.feeType === "BUS");
+                const hostelItem = currentSemesterFees.find((f: any) => f.feeType === "HOSTEL");
+
+                return (
+                  <div className="space-y-6">
+                    {/* Centerpiece Large Summary Card */}
+                    <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                        <div>
+                          <h3 className="text-xl font-bold text-[#111827] flex items-center gap-2">
+                            <CreditCard className="text-[#7C3AED]" size={22} />
+                            Semester Dues & Fee Summary
                           </h3>
-                          <div className="flex flex-wrap gap-4 text-xs font-black">
-                            <div className="bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-xl">
-                              <span className="text-slate-500">Total: <span className="text-slate-800">₹{total.toLocaleString()}</span></span>
-                            </div>
-                            <div className="bg-green-50 border border-green-200 px-3.5 py-1.5 rounded-xl text-green-700">
-                              <span>Paid: <span>₹{paid.toLocaleString()}</span></span>
-                            </div>
-                            <div className={`border px-3.5 py-1.5 rounded-xl ${pending > 0 ? "bg-red-50 border-red-200 text-red-600 animate-pulse" : "bg-green-50 border-green-200 text-green-700"}`}>
-                              <span>Balance: <span>₹{pending.toLocaleString()}</span></span>
-                            </div>
+                          <p className="text-xs text-[#6B7280] mt-1">Overall payment status for all billed courses and amenities</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                          pending === 0 
+                            ? "bg-[#ECFDF5] text-[#10B981] border-[#10B981]/25" 
+                            : "bg-[#FEF2F2] text-[#EF4444] border-[#EF4444]/25"
+                        }`}>
+                          {pending === 0 ? "All Fees Paid" : "Dues Pending"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                          <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider block">Total Billed Fees</span>
+                          <span className="text-2xl font-black text-[#111827] mt-1 block">₹{total.toLocaleString()}</span>
+                        </div>
+                        <div className="p-4 bg-[#ECFDF5]/30 rounded-xl border border-[#10B981]/10">
+                          <span className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider block">Total Paid Amount</span>
+                          <span className="text-2xl font-black text-[#10B981] mt-1 block">₹{paid.toLocaleString()}</span>
+                        </div>
+                        <div className={`p-4 rounded-xl border ${pending > 0 ? "bg-[#FEF2F2]/30 border-[#EF4444]/10" : "bg-slate-50 border-slate-100"}`}>
+                          <span className="text-[10px] font-bold text-[#EF4444] uppercase tracking-wider block">Total Pending Dues</span>
+                          <span className={`text-2xl font-black mt-1 block ${pending > 0 ? "text-[#EF4444]" : "text-[#111827]"}`}>₹{pending.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {/* Overall Progress Bar */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-xs font-bold text-[#6B7280]">
+                          <span>Overall Paid Progress</span>
+                          <span>{progressPct}% Completed</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-100">
+                          <div className="bg-[#7C3AED] h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Clean Category Breakdown Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Tuition Card */}
+                      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Tuition Fee</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                              tuitionItem?.status === "PAID" ? "bg-[#ECFDF5] text-[#10B981]" : "bg-[#FEF2F2] text-[#EF4444]"
+                            }`}>{tuitionItem?.status === "PAID" ? "Paid" : "Pending"}</span>
                           </div>
+                          <p className="text-lg font-bold text-[#111827] mt-2">₹{(tuitionItem?.amount || 0).toLocaleString()}</p>
                         </div>
-
-                        {/* Billed Items List */}
-                        <div className="space-y-4">
-                          {semFees.map((fee: any) => {
-                            const percentage = fee.amount > 0 ? Math.round((fee.paidAmount / fee.amount) * 100) : 0;
-                            return (
-                              <div key={fee.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col md:flex-row justify-between md:items-center gap-4 hover:border-slate-300 transition-all">
-                                <div className="flex-1">
-                                  <span className="text-xs font-black text-foreground/45 uppercase tracking-wider block mb-1">
-                                    {fee.feeType} FEE
-                                  </span>
-                                  <span className="font-extrabold text-sm text-foreground">
-                                    Due: {new Date(fee.dueDate).toLocaleDateString()}
-                                  </span>
-                                </div>
-                                
-                                <div className="w-full md:w-48">
-                                  <div className="flex justify-between text-xs font-bold text-foreground/70 mb-1.5">
-                                    <span>Paid Progress</span>
-                                    <span>{percentage}%</span>
-                                  </div>
-                                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden border border-slate-200">
-                                    <div className="bg-primary h-full rounded-full" style={{ width: `${percentage}%` }} />
-                                  </div>
-                                </div>
-
-                                <div className="flex gap-6 items-center shrink-0">
-                                  <div>
-                                    <span className="text-xs font-bold text-slate-400 block text-right">Billed Amount</span>
-                                    <span className="text-sm font-black text-slate-800">₹{fee.amount.toLocaleString()}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-xs font-bold text-slate-400 block text-right">Paid Amount</span>
-                                    <span className="text-sm font-black text-green-600">₹{fee.paidAmount.toLocaleString()}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-xs font-bold text-slate-400 block text-right">Balance Due</span>
-                                    <span className={`text-sm font-black ${fee.amount - fee.paidAmount > 0 ? "text-red-500" : "text-green-600"}`}>
-                                      ₹{(fee.amount - fee.paidAmount).toLocaleString()}
-                                    </span>
-                                  </div>
-                                  <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
-                                    fee.status === "PAID" ? "bg-green-50 text-green-600 border-green-200" :
-                                    fee.status === "OVERDUE" ? "bg-red-50 text-red-600 border-red-200" :
-                                    "bg-amber-50 text-amber-600 border-amber-200"
-                                  }`}>
-                                    {fee.status}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
+                        <div className="text-xs text-[#6B7280] border-t border-slate-50 pt-2 flex justify-between">
+                          <span>Paid: ₹{(tuitionItem?.paidAmount || 0).toLocaleString()}</span>
+                          <span className="font-semibold text-slate-800">Due: {tuitionItem ? new Date(tuitionItem.dueDate).toLocaleDateString() : "N/A"}</span>
                         </div>
-                      </DashboardCard>
-                    );
-                  })}
-                </div>
-              )}
+                      </div>
 
-              {/* Transactions Ledger */}
-              <DashboardCard>
-                <h3 className="text-lg font-black text-slate-800 mb-4">Dues Transaction Ledger</h3>
-                <div className="overflow-x-auto border border-slate-200 rounded-2xl bg-white">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 text-slate-400 font-bold text-xs uppercase tracking-wider border-b border-slate-200">
-                        <th className="p-4 pl-6">Transaction ID</th>
-                        <th className="p-4">Fee Category</th>
-                        <th className="p-4 text-center">Amount Paid</th>
-                        <th className="p-4 text-center">Payment Date</th>
-                        <th className="p-4 pr-6 text-center">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                      {payments.map((pay: any, index: number) => (
-                        <tr key={pay.id || index} className="hover:bg-slate-50 transition-colors">
-                          <td className="p-4 pl-6 font-mono text-xs font-bold text-slate-500">{pay.id}</td>
-                          <td className="p-4 font-bold">{pay.feeType}</td>
-                          <td className="p-4 text-center font-black text-slate-800">₹{pay.amount.toLocaleString()}</td>
-                          <td className="p-4 text-center text-slate-400">{new Date(pay.date).toLocaleDateString()}</td>
-                          <td className="p-4 pr-6 text-center">
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-green-50 text-green-600 border border-green-200">
-                              {pay.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                      {payments.length === 0 && !paymentsLoading && (
-                        <tr>
-                          <td colSpan={5} className="p-8 text-center text-slate-400">No payment receipts found.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </DashboardCard>
+                      {/* Exam Card */}
+                      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Exam Fee</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                              examItem?.status === "PAID" ? "bg-[#ECFDF5] text-[#10B981]" : "bg-[#FEF2F2] text-[#EF4444]"
+                            }`}>{examItem?.status === "PAID" ? "Paid" : "Pending"}</span>
+                          </div>
+                          <p className="text-lg font-bold text-[#111827] mt-2">₹{(examItem?.amount || 0).toLocaleString()}</p>
+                        </div>
+                        <div className="text-xs text-[#6B7280] border-t border-slate-50 pt-2 flex justify-between">
+                          <span>Paid: ₹{(examItem?.paidAmount || 0).toLocaleString()}</span>
+                          <span className="font-semibold text-slate-800">Due: {examItem ? new Date(examItem.dueDate).toLocaleDateString() : "N/A"}</span>
+                        </div>
+                      </div>
+
+                      {/* Bus Card */}
+                      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Bus Fee</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                              busItem?.status === "PAID" ? "bg-[#ECFDF5] text-[#10B981]" : "bg-[#FEF2F2] text-[#EF4444]"
+                            }`}>{busItem?.status === "PAID" ? "Paid" : "Pending"}</span>
+                          </div>
+                          <p className="text-lg font-bold text-[#111827] mt-2">₹{(busItem?.amount || 0).toLocaleString()}</p>
+                        </div>
+                        <div className="text-xs text-[#6B7280] border-t border-slate-50 pt-2 flex justify-between">
+                          <span>Paid: ₹{(busItem?.paidAmount || 0).toLocaleString()}</span>
+                          <span className="font-semibold text-slate-800">Due: {busItem ? new Date(busItem.dueDate).toLocaleDateString() : "N/A"}</span>
+                        </div>
+                      </div>
+
+                      {/* Hostel Card */}
+                      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-[10px] font-bold text-[#6B7280] uppercase tracking-wider">Hostel Fee</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                              hostelItem?.status === "PAID" ? "bg-[#ECFDF5] text-[#10B981]" : "bg-[#FEF2F2] text-[#EF4444]"
+                            }`}>{hostelItem?.status === "PAID" ? "Paid" : "Pending"}</span>
+                          </div>
+                          <p className="text-lg font-bold text-[#111827] mt-2">₹{(hostelItem?.amount || 0).toLocaleString()}</p>
+                        </div>
+                        <div className="text-xs text-[#6B7280] border-t border-slate-50 pt-2 flex justify-between">
+                          <span>Paid: ₹{(hostelItem?.paidAmount || 0).toLocaleString()}</span>
+                          <span className="font-semibold text-slate-800">Due: {hostelItem ? new Date(hostelItem.dueDate).toLocaleDateString() : "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compact Transaction Ledger */}
+                    <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-4">
+                      <h3 className="text-base font-bold text-[#111827]">Dues Transaction Ledger</h3>
+                      <div className="overflow-x-auto border border-[#E5E7EB] rounded-xl bg-white">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-50 text-slate-600 font-bold text-xs uppercase tracking-wider border-b border-[#E5E7EB]">
+                              <th className="p-3 pl-6">Transaction ID</th>
+                              <th className="p-3">Category</th>
+                              <th className="p-3 text-center">Amount Paid</th>
+                              <th className="p-3 text-center">Date</th>
+                              <th className="p-3 pr-6 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                            {payments.map((pay: any, index: number) => (
+                              <tr key={pay.id || index} className="hover:bg-slate-50/50 transition-colors">
+                                <td className="p-3 pl-6 font-mono text-xs font-semibold text-slate-500">{pay.id}</td>
+                                <td className="p-3 font-semibold">{pay.feeType}</td>
+                                <td className="p-3 text-center font-bold text-slate-800">₹{pay.amount.toLocaleString()}</td>
+                                <td className="p-3 text-center text-slate-400">{new Date(pay.date).toLocaleDateString()}</td>
+                                <td className="p-3 pr-6 text-center">
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#ECFDF5] text-[#10B981] border border-[#10B981]/15">
+                                    {pay.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                            {payments.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="p-6 text-center text-slate-400">No transactions recorded.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

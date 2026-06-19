@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, courses, payments } from "@/db/schema";
+import { users, courses, payments, departments, submissions, quizSubmissions } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { eq, sql } from "drizzle-orm";
-import { departments } from "@/db/schema";
 
 export async function GET() {
   try {
@@ -40,6 +39,14 @@ export async function GET() {
       .select({ departmentCount: sql<number>`count(*)` })
       .from(departments);
 
+    const [{ assignmentsSubmitted }] = await db
+      .select({ assignmentsSubmitted: sql<number>`count(*)` })
+      .from(submissions);
+
+    const [{ quizzesCompleted }] = await db
+      .select({ quizzesCompleted: sql<number>`count(*)` })
+      .from(quizSubmissions);
+
     const allDepartments = await db.select().from(departments);
     
     const departmentStatsRaw = await Promise.all(allDepartments.map(async (dept) => {
@@ -72,6 +79,8 @@ export async function GET() {
       totalCourses: Number(courseCount),
       totalRevenue: Number(totalRevenue),
       totalDepartments: Number(departmentCount),
+      assignmentsSubmitted: Number(assignmentsSubmitted),
+      quizzesCompleted: Number(quizzesCompleted),
       departmentStats: departmentStatsRaw,
     };
 

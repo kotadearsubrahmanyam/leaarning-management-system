@@ -28,10 +28,7 @@ const PARTICLES = [
 export function AnimatedBackgroundPattern() {
   return (
     <div 
-      className="fixed inset-0 z-0 overflow-hidden pointer-events-none"
-      style={{
-        background: "linear-gradient(135deg, #DBEAFE 0%, #EDE9FE 50%, #F8FAFC 100%)"
-      }}
+      className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#F8FAFC]"
     />
   );
 }

@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 
 async function main() {
   const { db } = await import("../src/db");
-  const { users, courses, enrollments, results, assignments, attendance } = await import("../src/db/schema");
+  const { users, courses, enrollments, results, assignments, attendance, classSessions } = await import("../src/db/schema");
 
   console.log("🌱 Starting demo data seed...");
 
@@ -87,15 +87,26 @@ async function main() {
       }
     ]);
 
+    // Add a classSession for the attendance
+    const [session] = await db.insert(classSessions).values({
+      courseId: course.id,
+      facultyId: teacher.id,
+      sectionId: "A",
+      date: new Date(),
+      startTime: "09:00 AM",
+      endTime: "10:30 AM",
+      sessionType: "LECTURE",
+    }).returning();
+
     // Add some random attendance records (Past 5 days)
     for (let i = 1; i <= 5; i++) {
       const statusRoll = Math.random();
       const status = statusRoll > 0.8 ? "ABSENT" : statusRoll > 0.6 ? "LATE" : "PRESENT";
       await db.insert(attendance).values({
-        userId: student.id,
-        courseId: course.id,
-        date: new Date(Date.now() - 86400000 * i),
+        studentId: student.id,
+        sessionId: session.id,
         status: status,
+        timestamp: new Date(Date.now() - 86400000 * i),
       });
     }
   }

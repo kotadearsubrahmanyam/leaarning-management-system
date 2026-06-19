@@ -257,7 +257,7 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
         </h3>
         <div className="bg-white border border-slate-200 rounded-2xl p-5 max-h-[300px] overflow-y-auto scrollbar-thin">
           <div className="space-y-4 text-sm font-medium text-slate-700">
-            {questions.map((q) => (
+            {questions.map((q: any) => (
               <div key={q.questionNumber} className="flex gap-2 items-start justify-between border-b border-slate-100 last:border-0 pb-3 last:pb-0">
                 <div className="flex items-start gap-2.5">
                   <span className="text-primary font-bold">{q.questionNumber}.</span>
