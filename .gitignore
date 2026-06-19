@@ -54,6 +54,3 @@ env/
 
 # OS generated files
 Thumbs.db
-
-target/
-*.class
