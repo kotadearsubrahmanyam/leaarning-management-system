@@ -28,6 +28,7 @@ export async function GET() {
         totalSemesters: departments.totalSemesters,
         typeOfEducation: departments.typeOfEducation,
         semester: users.semester,
+        rollNumber: users.rollNumber,
         createdAt: users.createdAt,
       })
       .from(users)

@@ -7,6 +7,8 @@ export const feeTypeEnum = pgEnum("FeeType", ["TUITION", "HOSTEL", "BUS", "SUPPL
 export const studentActivityTypeEnum = pgEnum("StudentActivityType", ["CERTIFICATION", "HACKATHON", "CONTEST", "WORKSHOP", "OTHER"]);
 export const admissionQuotaEnum = pgEnum("AdmissionQuota", ["CONVENER", "MANAGEMENT", "NRI", "SPOT"]);
 export const activityStatusEnum = pgEnum("ActivityStatus", ["PENDING", "APPROVED", "REJECTED"]);
+export const evaluationStatusEnum = pgEnum("EvaluationStatus", ["PENDING", "EVALUATED"]);
+
 
 export const users = pgTable("User", {
   id: text("id")
@@ -228,9 +230,21 @@ export const results = pgTable("Result", {
   attemptNumber: integer("attemptNumber").default(1).notNull(),
   passType: text("passType").default("REGULAR").notNull(),
   originalGrade: text("originalGrade"),
-  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" })
+  .$onUpdate(() => new Date()),
 });
 
+export const blindEvaluations = pgTable("BlindEvaluation", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  studentId: text("studentId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  courseId: text("courseId").notNull().references(() => courses.id, { onDelete: "cascade" }),
+  facultyId: text("facultyId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  pdfUrl: text("pdfUrl").notNull(),
+  marks: integer("marks"),
+  status: evaluationStatusEnum("status").default("PENDING").notNull(),
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { precision: 3, mode: "date" }).defaultNow().$onUpdate(() => new Date()).notNull(),
+});
 
 export const studentSemesterSummary = pgTable("StudentSemesterSummary", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -564,6 +578,23 @@ export const attendanceRelations = relations(attendance, ({ one }) => ({
 export const resultsRelations = relations(results, ({ one }) => ({
   user: one(users, { fields: [results.userId], references: [users.id] }),
   course: one(courses, { fields: [results.courseId], references: [courses.id] }),
+}));
+
+export const blindEvaluationsRelations = relations(blindEvaluations, ({ one }) => ({
+  student: one(users, {
+    fields: [blindEvaluations.studentId],
+    references: [users.id],
+    relationName: "studentEvaluation",
+  }),
+  faculty: one(users, {
+    fields: [blindEvaluations.facultyId],
+    references: [users.id],
+    relationName: "facultyEvaluation",
+  }),
+  course: one(courses, {
+    fields: [blindEvaluations.courseId],
+    references: [courses.id],
+  }),
 }));
 
 export const assignmentsRelations = relations(assignments, ({ one, many }) => ({
