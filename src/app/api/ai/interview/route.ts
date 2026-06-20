@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 You must output ONLY valid JSON in the exact following format:
 {
   "nextQuestion": "The text of your next question",
-  "feedbackOnLastAnswer": "Brief feedback on their last answer (null if first question)",
+  "feedbackOnLastAnswer": "A very brief acknowledgment of their last answer (e.g. 'Got it.', 'Okay.', 'Interesting point.', 'Makes sense.') - MUST BE under 10 words. Do NOT give detailed feedback, critiques, corrections, or explanations here.",
   "isFinished": false,
   "finalScore": null,
   "finalFeedback": null
@@ -39,23 +39,23 @@ You must output ONLY valid JSON in the exact following format:
 If the interview is over, output:
 {
   "nextQuestion": null,
-  "feedbackOnLastAnswer": "Feedback on final answer",
+  "feedbackOnLastAnswer": "A very brief final acknowledgment.",
   "isFinished": true,
   "finalScore": 85,
-  "finalFeedback": "Detailed feedback summary"
+  "finalFeedback": "A comprehensive evaluation. Format it exactly as:\n\n### Overall Summary & Recommendations:\n[Detailed behavioral and technical summary feedback]\n\n### Question-by-Question Evaluation:\n1. **Question**: [Question text]\n   **Your Answer**: [Answer text]\n   **Technical Feedback**: [Detailed technical critique of their answer, explaining what was correct, incorrect, or missing in depth]\n   **Proctoring/Behavioral Feedback**: [Detailed assessment of their discipline, eye contact, confidence, voice level, and use of filler words based on tracked proctoring metrics]\n\n2. ... (repeat for all questions asked during the interview)"
 }
 
 Guidelines:
 1. Start by welcoming the candidate and asking the first question.
-2. Evaluate their latest answer for technical accuracy.
-3. The user's prompt will include [PROCTORING METRICS]. You MUST act as a strict evaluator and use these metrics to judge their discipline (eye contact) and confidence (voice intensity, filler words). Specifically mention these behaviors in your feedback. If they look away often, have low voice intensity, or use many filler words, strictly deduct points and point it out!
-4. Ask 3 to 5 questions total. If they have answered enough questions or the time is up, set 'isFinished' to true.
-5. If 'isFinished' is true, provide a 'finalScore' out of 100 and detailed 'finalFeedback' that incorporates both technical and behavioral performance.
-6. Make questions relevant to ${topic}.`;
+2. During the interview: Acknowledge answers extremely briefly in 'feedbackOnLastAnswer' (maximum 1 sentence, less than 10 words, e.g. "Okay", "Got it", "Interesting perspective.") and ask the next question immediately. Do not explain the correct answers, give feedback, or provide technical/behavioral critiques between questions.
+3. The user's prompt will include [PROCTORING METRICS]. Track these metrics silently for each turn. Do not evaluate them immediately. You must combine and include them in the proctoring/behavioral feedback for each question and in the overall summary at the end.
+4. Ask exactly 3 to 5 questions. Conclude the interview after sufficient questions by setting 'isFinished' to true.
+5. If 'isFinished' is true, you MUST look back at the conversation history and construct a comprehensive feedback breakdown starting with the Overall Summary & Recommendations, followed by the detailed Question-by-Question Evaluation list.
+6. Make questions highly relevant to the candidate's responses and ensure they flow logically as related follow-up questions or adjacent concepts to simulate a real interview.`;
 
     const prompt = isFirstQuestion 
       ? `The candidate is ready. Start the interview on the topic of ${topic}.`
-      : `The candidate answered: "${latestAnswer}". Evaluate it and generate the next question, or conclude the interview if sufficient questions have been asked.`;
+      : `The candidate answered: "${latestAnswer}". Acknowledge the answer very briefly (no feedback, grade, or critique), and ask the next related question on the topic. Do not evaluate yet. Conclude the interview if 3 to 5 questions have been asked.`;
 
     let dbSession;
     if (isFirstQuestion) {

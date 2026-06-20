@@ -54,3 +54,7 @@ env/
 
 # OS generated files
 Thumbs.db
+
+# Java/Maven build output
+target/
+resume-service/target/

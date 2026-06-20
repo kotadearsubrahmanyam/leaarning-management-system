@@ -35,5 +35,6 @@ if (-not $javaCheck) {
 }
 
 # Run Maven to compile and start the Spring Boot application
-Write-Host "Starting Spring Boot Resume Microservice on port 8080..." -ForegroundColor Cyan
+$env:PORT = "8082"
+Write-Host "Starting Spring Boot Resume Microservice on port 8082..." -ForegroundColor Cyan
 & $mvnCmd spring-boot:run

@@ -20,6 +20,120 @@ interface Warning {
   message: string;
 }
 
+// Helper to parse markdown-like bold syntax (**text**) and apply custom styling
+const parseMarkdownLine = (line: string) => {
+  // Split by bold groups e.g. **Question**
+  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      const cleanText = part.slice(2, -2);
+      const lower = cleanText.toLowerCase();
+      
+      const isQuestion = lower.includes("question");
+      const isAnswer = lower.includes("answer");
+      const isTechnical = lower.includes("technical");
+      const isProctor = lower.includes("proctor") || lower.includes("behavioral");
+      
+      let badgeClass = "font-bold ";
+      if (isQuestion) {
+        badgeClass += "text-indigo-600 dark:text-indigo-400 font-extrabold";
+      } else if (isAnswer) {
+        badgeClass += "text-slate-800 dark:text-slate-200 font-semibold";
+      } else if (isTechnical) {
+        badgeClass += "text-emerald-600 dark:text-emerald-400 font-bold block mb-1";
+      } else if (isProctor) {
+        badgeClass += "text-amber-600 dark:text-amber-500 font-bold block mb-1";
+      } else {
+        badgeClass += "text-primary";
+      }
+      
+      return (
+        <span key={i} className={badgeClass}>
+          {cleanText}
+        </span>
+      );
+    }
+    return part;
+  });
+};
+
+// Helper to format the full detailed feedback string as structured elements
+const renderFormattedFeedback = (feedback: string | null) => {
+  if (!feedback) return null;
+
+  const lines = feedback.split("\n");
+  return (
+    <div className="space-y-4">
+      {lines.map((line, index) => {
+        const trimmed = line.trim();
+        
+        if (trimmed === "") {
+          return <div key={index} className="h-1" />;
+        }
+        
+        // Handle headers (###)
+        if (trimmed.startsWith("###")) {
+          const headerText = trimmed.replace(/^###\s*/, "");
+          return (
+            <h4 
+              key={index} 
+              className="text-lg font-bold text-primary mt-6 mb-3 border-b border-slate-200 dark:border-white/10 pb-2"
+            >
+              {headerText}
+            </h4>
+          );
+        }
+        
+        // Handle question lists (e.g. "1. **Question**:")
+        if (trimmed.match(/^\d+\./)) {
+          return (
+            <div 
+              key={index} 
+              className="mt-6 p-4 bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl border-l-4 border-l-indigo-500"
+            >
+              {parseMarkdownLine(line)}
+            </div>
+          );
+        }
+
+        // Style "Your Answer" lines
+        if (trimmed.startsWith("**Your Answer**")) {
+          return (
+            <div key={index} className="pl-6 py-2 border-l-2 border-slate-300 dark:border-white/10 text-[14px] text-slate-600 dark:text-slate-300 my-2 italic leading-relaxed">
+              {parseMarkdownLine(line)}
+            </div>
+          );
+        }
+
+        // Style "Technical Feedback" lines
+        if (trimmed.startsWith("**Technical Feedback**")) {
+          return (
+            <div key={index} className="pl-6 py-2 border-l-2 border-emerald-500 dark:border-emerald-500/30 text-[14px] text-slate-700 dark:text-slate-300 my-2 leading-relaxed">
+              {parseMarkdownLine(line)}
+            </div>
+          );
+        }
+
+        // Style "Proctoring/Behavioral Feedback" lines
+        if (trimmed.startsWith("**Proctoring/Behavioral Feedback**") || trimmed.startsWith("**Behavioral Feedback**")) {
+          return (
+            <div key={index} className="pl-6 py-2 border-l-2 border-amber-500 dark:border-amber-500/30 text-[14px] text-slate-700 dark:text-slate-300 my-2 leading-relaxed">
+              {parseMarkdownLine(line)}
+            </div>
+          );
+        }
+
+        // Regular line
+        return (
+          <p key={index} className="pl-4 leading-relaxed text-[14px] text-slate-700 dark:text-slate-300 my-1">
+            {parseMarkdownLine(line)}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -42,6 +156,7 @@ export default function InterviewSessionPage() {
   const [isFinished, setIsFinished] = useState(false);
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [finalFeedback, setFinalFeedback] = useState<string | null>(null);
+  const [terminationCountdown, setTerminationCountdown] = useState<number | null>(null);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -267,17 +382,32 @@ export default function InterviewSessionPage() {
   };
 
   useEffect(() => {
-    if (warnings.length >= 3 && !isFinished) {
-      setIsFinished(true);
-      setFinalScore(0);
-      setFinalFeedback("Interview automatically terminated due to excessive proctoring violations (" + warnings.length + " warnings).");
+    if (warnings.length >= 3 && !isFinished && terminationCountdown === null) {
       if (mediaRecorderRef.current && isRecordingRef.current) {
         mediaRecorderRef.current.stop();
         setIsRecording(false);
         isRecordingRef.current = false;
       }
+      window.speechSynthesis.cancel();
+      setTerminationCountdown(5);
     }
-  }, [warnings, isFinished]);
+  }, [warnings, isFinished, terminationCountdown]);
+
+  useEffect(() => {
+    if (terminationCountdown !== null) {
+      if (terminationCountdown === 0) {
+        setIsFinished(true);
+        setFinalScore(0);
+        setFinalFeedback("Interview automatically terminated due to excessive proctoring violations (" + warnings.length + " warnings).");
+        setTerminationCountdown(null);
+      } else {
+        const timer = setTimeout(() => {
+          setTerminationCountdown(prev => (prev !== null ? prev - 1 : null));
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [terminationCountdown, warnings.length]);
 
   // Spacebar to toggle recording
   useEffect(() => {
@@ -302,9 +432,24 @@ export default function InterviewSessionPage() {
   const startRecording = () => {
     if (!streamRef.current || isAiSpeaking || isTranscribing) return;
     try {
-      // Groq handles full video/webm streams perfectly, stripping the audio track manually 
-      // sometimes breaks WebM codec headers in MediaRecorder, causing API failures!
-      const mediaRecorder = new MediaRecorder(streamRef.current);
+      // Isolate the audio tracks to prevent recording video packets and reduce file size
+      const audioTracks = streamRef.current.getAudioTracks();
+      if (audioTracks.length === 0) {
+        alert("No microphone input detected. Please check permissions.");
+        return;
+      }
+      const audioStream = new MediaStream(audioTracks);
+
+      let options = {};
+      if (MediaRecorder.isTypeSupported("audio/webm")) {
+        options = { mimeType: "audio/webm" };
+      } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
+        options = { mimeType: "audio/ogg" };
+      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+        options = { mimeType: "audio/mp4" };
+      }
+
+      const mediaRecorder = new MediaRecorder(audioStream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -313,7 +458,8 @@ export default function InterviewSessionPage() {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const mimeType = mediaRecorder.mimeType || "audio/webm";
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         await transcribeAudioAndSend(audioBlob);
       };
 
@@ -387,7 +533,7 @@ export default function InterviewSessionPage() {
     const avgVoice = metrics.voiceLevelCount > 0 ? Math.round(metrics.voiceLevelSum / metrics.voiceLevelCount) : 0;
     const lookAways = metrics.lookAwayCount;
     
-    const metaText = `\n\n[PROCTORING METRICS: The candidate used ${fillerWords} filler words. They looked away from the screen or were out of frame ${lookAways} times during this answer. Their average voice intensity was ${avgVoice}/100. Evaluate their confidence and discipline based on these metrics.]`;
+    const metaText = `\n\n[PROCTORING METRICS: The candidate used ${fillerWords} filler words. They looked away from the screen or were out of frame ${lookAways} times during this answer. Their average voice intensity was ${avgVoice}/100. Track these metrics silently. Do NOT evaluate them now. You will write the evaluation for this question at the end of the interview in the finalFeedback section.]`;
 
     await sendToAI(false, text.trim() + metaText);
   };
@@ -442,13 +588,16 @@ export default function InterviewSessionPage() {
     utteranceRef.current = utterance; // Prevent garbage collection bug
     
     const voices = window.speechSynthesis.getVoices();
-    const indianVoice = voices.find(v => v.lang === "en-IN" && v.name.includes("Google")) || 
-                        voices.find(v => v.lang === "en-IN") ||
-                        voices.find(v => v.lang.startsWith("en-") && v.name.includes("Google")) || 
-                        voices[0];
-    if (indianVoice) utterance.voice = indianVoice;
+    const voice = 
+      voices.find(v => v.name.includes("Online") && v.lang.startsWith("en-")) || // Microsoft Aria/Guy Online natural voices
+      voices.find(v => v.name.includes("Google") && (v.lang === "en-US" || v.lang === "en-GB")) || // Google US/UK English
+      voices.find(v => v.lang === "en-US" && v.name.includes("Natural")) || // macOS/iOS Natural voices
+      voices.find(v => v.name.includes("Google") && v.lang.startsWith("en-")) ||
+      voices.find(v => v.lang.startsWith("en-")) ||
+      voices[0];
+    if (voice) utterance.voice = voice;
     
-    utterance.rate = 1.0;
+    utterance.rate = 1.15; // Slightly faster for a professional, efficient flow
 
     let finished = false;
     const finishSpeaking = () => {
@@ -527,8 +676,8 @@ export default function InterviewSessionPage() {
           </div>
 
           <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 text-left">
-            <h3 className="text-xl font-semibold mb-4">Detailed Feedback</h3>
-            <p className="text-foreground/80 whitespace-pre-line leading-relaxed">{finalFeedback}</p>
+            <h3 className="text-xl font-semibold mb-6 text-primary border-b pb-3">Detailed Feedback</h3>
+            <div className="text-foreground/80 leading-relaxed">{renderFormattedFeedback(finalFeedback)}</div>
           </div>
 
           <AnimatedButton className="mt-8 px-8" onClick={() => router.push("/dashboard")}>
@@ -581,6 +730,11 @@ export default function InterviewSessionPage() {
                 </span>
                 Proctor
               </div>
+              {warnings.length > 0 && (
+                <div className="bg-red-600/90 backdrop-blur text-white px-3 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 border border-red-500/30 animate-pulse">
+                  <span>⚠️</span> Warnings: {warnings.length}/3
+                </div>
+              )}
             </div>
 
             <AnimatePresence>
@@ -708,6 +862,28 @@ export default function InterviewSessionPage() {
         </AnimatePresence>
         
       </div>
+
+      {/* Termination Countdown Overlay */}
+      {terminationCountdown !== null && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-center max-w-md p-8 bg-slate-900 border border-red-500/30 rounded-3xl shadow-2xl mx-4"
+          >
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-6 animate-bounce" />
+            <h2 className="text-2xl font-black text-white mb-2">Interview Terminated</h2>
+            <p className="text-red-200/80 text-sm mb-6 leading-relaxed">
+              You have accumulated {warnings.length} proctoring violations. The interview is being terminated for compliance reasons.
+            </p>
+            <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-4 border-red-500/20 border-t-red-500 animate-spin" />
+              <span className="text-4xl font-black text-white">{terminationCountdown}</span>
+            </div>
+            <p className="text-xs text-slate-500 mt-6">Terminating in {terminationCountdown} seconds...</p>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
