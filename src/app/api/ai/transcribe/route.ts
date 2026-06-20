@@ -23,8 +23,17 @@ export async function POST(req: Request) {
       return errorResponse("Audio file is required", 400);
     }
 
+    // Dynamically determine file extension from uploaded mime type
+    let fileExtension = "webm";
+    if (file.type) {
+      if (file.type.includes("ogg")) fileExtension = "ogg";
+      else if (file.type.includes("mp4")) fileExtension = "mp4";
+      else if (file.type.includes("mpeg")) fileExtension = "mp3";
+      else if (file.type.includes("wav")) fileExtension = "wav";
+    }
+
     const groqFormData = new FormData();
-    groqFormData.append("file", file, "audio.webm");
+    groqFormData.append("file", file, `audio.${fileExtension}`);
     groqFormData.append("model", "whisper-large-v3");
 
     const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {

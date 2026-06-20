@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { courses, enrollments, materials, materialProgress } from "@/db/schema";
+import { courses, enrollments, materials, materialProgress, users } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -55,7 +55,24 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         .where(and(eq(enrollments.courseId, courseId), eq(enrollments.studentId, userId)))
         .limit(1);
       
-      if (enrollment) hasAccess = true;
+      if (enrollment) {
+        hasAccess = true;
+      } else {
+        const [student] = await db
+          .select({
+            departmentId: users.departmentId,
+            semester: users.semester,
+          })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+
+        if (student && student.departmentId && student.semester) {
+          if (course.categoryId === student.departmentId && course.semester <= student.semester) {
+            hasAccess = true;
+          }
+        }
+      }
     }
 
     if (!hasAccess) {
