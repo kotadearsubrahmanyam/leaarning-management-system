@@ -34,9 +34,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (!evaluation) return NextResponse.json({ success: false, error: "Evaluation not found or unauthorized" }, { status: 404 });
     if (evaluation.status === "EVALUATED") return NextResponse.json({ success: false, error: "Already evaluated" }, { status: 400 });
 
-    // 2. Update the Blind Evaluation status
+    // 2. Update the Blind Evaluation status and comments
     await db.update(blindEvaluations)
-      .set({ marks: Number(marks), status: "EVALUATED", comments: comments || null })
+      .set({ 
+        marks: Number(marks), 
+        comments: comments || null,
+        status: "EVALUATED" 
+      })
       .where(eq(blindEvaluations.id, id));
 
     // 3. Automatically sync to Results table (Magic Sync)
