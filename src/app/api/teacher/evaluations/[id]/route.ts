@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { blindEvaluations, results } from "@/db/schema";
+import { blindEvaluations, results, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { verifyJwt } from "@/lib/jwt";
+import { recalculateStudentGpas } from "@/lib/gpa";
 import crypto from "crypto";
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
@@ -34,12 +35,23 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (!evaluation) return NextResponse.json({ success: false, error: "Evaluation not found or unauthorized" }, { status: 404 });
     if (evaluation.status === "EVALUATED") return NextResponse.json({ success: false, error: "Already evaluated" }, { status: 400 });
 
-    // 2. Update the Blind Evaluation status
+    // 2. Update the Blind Evaluation status and comments
     await db.update(blindEvaluations)
-      .set({ marks: Number(marks), status: "EVALUATED", comments: comments || null })
+      .set({ 
+        marks: Number(marks), 
+        comments: comments || null,
+        status: "EVALUATED" 
+      })
       .where(eq(blindEvaluations.id, id));
 
-    // 3. Automatically sync to Results table (Magic Sync)
+    // 3. Fetch Student Name & Roll Number for Results mapping
+    const studentUser = await db.query.users.findFirst({
+      where: eq(users.id, evaluation.studentId)
+    });
+    const studentName = studentUser?.name || "N/A";
+    const studentRollNumber = studentUser?.rollNumber || "N/A";
+
+    // 4. Automatically sync to Results table (Magic Sync)
     // We map the hidden studentId to the actual results table.
     // Blind evaluation marks are the end semester marks (total marks).
     const totalMarks = Number(marks);
@@ -59,11 +71,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (existingResult) {
       await db.update(results)
         .set({
+          studentName,
+          studentRollNumber,
           internalMarks: 0,
           externalMarks: 0,
           marks: totalMarks,
           grade,
           status,
+          published: true, // Auto publish result
+          createdAt: new Date(), // Update timestamp to trigger "Recently Updated" row highlighting
         })
         .where(eq(results.id, existingResult.id));
     } else {
@@ -77,12 +93,17 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         grade,
         status,
         credits: evaluation.course.credits,
-        studentName: "HIDDEN_IN_EVAL",
-        subjectCode: "EVAL",
+        studentName,
+        studentRollNumber,
+        subjectCode: evaluation.course.id.substring(0, 6).toUpperCase(),
         subjectName: evaluation.course.title,
-        published: false
+        published: true, // Auto publish result
+        createdAt: new Date(),
       });
     }
+
+    // 5. Automatically recalculate GPA and update summaries
+    await recalculateStudentGpas(evaluation.studentId);
 
     return NextResponse.json({ success: true, message: "Marks submitted securely and synced to results." });
   } catch (error: any) {
