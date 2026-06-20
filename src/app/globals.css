@@ -364,3 +364,20 @@ textarea.flex:hover {
   scrollbar-width: thin;
   scrollbar-color: rgba(139, 92, 246, 0.25) transparent;
 }
+
+/* Modal Backdrop Positioning to account for Sidebar state */
+main.pl-\[280px\] .modal-backdrop-layout {
+  padding-left: 280px;
+}
+main.pl-20 .modal-backdrop-layout {
+  padding-left: 80px;
+}
+@media (min-width: 768px) {
+  main.md\:pl-\[300px\] .modal-backdrop-layout {
+    padding-left: 300px;
+  }
+  main.md\:pl-\[104px\] .modal-backdrop-layout {
+    padding-left: 104px;
+  }
+}
+

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { courses, users, departments } from "@/db/schema";
+import { courses, users, departments, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -24,6 +24,7 @@ export async function GET() {
         description: courses.description,
         level: courses.level,
         semester: courses.semester,
+        teacherId: courses.teacherId,
         teacherName: users.name,
         departmentName: departments.name,
         createdAt: courses.createdAt,
@@ -33,7 +34,24 @@ export async function GET() {
       .leftJoin(departments, eq(courses.categoryId, departments.id))
       .orderBy(desc(courses.createdAt));
 
-    return successResponse({ courses: data }, "Fetched courses successfully");
+    // For each course, fetch its faculties from the courseFaculty table
+    const coursesWithFaculties = await Promise.all(data.map(async (course) => {
+      const faculties = await db
+        .select({
+          id: users.id,
+          name: users.name,
+        })
+        .from(courseFaculty)
+        .innerJoin(users, eq(courseFaculty.teacherId, users.id))
+        .where(eq(courseFaculty.courseId, course.id));
+
+      return {
+        ...course,
+        faculties: faculties.length > 0 ? faculties : (course.teacherId ? [{ id: course.teacherId, name: course.teacherName }] : [])
+      };
+    }));
+
+    return successResponse({ courses: coursesWithFaculties }, "Fetched courses successfully");
   } catch (error) {
     console.error("Fetch courses error:", error);
     return errorResponse("Internal server error", 500);

@@ -50,6 +50,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         { href: "/dashboard/admin/users", icon: Users, label: "Users" },
         { href: "/dashboard/admin/courses", icon: BookOpen, label: "Courses" },
         { href: "/dashboard/admin/departments", icon: Layers, label: "Departments" },
+        { href: "/dashboard/admin/evaluations", icon: FileCheck, label: "Blind Evaluations" },
         { href: "/dashboard/payments", icon: CreditCard, label: "Payments" },
         { href: "/dashboard/results", icon: Award, label: "Results" },
         { href: "/dashboard/community", icon: Users, label: "Community" },
@@ -64,6 +65,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         { href: "/dashboard/teacher/progress", icon: BarChart, label: "Student Tracker" },
         { href: "/dashboard/teacher/attendance", icon: Calendar, label: "Attendance" },
         { href: "/dashboard/teacher/evaluation", icon: CheckSquare, label: "Evaluation" },
+        { href: "/dashboard/teacher/endsem", icon: Shield, label: "Blind Correction" },
         { href: "/dashboard/community", icon: Users, label: "Community" },
       ];
     } else {
