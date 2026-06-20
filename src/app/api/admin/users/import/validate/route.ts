@@ -4,9 +4,17 @@ import { users, departments } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, like } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
+
+function getDeptPrefix(deptName: string): string {
+  const lower = deptName.toLowerCase();
+  if (lower.includes("computer science") || lower.includes("cse")) return "CSE";
+  if (lower.includes("electronics") || lower.includes("ece")) return "ECE";
+  if (lower.includes("business") || lower.includes("bba")) return "BBA";
+  return "STU"; // Fallback
+}
 
 function getVal(row: any, keys: string[]): string {
   for (const k of Object.keys(row)) {
@@ -77,7 +85,7 @@ export async function POST(req: Request) {
       }
     });
 
-    // We will extract values, then check DB for existing emails and roll numbers
+    // We will extract values
     const processedRows = rows.map((row, idx) => {
       const name = getVal(row, NAME_KEYS);
       const rollNumber = getVal(row, ROLL_KEYS);
@@ -97,7 +105,7 @@ export async function POST(req: Request) {
       };
     });
 
-    // Collect all emails and roll numbers to query DB in batches
+    // Collect all emails and roll numbers to query DB in batches (only needed for teachers now, but let's query them)
     const emailsToQuery = processedRows.map(r => r.email.toLowerCase()).filter(Boolean);
     const rollsToQuery = processedRows.map(r => r.rollNumber.toLowerCase()).filter(Boolean);
 
@@ -105,7 +113,6 @@ export async function POST(req: Request) {
     const dbRolls = new Set<string>();
 
     if (emailsToQuery.length > 0) {
-      // Drizzle chunking query to avoid SQL parameters overflow
       const chunkSize = 100;
       for (let i = 0; i < emailsToQuery.length; i += chunkSize) {
         const chunk = emailsToQuery.slice(i, i + chunkSize);
@@ -133,6 +140,38 @@ export async function POST(req: Request) {
       }
     }
 
+    // Cache for tracking auto-generated student sequence numbers in memory
+    const maxSequenceCache = new Map<string, number>();
+
+    const getNextSequence = async (prefixKey: string) => {
+      if (maxSequenceCache.has(prefixKey)) {
+        const nextSeq = maxSequenceCache.get(prefixKey)!;
+        maxSequenceCache.set(prefixKey, nextSeq + 1);
+        return nextSeq;
+      }
+
+      // Query database for all existing roll numbers with this prefix
+      const matchingUsers = await db
+        .select({ rollNumber: users.rollNumber })
+        .from(users)
+        .where(like(users.rollNumber, `${prefixKey}%`));
+
+      let maxSeq = 0;
+      matchingUsers.forEach((u) => {
+        if (u.rollNumber) {
+          const seqStr = u.rollNumber.substring(prefixKey.length);
+          const seqNum = parseInt(seqStr, 10);
+          if (!isNaN(seqNum) && seqNum > maxSeq) {
+            maxSeq = seqNum;
+          }
+        }
+      });
+
+      const startingSeq = maxSeq + 1;
+      maxSequenceCache.set(prefixKey, startingSeq + 1);
+      return startingSeq;
+    };
+
     // Keep track of duplicates in the uploaded sheet
     const sheetEmails = new Set<string>();
     const sheetRolls = new Set<string>();
@@ -140,44 +179,14 @@ export async function POST(req: Request) {
     let validCount = 0;
     let invalidCount = 0;
 
-    const validationResults = processedRows.map((r) => {
+    const validationResults: any[] = [];
+
+    for (const r of processedRows) {
       const rowErrors: string[] = [];
 
       // Name check
       if (!r.name) {
         rowErrors.push("Empty Name");
-      }
-
-      // Email check
-      if (!r.email) {
-        rowErrors.push("Empty Email");
-      } else {
-        const emailLower = r.email.toLowerCase();
-        // Regex validation
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLower)) {
-          rowErrors.push("Invalid Email Format");
-        } else if (dbEmails.has(emailLower)) {
-          rowErrors.push("Duplicate Email (Already exists in database)");
-        } else if (sheetEmails.has(emailLower)) {
-          rowErrors.push("Duplicate Email (Repeated in upload file)");
-        } else {
-          sheetEmails.add(emailLower);
-        }
-      }
-
-      // Roll Number / Faculty ID check
-      const identifierName = roleType === "STUDENT" ? "Roll Number" : "Faculty ID";
-      if (!r.rollNumber) {
-        rowErrors.push(`Empty ${identifierName}`);
-      } else {
-        const rollLower = r.rollNumber.toLowerCase();
-        if (dbRolls.has(rollLower)) {
-          rowErrors.push(`Duplicate ${identifierName} (Already exists in database)`);
-        } else if (sheetRolls.has(rollLower)) {
-          rowErrors.push(`Duplicate ${identifierName} (Repeated in upload file)`);
-        } else {
-          sheetRolls.add(rollLower);
-        }
       }
 
       // Department check
@@ -215,6 +224,56 @@ export async function POST(req: Request) {
         rowErrors.push("Empty Subject");
       }
 
+      let rollNumber = "";
+      let email = "";
+
+      if (rowErrors.length === 0) {
+        if (roleType === "STUDENT") {
+          // AUTO GENERATE ROLL NUMBER & EMAIL
+          const currentYearShort = new Date().getFullYear() % 100; // e.g. 26
+          const prefixYear = currentYearShort - Math.floor((semester! - 1) / 2);
+          const deptPrefix = getDeptPrefix(resolvedDeptName);
+          const prefixKey = `${prefixYear}${deptPrefix}`;
+          
+          const nextSeq = await getNextSequence(prefixKey);
+          const paddedSeq = String(nextSeq).padStart(3, '0');
+          
+          rollNumber = `${prefixKey}${paddedSeq}`;
+          email = `${rollNumber.toLowerCase()}@test.com`;
+        } else {
+          // For teachers, validate Faculty ID and Email from the sheet
+          if (!r.email) {
+            rowErrors.push("Empty Email");
+          } else {
+            const emailLower = r.email.toLowerCase();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLower)) {
+              rowErrors.push("Invalid Email Format");
+            } else if (dbEmails.has(emailLower)) {
+              rowErrors.push("Duplicate Email (Already exists in database)");
+            } else if (sheetEmails.has(emailLower)) {
+              rowErrors.push("Duplicate Email (Repeated in upload file)");
+            } else {
+              sheetEmails.add(emailLower);
+              email = emailLower;
+            }
+          }
+
+          if (!r.rollNumber) {
+            rowErrors.push("Empty Faculty ID");
+          } else {
+            const rollLower = r.rollNumber.toLowerCase();
+            if (dbRolls.has(rollLower)) {
+              rowErrors.push("Duplicate Faculty ID (Already exists in database)");
+            } else if (sheetRolls.has(rollLower)) {
+              rowErrors.push("Duplicate Faculty ID (Repeated in upload file)");
+            } else {
+              sheetRolls.add(rollLower);
+              rollNumber = r.rollNumber;
+            }
+          }
+        }
+      }
+
       const isValid = rowErrors.length === 0;
       if (isValid) {
         validCount++;
@@ -222,19 +281,19 @@ export async function POST(req: Request) {
         invalidCount++;
       }
 
-      return {
+      validationResults.push({
         rowNumber: r.originalIndex,
         name: r.name || "N/A",
-        email: r.email || "N/A",
-        rollNumber: r.rollNumber || "N/A",
+        email: isValid ? email : (r.email || "N/A"),
+        rollNumber: isValid ? rollNumber : (r.rollNumber || "N/A"),
         department: resolvedDeptName || r.deptStr || "N/A",
         departmentId,
         semester: semester,
         subject: r.subject || "N/A",
         status: isValid ? "valid" : "invalid",
         errors: rowErrors,
-      };
-    });
+      });
+    }
 
     return successResponse({
       summary: {

@@ -12,13 +12,19 @@ const pool = new Pool({
 async function main() {
   try {
     const client = await pool.connect();
-    const result = await client.query(`
-      SELECT id, name, email, role, "rollNumber"
-      FROM "User"
-      WHERE id = '5cafbb75-a246-47a9-826d-7ff4a102ead2';
+    
+    // Fetch semester 3 students
+    const res = await client.query(`
+      SELECT id, name, email, "rollNumber", "departmentId", semester 
+      FROM "User" 
+      WHERE role = 'STUDENT' AND semester = 3
+      ORDER BY "rollNumber" ASC
+      LIMIT 10;
     `);
-    console.log('User details:');
-    console.log(JSON.stringify(result.rows, null, 2));
+    
+    console.log('Semester 3 Students in Database:');
+    console.log(JSON.stringify(res.rows, null, 2));
+    
     client.release();
   } catch (error) {
     console.error('Error connecting to DB:', error);

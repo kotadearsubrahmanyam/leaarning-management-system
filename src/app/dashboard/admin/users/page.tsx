@@ -234,19 +234,15 @@ export default function AdminUsersPage() {
     let sampleData: any[] = [];
     
     if (role === "STUDENT") {
-      headers = ["Name", "Roll Number", "Email", "Department", "Semester"];
+      headers = ["Name", "Department", "Semester"];
       sampleData = [
         {
           "Name": "John Doe",
-          "Roll Number": "24B11CS001",
-          "Email": "24B11CS001@university.in",
           "Department": "CSE",
           "Semester": 3
         },
         {
           "Name": "Priya",
-          "Roll Number": "24B11CS002",
-          "Email": "24B11CS002@university.in",
           "Department": "CSE",
           "Semester": 3
         }
