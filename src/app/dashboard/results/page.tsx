@@ -168,6 +168,24 @@ const mapDeptName = (name: string) => {
   return name.substring(0, 5).toUpperCase();
 };
 
+const isRecentlyUpdated = (dateString: string | Date | null): boolean => {
+  if (!dateString) return false;
+  const diffMs = new Date().getTime() - new Date(dateString).getTime();
+  return diffMs > 0 && diffMs < 24 * 60 * 60 * 1000; // 24 hours
+};
+
+const getTimeAgo = (dateString: string | Date | null): string => {
+  if (!dateString) return "N/A";
+  const seconds = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 1000);
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
 export default function ResultsPage() {
   const queryClient = useQueryClient();
   const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
@@ -288,6 +306,18 @@ export default function ResultsPage() {
   const students = (usersData?.data?.users || []).filter((u: any) => u.role === "STUDENT");
   const adminResults = data?.data?.results || [];
   const dbSummaries = summariesData?.data?.summaries || [];
+
+  // Fetch evaluations for admin stats
+  const { data: evaluationsRes } = useQuery({
+    queryKey: ["adminEvaluations"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/evaluations");
+      if (!res.ok) throw new Error("Failed to fetch evaluations");
+      return res.json();
+    },
+    enabled: role === "ADMIN",
+  });
+  const allEvaluations = evaluationsRes?.data || [];
 
   // Fetch departments for admin batch selector
   const { data: deptsData } = useQuery({
@@ -803,10 +833,18 @@ export default function ResultsPage() {
   // --- ADMIN RENDER ---
   if (role === "ADMIN") {
     // KPI Summaries
-    const totalDepartments = departments.length;
-    const totalStudents = students.length;
+    const totalEvaluatedScripts = allEvaluations.filter((e: any) => e.status === "EVALUATED").length;
+    const pendingEvaluations = allEvaluations.filter((e: any) => e.status === "PENDING").length;
     const totalPublished = adminResults.filter((r: any) => r.published).length;
-    const totalPending = adminResults.filter((r: any) => !r.published).length;
+    const recentlyUpdatedResults = adminResults.filter((r: any) => isRecentlyUpdated(r.createdAt)).length;
+    const avgDeptPerformance = adminResults.length > 0
+      ? (adminResults.reduce((sum: number, r: any) => sum + r.marks, 0) / adminResults.length).toFixed(1)
+      : "0";
+
+    const recentEvaluations = allEvaluations
+      .filter((e: any) => e.status === "EVALUATED")
+      .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+      .slice(0, 6);
 
     // Compute Recharts Chart Data
     // A. Department-wise Pass Percentage
@@ -1041,48 +1079,60 @@ export default function ResultsPage() {
           </button>
         </motion.div>
 
-        {/* Overview Statistics Cards & Recharts Charts */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        {/* Overview Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Departments</span>
-              <span className="text-2xl font-black text-slate-800 mt-1 block">{totalDepartments}</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Evaluated Scripts</span>
+              <span className="text-xl font-black text-slate-800 mt-1 block">{totalEvaluatedScripts} Papers</span>
             </div>
-            <div className="p-3 bg-[#7C3AED]/10 text-[#7C3AED] rounded-xl border border-purple-100">
-              <Layers size={24} />
+            <div className="p-2.5 bg-[#7C3AED]/10 text-[#7C3AED] rounded-xl border border-purple-100">
+              <Book size={20} />
             </div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Students</span>
-              <span className="text-2xl font-black text-slate-800 mt-1 block">{totalStudents}</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending Evaluations</span>
+              <span className="text-xl font-black text-amber-600 mt-1 block">{pendingEvaluations} Scripts</span>
             </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
-              <Users size={24} />
+            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
+              <Activity size={20} />
             </div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Published Results</span>
-              <span className="text-2xl font-black text-emerald-600 mt-1 block">{totalPublished} Grades</span>
+              <span className="text-xl font-black text-emerald-600 mt-1 block">{totalPublished} Grades</span>
             </div>
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
-              <CheckCircle size={24} />
+            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+              <CheckCircle size={20} />
             </div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending Declaration</span>
-              <span className="text-2xl font-black text-amber-600 mt-1 block">{totalPending} Drafts</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Recently Updated</span>
+              <span className="text-xl font-black text-blue-600 mt-1 block">{recentlyUpdatedResults} Rows</span>
             </div>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
-              <Activity size={24} />
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+              <TrendingUp size={20} />
+            </div>
+          </div>
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+            <div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Average Performance</span>
+              <span className="text-xl font-black text-indigo-600 mt-1 block">{avgDeptPerformance}%</span>
+            </div>
+            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+              <Percent size={20} />
             </div>
           </div>
         </div>
 
-        {/* Charts & Analytics Drawer */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="flex flex-col lg:flex-row gap-6 mt-8">
+          {/* Left Column (70%) */}
+          <div className="w-full lg:w-[70%] space-y-6">
+            {/* Charts & Analytics Drawer */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm lg:col-span-2">
             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
               <BarChart3 size={18} className="text-[#7C3AED]" /> Department-wise Pass Percentage & Semester Averages
@@ -1276,14 +1326,26 @@ export default function ResultsPage() {
                       </thead>
                       <tbody className="divide-y divide-[#E2E8F0] text-sm text-slate-700">
                         {filteredSearchGrouped.map((g: any, idx: number) => {
-                          const rowBg = idx % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]";
+                          const isRecent = g.results.some((r: any) => isRecentlyUpdated(r.createdAt));
+                          const rowBg = isRecent 
+                            ? "bg-emerald-50/60 border-l-4 border-l-emerald-500" 
+                            : (idx % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]");
                           const isStudentExpanded = expandedStudentId === `${g.student.id}-${g.semester}`;
 
                           return (
                             <React.Fragment key={idx}>
                               <tr className={`${rowBg} hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]`}>
                                 <td className="p-4 pl-6 font-mono text-xs font-semibold text-slate-500">{g.student.rollNumber || "N/A"}</td>
-                                <td className="p-4 font-bold text-slate-800">{g.student.name}</td>
+                                <td className="p-4 font-bold text-slate-800">
+                                  <div className="flex items-center gap-2">
+                                    <span>{g.student.name}</span>
+                                    {isRecent && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-250 animate-pulse">
+                                        Recently Updated
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
                                 <td className="p-4 text-center font-extrabold text-slate-600">Semester {g.semester}</td>
                                 <td className="p-4 text-center">
                                   <button
@@ -1372,30 +1434,42 @@ export default function ResultsPage() {
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 font-medium">
-                                          {g.results.map((res: any) => (
-                                            <tr key={res.id} className="hover:bg-slate-50/50">
-                                              <td className="p-3 font-mono font-bold text-purple-600">{res.subjectCode}</td>
-                                              <td className="p-3 font-bold text-slate-800">{res.subjectName}</td>
-                                              <td className="p-3 text-center text-slate-500">{res.internalMarks}</td>
-                                              <td className="p-3 text-center text-slate-500">{res.externalMarks}</td>
-                                              <td className="p-3 text-center font-bold text-slate-800">{res.marks}/100</td>
-                                              <td className="p-3 text-center">{res.credits}</td>
-                                              <td className="p-3 text-center font-black text-[#7C3AED]">{res.grade}</td>
-                                              <td className="p-3 text-center">
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                                  res.status === "PASS" ? "bg-green-50 text-green-600 border border-green-150" : "bg-red-50 text-red-600 border border-red-150"
-                                                }`}>
-                                                  {res.status}
-                                                </span>
-                                              </td>
-                                              <td className="p-3 text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                  <button onClick={() => openEditModal(res)} className="text-[#7C3AED] hover:underline">Edit</button>
-                                                  <button onClick={() => handleDeleteSubject(res.id)} className="text-red-500 hover:underline">Delete</button>
-                                                </div>
-                                              </td>
-                                            </tr>
-                                          ))}
+                                          {g.results.map((res: any) => {
+                                            const isSubjectRecent = isRecentlyUpdated(res.createdAt);
+                                            return (
+                                              <tr key={res.id} className="hover:bg-slate-50/50">
+                                                <td className="p-3 font-mono font-bold text-purple-600">{res.subjectCode}</td>
+                                                <td className="p-3 font-bold text-slate-800">
+                                                  <div className="flex items-center gap-2">
+                                                    <span>{res.subjectName}</span>
+                                                    {isSubjectRecent && (
+                                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        New Marks
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                                <td className="p-3 text-center text-slate-500">{res.internalMarks}</td>
+                                                <td className="p-3 text-center text-slate-500">{res.externalMarks}</td>
+                                                <td className="p-3 text-center font-bold text-slate-800">{res.marks}/100</td>
+                                                <td className="p-3 text-center">{res.credits}</td>
+                                                <td className="p-3 text-center font-black text-[#7C3AED]">{res.grade}</td>
+                                                <td className="p-3 text-center">
+                                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                                    res.status === "PASS" ? "bg-green-50 text-green-600 border border-green-150" : "bg-red-50 text-red-600 border border-red-150"
+                                                  }`}>
+                                                    {res.status}
+                                                  </span>
+                                                </td>
+                                                <td className="p-3 text-center">
+                                                  <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => openEditModal(res)} className="text-[#7C3AED] hover:underline">Edit</button>
+                                                    <button onClick={() => handleDeleteSubject(res.id)} className="text-red-500 hover:underline">Delete</button>
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
                                         </tbody>
                                       </table>
                                     </div>
@@ -1630,14 +1704,26 @@ export default function ResultsPage() {
                                   const hasFail = studentResults.some((r: any) => r.status === "FAIL");
                                   const passStatus = subjectCount === 0 ? "NO MARKS" : hasFail ? "FAIL" : "PASS";
 
-                                  const rowBg = idx % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]";
+                                  const isRecent = studentResults.some((r: any) => isRecentlyUpdated(r.createdAt));
+                                  const rowBg = isRecent 
+                                    ? "bg-emerald-50/60 border-l-4 border-l-emerald-500" 
+                                    : (idx % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]");
                                   const isStudentExpanded = expandedStudentId === student.id;
 
                                   return (
                                     <React.Fragment key={student.id}>
                                       <tr className={`${rowBg} hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]`}>
                                         <td className="p-4 pl-6 font-mono text-xs font-semibold text-slate-500">{student.rollNumber || "N/A"}</td>
-                                        <td className="p-4 font-bold text-slate-850">{student.name}</td>
+                                        <td className="p-4 font-bold text-slate-850">
+                                          <div className="flex items-center gap-2">
+                                            <span>{student.name}</span>
+                                            {isRecent && (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-250 animate-pulse">
+                                                Recently Updated
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
                                         <td className="p-4 text-center">
                                           <button
                                             onClick={() => setExpandedStudentId(isStudentExpanded ? null : student.id)}
@@ -1727,30 +1813,42 @@ export default function ResultsPage() {
                                                   </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                                                  {studentResults.map((res: any) => (
-                                                    <tr key={res.id} className="hover:bg-slate-50/50">
-                                                      <td className="p-3 font-mono font-bold text-purple-600">{res.subjectCode}</td>
-                                                      <td className="p-3 font-bold text-slate-800">{res.subjectName}</td>
-                                                      <td className="p-3 text-center text-slate-500">{res.internalMarks}</td>
-                                                      <td className="p-3 text-center text-slate-500">{res.externalMarks}</td>
-                                                      <td className="p-3 text-center font-bold text-slate-800">{res.marks}/100</td>
-                                                      <td className="p-3 text-center">{res.credits}</td>
-                                                      <td className="p-3 text-center font-black text-[#7C3AED]">{res.grade}</td>
-                                                      <td className="p-3 text-center">
-                                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                                          res.status === "PASS" ? "bg-green-50 text-green-600 border-green-200" : "bg-red-50 text-red-600 border-red-200"
-                                                        }`}>
-                                                          {res.status}
-                                                        </span>
-                                                      </td>
-                                                      <td className="p-3 text-center">
-                                                        <div className="flex items-center justify-center gap-2.5">
-                                                          <button onClick={() => openEditModal(res)} className="text-[#7C3AED] hover:underline font-bold">Edit</button>
-                                                          <button onClick={() => handleDeleteSubject(res.id)} className="text-red-500 hover:underline font-bold">Delete</button>
-                                                        </div>
-                                                      </td>
-                                                    </tr>
-                                                  ))}
+                                                  {studentResults.map((res: any) => {
+                                                    const isSubjectRecent = isRecentlyUpdated(res.createdAt);
+                                                    return (
+                                                      <tr key={res.id} className="hover:bg-slate-50/50">
+                                                        <td className="p-3 font-mono font-bold text-purple-600">{res.subjectCode}</td>
+                                                        <td className="p-3 font-bold text-slate-800">
+                                                          <div className="flex items-center gap-2">
+                                                            <span>{res.subjectName}</span>
+                                                            {isSubjectRecent && (
+                                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                                New Marks
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                        </td>
+                                                        <td className="p-3 text-center text-slate-500">{res.internalMarks}</td>
+                                                        <td className="p-3 text-center text-slate-500">{res.externalMarks}</td>
+                                                        <td className="p-3 text-center font-bold text-slate-800">{res.marks}/100</td>
+                                                        <td className="p-3 text-center">{res.credits}</td>
+                                                        <td className="p-3 text-center font-black text-[#7C3AED]">{res.grade}</td>
+                                                        <td className="p-3 text-center">
+                                                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                                            res.status === "PASS" ? "bg-green-50 text-green-600 border-green-200" : "bg-red-50 text-red-600 border-red-200"
+                                                          }`}>
+                                                            {res.status}
+                                                          </span>
+                                                        </td>
+                                                        <td className="p-3 text-center">
+                                                          <div className="flex items-center justify-center gap-2.5">
+                                                            <button onClick={() => openEditModal(res)} className="text-[#7C3AED] hover:underline font-bold">Edit</button>
+                                                            <button onClick={() => handleDeleteSubject(res.id)} className="text-red-500 hover:underline font-bold">Delete</button>
+                                                          </div>
+                                                        </td>
+                                                      </tr>
+                                                    );
+                                                  })}
                                                   {studentResults.length === 0 && (
                                                     <tr>
                                                       <td colSpan={9} className="p-4 text-center text-slate-400">No subject marks registered.</td>
@@ -1845,6 +1943,62 @@ export default function ResultsPage() {
             </div>
           </div>
         )}
+          </div>
+
+          {/* Right Column (30%) - Recently Evaluated Sidebar */}
+          <div className="w-full lg:w-[30%] space-y-6">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-purple-50 text-[#7C3AED] rounded-lg">
+                    <Activity size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">Recently Evaluated</h3>
+                    <p className="text-[10px] text-slate-400 font-medium">Real-time grading stream</p>
+                  </div>
+                </div>
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              </div>
+
+              <div className="space-y-3.5">
+                {recentEvaluations.length === 0 ? (
+                  <div className="text-center py-6 text-slate-400 text-xs font-medium border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                    No recently evaluated papers.
+                  </div>
+                ) : (
+                  recentEvaluations.map((ev: any) => (
+                    <div
+                      key={ev.id}
+                      className="group relative p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-[#F3E8FF]/40 hover:border-[#D8B4FE]/50 transition-all duration-300"
+                    >
+                      <div className="flex justify-between items-start mb-1.5">
+                        <span className="font-mono text-[10px] font-bold text-[#7C3AED] bg-[#F3E8FF] px-1.5 py-0.5 rounded border border-[#E9D5FF]">
+                          {ev.student?.rollNumber || "N/A"}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                          {getTimeAgo(ev.updatedAt)}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-xs text-slate-800 line-clamp-1 group-hover:text-slate-900 transition-colors">
+                        {ev.course?.title || "N/A"}
+                      </h4>
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100/60 text-[10px] font-bold text-slate-500">
+                        <span>By: <span className="text-slate-700 font-extrabold">{ev.faculty?.name || "N/A"}</span></span>
+                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100 font-black">
+                          {ev.marks} Marks
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* MODAL: Add/Edit Subject Marks */}
         <AnimatePresence>

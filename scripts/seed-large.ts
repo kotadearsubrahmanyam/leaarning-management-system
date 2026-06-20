@@ -116,8 +116,8 @@ async function main() {
   const materialInserts = [];
   const assignmentInserts = [];
   const courseFacultyInserts = [];
-  const allSemesters = [1, 2, 3, 4, 5, 6, 7, 8];
-  const oddSemesters = [1, 3, 5, 7];
+  const allSemesters = [3, 4, 5];
+  const oddSemesters = [3, 5];
   
   // We will build these and map them to their IDs later
   // Unfortunately, bulk insert returning isn't easy to map to original items, so we'll do this loop with individual inserts for courses (it's only 16 courses * 3 depts = 48 courses, which is fast).
