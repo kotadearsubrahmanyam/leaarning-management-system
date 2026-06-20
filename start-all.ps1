@@ -12,7 +12,7 @@ if (-not (Test-Path $powershellCommand)) {
 }
 
 # 1. Launch Spring Boot Resume Microservice in a new separate window
-Write-Host "🚀 Launching Spring Boot Resume Microservice (Port 8080)..." -ForegroundColor Yellow
+Write-Host "🚀 Launching Spring Boot Resume Microservice (Port 8082)..." -ForegroundColor Yellow
 Start-Process -FilePath $powershellCommand -WorkingDirectory (Join-Path $PSScriptRoot "resume-service") -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-File", ".\run-backend.ps1")
 
 # 2. Launch Python AI Microservice in a new separate window
