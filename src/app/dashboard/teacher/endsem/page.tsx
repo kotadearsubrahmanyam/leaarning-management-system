@@ -43,15 +43,15 @@ function SecurePDFViewer({ pdfUrl }: SecurePDFViewerProps) {
       return;
     }
     const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js";
+    script.src = "/pdf.min.js";
     script.async = true;
     script.onload = () => {
       const pdfjsLib = (window as any).pdfjsLib;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
       setPdfjsLoaded(true);
     };
     script.onerror = () => {
-      setError("Failed to load secure PDF viewer from CDN.");
+      setError("Failed to load secure PDF viewer.");
     };
     document.body.appendChild(script);
   }, []);
@@ -274,7 +274,7 @@ function SecurePDFViewer({ pdfUrl }: SecurePDFViewerProps) {
   );
 }
 
-export function TeacherBlindEvaluationsPage() {
+function TeacherBlindEvaluationsPage() {
   const queryClient = useQueryClient();
   const [selectedEval, setSelectedEval] = useState<any | null>(null);
   const [marks, setMarks] = useState<string>("");
