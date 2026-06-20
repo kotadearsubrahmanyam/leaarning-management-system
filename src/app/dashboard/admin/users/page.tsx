@@ -270,7 +270,7 @@ export default function AdminUsersPage() {
     const data = credentials.map(c => ({
       "Roll Number": c.rollNumber,
       "Username": c.username,
-      "Password": "LMS@123"
+      "Password": "123456"
     }));
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
