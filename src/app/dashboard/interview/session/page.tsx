@@ -179,6 +179,9 @@ export default function InterviewSessionPage() {
   const isAiSpeakingRef = useRef(false);
   const currentAudioLevelRef = useRef(0);
   const lipSyncViolationCountRef = useRef(0);
+  const noFaceViolationCountRef = useRef(0);
+  const lookAwayViolationCountRef = useRef(0);
+  const lastWarningTimeRef = useRef(0);
 
   useEffect(() => {
     isAiSpeakingRef.current = isAiSpeaking;
@@ -314,6 +317,7 @@ export default function InterviewSessionPage() {
         const results = faceLandmarkerRef.current.detectForVideo(video, now);
         
         if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+          noFaceViolationCountRef.current = 0; // reset
           if (results.faceLandmarks.length > 1) {
             addWarning("multiple_faces", "Multiple faces detected! You must be alone.");
             if (isRecordingRef.current) currentAnswerMetricsRef.current.lookAwayCount++;
@@ -329,8 +333,15 @@ export default function InterviewSessionPage() {
           const noseRelativeX = (nose.x - leftCheek.x) / faceWidth;
 
           if (noseRelativeX < 0.2 || noseRelativeX > 0.8) {
-            addWarning("looking_away", "You are looking away from the camera.");
-            if (isRecordingRef.current) currentAnswerMetricsRef.current.lookAwayCount++;
+            lookAwayViolationCountRef.current++;
+            // Require 30 frames (~3 seconds at 10 FPS) of consecutive looking away before warning
+            if (lookAwayViolationCountRef.current > 30) {
+              addWarning("looking_away", "You are looking away from the camera.");
+              if (isRecordingRef.current) currentAnswerMetricsRef.current.lookAwayCount++;
+              lookAwayViolationCountRef.current = 0;
+            }
+          } else {
+            lookAwayViolationCountRef.current = 0;
           }
           
           // Lip sync detection: upper lip (13) and lower lip (14)
@@ -355,8 +366,14 @@ export default function InterviewSessionPage() {
             lipSyncViolationCountRef.current = 0;
           }
         } else {
-          addWarning("no_face", "No face detected! Please stay in the camera frame.");
-          if (isRecordingRef.current) currentAnswerMetricsRef.current.lookAwayCount++;
+          lookAwayViolationCountRef.current = 0; // reset
+          noFaceViolationCountRef.current++;
+          // Require 30 frames (~3 seconds at 10 FPS) of consecutive no face before warning
+          if (noFaceViolationCountRef.current > 30) {
+            addWarning("no_face", "No face detected! Please stay in the camera frame.");
+            if (isRecordingRef.current) currentAnswerMetricsRef.current.lookAwayCount++;
+            noFaceViolationCountRef.current = 0;
+          }
         }
       }
       animationFrameRef.current = requestAnimationFrame(renderLoop);
@@ -365,14 +382,13 @@ export default function InterviewSessionPage() {
   };
 
   const addWarning = (type: string, message: string) => {
-    setWarnings(prev => {
-      const lastWarning = prev[prev.length - 1];
-      if (lastWarning && lastWarning.type === type) {
-        const timeDiff = new Date().getTime() - new Date(lastWarning.time).getTime();
-        if (timeDiff < 5000) return prev;
-      }
-      return [...prev, { time: new Date().toISOString(), type, message }];
-    });
+    const now = new Date().getTime();
+    if (now - lastWarningTimeRef.current < 15000) { // 15 seconds global warning throttle
+      return;
+    }
+    lastWarningTimeRef.current = now;
+
+    setWarnings(prev => [...prev, { time: new Date().toISOString(), type, message }]);
 
     setActiveWarningText(message);
     if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
@@ -382,7 +398,7 @@ export default function InterviewSessionPage() {
   };
 
   useEffect(() => {
-    if (warnings.length >= 3 && !isFinished && terminationCountdown === null) {
+    if (warnings.length >= 5 && !isFinished && terminationCountdown === null) {
       if (mediaRecorderRef.current && isRecordingRef.current) {
         mediaRecorderRef.current.stop();
         setIsRecording(false);
@@ -732,7 +748,7 @@ export default function InterviewSessionPage() {
               </div>
               {warnings.length > 0 && (
                 <div className="bg-red-600/90 backdrop-blur text-white px-3 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 border border-red-500/30 animate-pulse">
-                  <span>⚠️</span> Warnings: {warnings.length}/3
+                  <span>⚠️</span> Warnings: {warnings.length}/5
                 </div>
               )}
             </div>
