@@ -424,10 +424,8 @@ export default function ResultsPage() {
     ? currentStudentSemester + 1
     : (currentStudentSemester || 1);
 
-  const tabsList = [...publishedSemesters];
-  if (planningSem && !tabsList.includes(planningSem)) {
-    tabsList.push(planningSem);
-  }
+  const maxSem = Math.max(planningSem || 1, currentStudentSemester || 1, ...(publishedSemesters || []));
+  const tabsList = Array.from({ length: maxSem }, (_, i) => i + 1);
 
   // Fetch department/curriculum courses for planning semester
   const { data: departmentCoursesRes } = useQuery({
@@ -2177,7 +2175,7 @@ export default function ResultsPage() {
         cgpa: projectedCgpa,
         totalCredits: currentCredits,
         passedCount: activeCourses.filter((c: any) => (plannerGrades[c.id] || "A") !== "F").length,
-        status: "ESTIMATED",
+        status: "PROJECTED",
       }
     : (selectedSemester ? studentSummaries[selectedSemester] : null);
 
@@ -2193,226 +2191,208 @@ export default function ResultsPage() {
       </motion.div>
 
       <div className="space-y-6">
-        {publishedSemesters.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-8 rounded-3xl border border-slate-200 text-center max-w-2xl mx-auto shadow-sm flex flex-col items-center"
-          >
-            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-4 shadow-inner">
-              <Award size={24} className="text-slate-300" />
-            </div>
-            <h2 className="text-xl font-black text-slate-800 mb-1">Results Not Published Yet</h2>
-            <p className="text-slate-500 text-sm leading-relaxed max-w-md">
-              No results have been declared for your semesters yet. Once the administration publishes your marks, they will appear here. You can still plan your academic goals for the current semester using the calculator widget below.
-            </p>
-          </motion.div>
-        ) : (
-          <>
-            <div className="flex gap-2.5 overflow-x-auto pb-3 scrollbar-thin select-none">
-              {tabsList.map((sem) => (
-                <button
-                  key={sem}
-                  onClick={() => setSelectedSemester(sem)}
-                  className={`relative px-6 py-3 rounded-full font-extrabold transition-all whitespace-nowrap text-sm ${
-                    selectedSemester === sem
-                      ? "bg-[#10B981] text-white shadow-[0_4px_15px_rgba(16,185,129,0.35)] scale-[1.03]"
-                      : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
-                  }`}
-                >
-                  Semester {sem}
-                </button>
-              ))}
-            </div>
+        <div className="flex gap-2.5 overflow-x-auto pb-3 scrollbar-thin select-none">
+          {tabsList.map((sem) => (
+            <button
+              key={sem}
+              onClick={() => setSelectedSemester(sem)}
+              className={`relative px-6 py-3 rounded-full font-extrabold transition-all whitespace-nowrap text-sm ${
+                selectedSemester === sem
+                  ? "bg-[#10B981] text-white shadow-[0_4px_15px_rgba(16,185,129,0.35)] scale-[1.03]"
+                  : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              Semester {sem}
+            </button>
+          ))}
+        </div>
 
-            {selectedSemester && selectedSummary && (
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={selectedSemester}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.25 }}
-                  className="space-y-6"
-                >
-                  {isPlanningSelected ? (
-                    <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center max-w-2xl mx-auto shadow-sm flex flex-col items-center">
-                      <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                        <Award size={24} className="text-slate-400" />
+        {selectedSemester && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedSemester}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-6"
+            >
+              {!publishedSemesters.includes(selectedSemester) ? (
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center max-w-2xl mx-auto shadow-sm flex flex-col items-center">
+                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                    <Award size={24} className="text-slate-400" />
+                  </div>
+                  <h2 className="text-xl font-black text-slate-800 mb-1">Results Not Published Yet</h2>
+                  <p className="text-slate-500 text-sm leading-relaxed max-w-md">
+                    Grades for Semester {selectedSemester} have not been officially published. {selectedSemester === planningSem && "You can use the Goal Planner widget below to estimate your performance and project your GPA."}
+                  </p>
+                </div>
+              ) : (
+                selectedSummary && (
+                  <>
+                    {/* Semester Summary Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">SGPA</span>
+                        <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.sgpa}</span>
                       </div>
-                      <h2 className="text-xl font-black text-slate-800 mb-1">Results Not Published Yet</h2>
-                      <p className="text-slate-500 text-sm leading-relaxed max-w-md">
-                        Grades for Semester {selectedSemester} have not been officially published. You can use the Goal Planner widget below to estimate your performance and project your GPA.
-                      </p>
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">CGPA</span>
+                        <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.cgpa}</span>
+                      </div>
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Total Credits</span>
+                        <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.totalCredits}</span>
+                      </div>
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Passed</span>
+                        <span className="text-3xl font-black text-green-600 mt-2">{selectedSummary.passedCount}</span>
+                      </div>
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
+                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Status</span>
+                        <span className={`text-sm font-bold mt-2.5 px-3 py-1 rounded-full text-center border ${
+                          selectedSummary.status === "PASS"
+                            ? "bg-green-50 text-green-600 border-green-200"
+                            : selectedSummary.status === "PROJECTED"
+                            ? "bg-blue-50 text-blue-600 border-blue-200"
+                            : "bg-red-50 text-red-600 border-red-200"
+                        }`}>
+                          {selectedSummary.status}
+                        </span>
+                      </div>
                     </div>
-                  ) : (
-                    <>
-                      {/* Semester Summary Cards */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                          <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">SGPA</span>
-                          <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.sgpa}</span>
-                        </div>
-                        <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                          <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">CGPA</span>
-                          <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.cgpa}</span>
-                        </div>
-                        <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                          <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Total Credits</span>
-                          <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.totalCredits}</span>
-                        </div>
-                        <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                          <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Passed</span>
-                          <span className="text-3xl font-black text-green-600 mt-2">{selectedSummary.passedCount}</span>
-                        </div>
-                        <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
-                          <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Status</span>
-                          <span className={`text-sm font-bold mt-2.5 px-3 py-1 rounded-full text-center border ${
-                            selectedSummary.status === "PASS"
-                              ? "bg-green-50 text-green-600 border-green-200"
-                              : selectedSummary.status === "ESTIMATED"
-                              ? "bg-blue-50 text-blue-600 border-blue-200"
-                              : "bg-red-50 text-red-600 border-red-200"
-                          }`}>
-                            {selectedSummary.status}
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Subject Details Table */}
-                      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                        <div className="p-5 bg-slate-50 border-b border-slate-200 flex items-center gap-2.5">
-                          <GraduationCap className="text-[#10B981]" size={22} />
-                          <h3 className="font-bold text-slate-800">Semester {selectedSemester} - Grade Sheet</h3>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left border-collapse min-w-[700px]">
-                            <thead>
-                              <tr className="bg-slate-50 text-slate-800 font-extrabold text-xs uppercase tracking-wider border-b border-slate-300">
-                                <th className="p-4 pl-6 text-center w-16">S.No</th>
-                                <th className="p-4">Course Code</th>
-                                <th className="p-4">Course Name</th>
-                                <th className="p-4 text-center font-bold">Grade</th>
-                                <th className="p-4 text-center">Grade Points</th>
-                                <th className="p-4 text-center">Credits</th>
-                                <th className="p-4 pr-6 text-center">Result</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                              {selectedSemesterResults.map((sub: any, index: number) => (
-                                <tr key={sub.id || index} className="hover:bg-slate-50 transition-colors">
-                                  <td className="p-4 pl-6 text-center font-bold text-slate-400">{index + 1}</td>
-                                  <td className="p-4 font-mono text-xs font-bold text-[#10B981]">{sub.subjectCode}</td>
-                                  <td className="p-4 font-bold text-slate-800">
-                                    <div>{sub.courseName}</div>
-                                    {sub.passType === "SUPPLEMENTARY" && (
-                                      <div className="text-[11px] text-amber-600 font-extrabold mt-1 flex items-center gap-1 bg-amber-50 border border-amber-200/55 rounded-full px-2 py-0.5 w-max">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
-                                        Cleared via Supplementary in Sem {sub.clearedSemester} (Attempt {sub.attemptNumber})
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td className="p-4 text-center">
-                                    <span className={`font-black ${["A+", "A", "B+", "B", "O"].includes(sub.grade) ? "text-[#10B981]" : sub.grade === "F" ? "text-red-500" : "text-slate-700"}`}>
-                                      {sub.grade}
-                                    </span>
-                                  </td>
-                                  <td className="p-4 text-center font-bold text-slate-800">{getGradePoints(sub.grade)}</td>
-                                  <td className="p-4 text-center font-semibold">{sub.credits ? parseFloat(sub.credits).toFixed(1) : "3.0"}</td>
-                                  <td className="p-4 pr-6 text-center">
-                                    <span className={`font-bold ${
-                                      sub.status === "PASS"
-                                        ? "text-[#10B981]"
-                                        : sub.status === "-"
-                                        ? "text-slate-400"
-                                        : "text-red-500"
-                                    }`}>
-                                      {sub.status === "PASS" ? "P" : sub.status === "FAIL" ? "F" : "-"}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                    {/* Subject Details Table */}
+                    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                      <div className="p-5 bg-slate-50 border-b border-slate-200 flex items-center gap-2.5">
+                        <GraduationCap className="text-[#10B981]" size={22} />
+                        <h3 className="font-bold text-slate-800">Semester {selectedSemester} - Grade Sheet</h3>
                       </div>
-                    </>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            )}
-          </>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="bg-slate-50 text-slate-800 font-extrabold text-xs uppercase tracking-wider border-b border-slate-300">
+                              <th className="p-4 pl-6 text-center w-16">S.No</th>
+                              <th className="p-4">Course Code</th>
+                              <th className="p-4">Course Name</th>
+                              <th className="p-4 text-center">{selectedSemester ? getExamMonthYear(selectedSemester, authData?.data?.user?.rollNumber, authData?.data?.user?.semester) : "Exam"}</th>
+                              <th className="p-4 text-center font-bold">Grade</th>
+                              <th className="p-4 text-center">Grade Points</th>
+                              <th className="p-4 text-center">Credits</th>
+                              <th className="p-4 pr-6 text-center">Result</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                            {selectedSemesterResults.map((sub: any, index: number) => (
+                              <tr key={sub.id || index} className="hover:bg-slate-50 transition-colors">
+                                <td className="p-4 pl-6 text-center font-bold text-slate-400">{index + 1}</td>
+                                <td className="p-4 font-mono text-xs font-bold text-[#10B981]">{sub.subjectCode}</td>
+                                <td className="p-4 font-bold text-slate-800">
+                                  <div>{sub.courseName}</div>
+                                  {sub.passType === "SUPPLEMENTARY" && (
+                                    <div className="text-[11px] text-amber-600 font-extrabold mt-1 flex items-center gap-1 bg-amber-50 border border-amber-200/55 rounded-full px-2 py-0.5 w-max">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
+                                      Cleared via Supplementary in Sem {sub.clearedSemester} (Attempt {sub.attemptNumber})
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="p-4 text-center font-bold text-slate-600">{sub.grade}</td>
+                                <td className="p-4 text-center">
+                                  <span className={`font-black ${["A+", "A", "B+", "B", "O"].includes(sub.grade) ? "text-[#10B981]" : sub.grade === "F" ? "text-red-500" : "text-slate-700"}`}>
+                                    {sub.grade}
+                                  </span>
+                                </td>
+                                <td className="p-4 text-center font-bold text-slate-800">{getGradePoints(sub.grade)}</td>
+                                <td className="p-4 text-center font-semibold">{sub.credits ? parseFloat(sub.credits).toFixed(1) : "3.0"}</td>
+                                <td className="p-4 pr-6 text-center">
+                                  <span className={`font-bold ${
+                                    sub.status === "PASS"
+                                      ? "text-[#10B981]"
+                                      : sub.status === "-"
+                                      ? "text-slate-400"
+                                      : "text-red-500"
+                                  }`}>
+                                    {sub.status === "PASS" ? "P" : sub.status === "FAIL" ? "F" : "-"}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )
+              )}
+            </motion.div>
+          </AnimatePresence>
         )}
 
         {/* GPA Goal Planner Widget */}
         {isPlanningSelected && (
           <div className="bg-white rounded-3xl border border-slate-300 p-6 shadow-sm space-y-6">
-          <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
-            <Sliders className="text-[#10B981]" size={22} />
-            <div>
-              <h3 className="font-bold text-slate-800">CGPA & SGPA Goal Planner (Semester {planningSem})</h3>
-              <p className="text-xs text-slate-400">Estimate grades for Semester {planningSem} courses to project your SGPA and overall CGPA.</p>
+            <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
+              <Sliders className="text-[#10B981]" size={22} />
+              <div>
+                <h3 className="font-bold text-slate-800">CGPA & SGPA Goal Planner (Semester {planningSem})</h3>
+                <p className="text-xs text-slate-400">Estimate grades for Semester {planningSem} courses to project your SGPA and overall CGPA.</p>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Active Courses Selector */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-slate-700">Select Target Grades:</h4>
-              {activeCourses.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-center">
-                  <p className="text-sm text-slate-500 font-bold">No courses found for Semester {planningSem}.</p>
-                  <p className="text-xs text-slate-400 mt-1">Enroll in courses or contact administration to populate courses for Semester {planningSem}.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {activeCourses.map((c: any) => (
-                    <div key={c.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
-                      <div>
-                        <div className="font-bold text-sm text-slate-700">{c.title}</div>
-                        <div className="text-xs text-slate-400 font-medium">{c.credits} Credits</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Active Courses Selector */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-bold text-slate-700">Select Target Grades:</h4>
+                {activeCourses.length === 0 ? (
+                  <div className="p-6 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-center">
+                    <p className="text-sm text-slate-500 font-bold">No courses found for Semester {planningSem}.</p>
+                    <p className="text-xs text-slate-400 mt-1">Enroll in courses or contact administration to populate courses for Semester {planningSem}.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activeCourses.map((c: any) => (
+                      <div key={c.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                        <div>
+                          <div className="font-bold text-sm text-slate-700">{c.title}</div>
+                          <div className="text-xs text-slate-400 font-medium">{c.credits} Credits</div>
+                        </div>
+                        <select
+                          value={plannerGrades[c.id] || "A"}
+                          onChange={(e) => {
+                            setPlannerGrades({ ...plannerGrades, [c.id]: e.target.value });
+                            setHasUserModified(true);
+                          }}
+                          className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-700 focus:outline-none focus:border-[#10B981]"
+                        >
+                          <option value="A+">A+ (10)</option>
+                          <option value="A">A (9)</option>
+                          <option value="B+">B+ (8)</option>
+                          <option value="B">B (7)</option>
+                          <option value="C">C (6)</option>
+                          <option value="D">D (5)</option>
+                          <option value="F">F (0)</option>
+                        </select>
                       </div>
-                      <select
-                        value={plannerGrades[c.id] || "A"}
-                        onChange={(e) => {
-                          setPlannerGrades({ ...plannerGrades, [c.id]: e.target.value });
-                          setHasUserModified(true);
-                        }}
-                        className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-700 focus:outline-none focus:border-[#10B981]"
-                      >
-                        <option value="A+">A+ (10)</option>
-                        <option value="A">A (9)</option>
-                        <option value="B+">B+ (8)</option>
-                        <option value="B">B (7)</option>
-                        <option value="C">C (6)</option>
-                        <option value="D">D (5)</option>
-                        <option value="F">F (0)</option>
-                      </select>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-            {/* Estimated Outputs */}
-            <div className="space-y-6 lg:mt-9">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Official CGPA</span>
-                  <span className="text-3xl font-black text-slate-900 mt-2">{officialCgpa.toFixed(2)}</span>
-                </div>
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Estimated SGPA</span>
-                  <span className="text-3xl font-black text-slate-900 mt-2">{projectedSgpa}</span>
-                </div>
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                  <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Estimated CGPA</span>
-                  <span className="text-3xl font-black text-slate-900 mt-2">{projectedCgpa}</span>
+              {/* Projected Outputs */}
+              <div className="space-y-6 lg:mt-9">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Projected SGPA</span>
+                    <span className="text-3xl font-black text-slate-900 mt-2">{projectedSgpa}</span>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Projected CGPA</span>
+                    <span className="text-3xl font-black text-slate-900 mt-2">{projectedCgpa}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
         )}
       </div>
     </div>

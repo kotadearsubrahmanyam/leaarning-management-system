@@ -274,7 +274,7 @@ function SecurePDFViewer({ pdfUrl }: SecurePDFViewerProps) {
   );
 }
 
-export function TeacherBlindEvaluationsPage() {
+function TeacherBlindEvaluationsPage() {
   const queryClient = useQueryClient();
   const [selectedEval, setSelectedEval] = useState<any | null>(null);
   const [marks, setMarks] = useState<string>("");
