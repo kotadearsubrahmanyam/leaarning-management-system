@@ -6,21 +6,36 @@ import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { eq, and, desc, isNull } from "drizzle-orm";
 
+const mapFeeTypeToPaymentEnum = (feeType: string): "TUITION" | "HOSTEL" | "BUS" | "SUPPLEMENTARY" | "CONDONATION" | "OTHER" => {
+  const allowed = ["TUITION", "HOSTEL", "BUS", "SUPPLEMENTARY", "CONDONATION"];
+  return allowed.includes(feeType) ? (feeType as any) : "OTHER";
+};
+
 async function ensureDefaultFeesExist(userId: string, semester: number, currentSemester: number) {
   const existingFees = await db
     .select()
     .from(feeStructure)
     .where(and(eq(feeStructure.userId, userId), eq(feeStructure.semester, semester)));
 
-  if (existingFees.length === 0) {
-    const defaultFees = [
-      { feeType: "TUITION", amount: 50000, dueDate: new Date("2026-05-15") },
-      { feeType: "BUS", amount: 15000, dueDate: new Date("2026-06-20") },
-      { feeType: "HOSTEL", amount: 0, dueDate: new Date("2026-06-20") },
-      { feeType: "EXAM", amount: 2000, dueDate: new Date("2026-06-25") },
-      { feeType: "PLACEMENT", amount: 5000, dueDate: new Date("2026-06-30") }
-    ];
+  const student = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
 
+  if (!student) return;
+
+  const hostelAmount = student.residentStatus === "HOSTELER" ? 30000 : 0;
+  const busAmount = student.residentStatus === "DAYSCHOLAR_BUS" ? 15000 : 0;
+  const tuitionAmount = student.isFeeReimbursed ? 0 : 50000;
+
+  const defaultFees = [
+    { feeType: "TUITION", amount: tuitionAmount, dueDate: new Date("2026-05-15") },
+    { feeType: "BUS", amount: busAmount, dueDate: new Date("2026-06-20") },
+    { feeType: "HOSTEL", amount: hostelAmount, dueDate: new Date("2026-06-20") },
+    { feeType: "EXAM", amount: 2000, dueDate: new Date("2026-06-25") },
+    { feeType: "PLACEMENT", amount: 5000, dueDate: new Date("2026-06-30") }
+  ];
+
+  if (existingFees.length === 0) {
     for (const f of defaultFees) {
       // Past and current semesters are already paid/cleared. Future semesters are pending.
       const isPaidSemester = semester <= currentSemester;
@@ -44,10 +59,35 @@ async function ensureDefaultFeesExist(userId: string, semester: number, currentS
           userId,
           amount: f.amount,
           status: "VERIFIED",
-          feeType: f.feeType as any,
+          feeType: mapFeeTypeToPaymentEnum(f.feeType),
           feeStructureId: inserted.id,
           date: new Date(new Date().getFullYear() - (currentSemester - semester), 5, 15),
         });
+      }
+    }
+  } else {
+    // Dynamic Sync: Check if student's status changed (exemption or residency change) and update unpaid fee structures
+    for (const f of defaultFees) {
+      const match = existingFees.find(ef => ef.feeType === f.feeType);
+      if (match) {
+        // If it's not fully paid and the amount has changed (e.g. resident status changed or reimbursement enabled/disabled)
+        if (match.paidAmount === 0 && match.amount !== f.amount) {
+          const now = new Date();
+          const due = new Date(match.dueDate);
+          let newStatus = match.status;
+          if (f.amount === 0) {
+            newStatus = "PAID";
+          } else {
+            newStatus = now > due ? "OVERDUE" : "PENDING";
+          }
+
+          await db.update(feeStructure)
+            .set({
+              amount: f.amount,
+              status: newStatus,
+            })
+            .where(eq(feeStructure.id, match.id));
+        }
       }
     }
   }
@@ -119,11 +159,20 @@ export async function GET() {
     }
 
     // Fetch payments
-    const dbPayments = await db
-      .select()
+    const dbPaymentsRaw = await db
+      .select({
+        payment: payments,
+        fee: feeStructure,
+      })
       .from(payments)
+      .leftJoin(feeStructure, eq(payments.feeStructureId, feeStructure.id))
       .where(eq(payments.userId, userId))
       .orderBy(desc(payments.date));
+
+    const dbPayments = dbPaymentsRaw.map(row => ({
+      ...row.payment,
+      feeType: row.fee?.feeType || row.payment.feeType,
+    }));
 
     // Fetch fee structures
     const dbFees = await db
@@ -211,7 +260,7 @@ export async function POST(req: Request) {
       userId,
       amount: payAmount,
       status: "PAID",
-      feeType: feeItem.feeType as any, // Cast fee type
+      feeType: mapFeeTypeToPaymentEnum(feeItem.feeType),
       feeStructureId,
       date: new Date(),
     }).returning();

@@ -209,7 +209,7 @@ export default function ResumeBuilderDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-[#CBD5E1] dark:border-[#475569]/60 pb-5">
         <div>
           <h1 className="text-3xl font-black bg-gradient-to-r from-purple-600 via-purple-500 to-indigo-500 bg-clip-text text-transparent">
-            Resume Wizard Dashboard
+            Resume Builder
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Build, structure, and compile professional ATS-friendly LaTeX CVs and download compiled PDFs.

@@ -290,7 +290,7 @@ export default function TeacherAttendancePage() {
             <span className="p-2 bg-emerald-100 text-emerald-600 rounded-2xl shadow-sm">
               <Calendar size={28} className="stroke-[2.5]" />
             </span>
-            Attendance Management
+            Daily Attendance Management
           </h1>
           <p className="text-slate-500 mt-1 text-sm md:text-base">
             Select a course and date to record and analyze student attendance.

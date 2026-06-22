@@ -1,0 +1,114 @@
+# Learning Management System (LMS) - Project Reference & Development Rules
+
+This document outlines the core business logic, database assumptions, data-seeding structures, naming conventions, and constraints of the LMS project. Developers (including AI agents) must strictly adhere to these rules. Any changes that violate these rules must first be reviewed and approved by the user.
+
+---
+
+## 1. Sidebar & Page Heading Naming Conventions
+
+To maintain user interface consistency and avoid reverting custom branding, always use the following exact names and labels:
+
+### A. Student Dashboard Sidebar & Page Headings
+*   **Assignments:**
+    *   Sidebar Label: `Assignment Submission`
+    *   Target Link: `/dashboard/assignments`
+*   **Attendance:**
+    *   Sidebar Label: `Attendance Tracker`
+    *   Target Link: `/dashboard/attendance`
+    *   Inner Page Heading: `Attendance Tracker`
+*   **Results:**
+    *   Sidebar Label: `Results`
+    *   Target Link: `/dashboard/results`
+    *   Inner Page Heading: `Student Semester Wise Result`
+    *   Inner Semester Row Subtext: `Student semester wise result for Semester {sem}.`
+*   **Resume Builder:**
+    *   Sidebar Label: `Resume Builder`
+    *   Target Link: `/dashboard/resume-builder`
+    *   Inner Page Heading: `Resume Builder`
+
+### B. Teacher Dashboard Sidebar & Page Headings
+*   **Student Tracker:**
+    *   Sidebar Label: `Student Tracker`
+    *   Target Link: `/dashboard/teacher/progress`
+    *   Inner Page Heading: `Student Analytics`
+    *   Inner Page Subtext: `Monitor attendance metrics, evaluate warning thresholds, view session logs, and contact critical status students.`
+*   **Attendance:**
+    *   Sidebar Label: `Post Attendance`
+    *   Target Link: `/dashboard/teacher/attendance`
+    *   Inner Page Heading: `Daily Attendance Management`
+    *   Inner Page Subtext: `Select a course and date to record and analyze student attendance.`
+*   **Assignments:**
+    *   Sidebar Label: `Create Assignments`
+    *   Target Link: `/dashboard/teacher/assignments`
+*   **Evaluation:**
+    *   Sidebar Label: `Assignment Grading`
+    *   Target Link: `/dashboard/teacher/evaluation`
+*   **Blind Correction:**
+    *   Sidebar Label: `Sem Evaluation`
+    *   Target Link: `/dashboard/teacher/endsem`
+
+---
+
+## 2. Academic & Seeding Database Assumptions
+
+### A. Departments
+The project supports three academic departments with specific semester limits:
+1.  **Computer Science and Engineering (CSE):** 8 Semesters (B.Tech)
+2.  **Electronics and Communication Engineering (ECE):** 8 Semesters (B.Tech)
+3.  **Bachelor of Business Administration (BBA):** 6 Semesters (BBA)
+
+### B. Course Offerings & Credits
+*   **Courses per Semester:** Each department offers exactly **4 courses per semester**.
+*   **Total Courses in Database:** 88 courses (32 CSE + 32 ECE + 24 BBA).
+*   **Credits:** Each course defaults to **3 credits**.
+*   **Semester Results Limit:** A student's results page or dashboard must display exactly **4 courses per semester**. Any bug displaying more courses (e.g. 8 courses) violates this constraint.
+
+### C. Seeding Logic (660 Students)
+*   **Active Students:** Students are seeded only into **odd semesters** (1, 3, 5, 7). BBA students are only seeded into semesters 1, 3, and 5.
+*   **Students per Semester/Dept Batch:** Exactly **60 students** per active batch.
+*   **Total Students:** 660 students (CSE: 240, ECE: 240, BBA: 180).
+*   **Roll Number Format:** `${yearPrefix}${dept.code}${rollCounter.padStart(3, '0')}`
+    *   `yearPrefix` = `27 - Math.ceil(semester / 2)`
+    *   Semester 1 (1st Year): prefix `26` (e.g., `26CSE001`)
+    *   Semester 3 (2nd Year): prefix `25` (e.g., `25CSE001`)
+    *   Semester 5 (3rd Year): prefix `24` (e.g., `24CSE001`)
+    *   Semester 7 (4th Year): prefix `23` (e.g., `23CSE001`)
+*   **Teacher Seed Size:** 144 faculty members (48 per department, named `${deptCode} Faculty ${i}`).
+
+---
+
+## 3. Course Faculty Assignments & Constraints
+
+*   **Primary Ownership:** Every course must have a `teacherId` assigned in the `Course` table (this column is `NOT NULL`).
+*   **Secondary Class Mappings:** Mappings are stored in the `CourseFaculty` table (up to 3 faculty members per course).
+*   **Teaching Load Limit:** A teacher (faculty member) is restricted to a maximum of **4 assigned courses per semester**.
+*   **Even Semesters Assignment Rule:**
+    *   **All even semester courses (Semesters 2, 4, 6, 8) must remain unassigned from all faculty members.**
+    *   In the `Course` table, the `teacherId` of even semester courses must be set to the default `System Admin` (`ee54fd14-6e43-4638-bfa5-ae72ed29e5ad`).
+    *   There must be **no records** in the `CourseFaculty` table matching even semester courses.
+    *   Only **odd semester courses** are allowed to be assigned to teachers.
+
+---
+
+## 4. Financial & Fee Calculations
+
+*   **Resident Statuses:** Students can be one of:
+    1.  `HOSTELER`
+    2.  `DAYSCHOLAR_BUS`
+    3.  `DAYSCHOLAR_NORMAL`
+*   **Admission Quotas:** `CONVENER` (government seat), `MANAGEMENT`, `NRI`, `SPOT`.
+*   **Fee Reimbursement:** Convener students may have `isFeeReimbursed = true`.
+*   **Dynamic Fee Synchronization:**
+    *   Fee dues calculations depend on resident status and scholarship status.
+    *   If a student's `residentStatus` or `isFeeReimbursed` status is edited, their fee structure must be dynamically recalculated and updated on the next page view.
+    *   This dynamic sync is triggered via the `ensureDefaultFeesExist` helper in the payments and admin fee endpoints.
+
+---
+
+## 5. Development Safety & Change Approval
+
+When modifying any feature, check this rulebook. You must ask the user for permission if:
+1.  A code modification reverts, renames, or changes any of the sidebar/heading labels specified in Section 1.
+2.  A schema change makes `teacherId` nullable, modifies the 4-course semester limit, or alters the semester lengths of CSE/ECE (8 sem) or BBA (6 sem).
+3.  Any modification changes fee calculation logic or overrides the dynamic sync mechanism.
+4.  A change attempts to assign even semester courses to a faculty member.

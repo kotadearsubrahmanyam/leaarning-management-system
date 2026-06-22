@@ -29,6 +29,8 @@ export async function GET() {
         typeOfEducation: departments.typeOfEducation,
         semester: users.semester,
         rollNumber: users.rollNumber,
+        residentStatus: users.residentStatus,
+        isFeeReimbursed: users.isFeeReimbursed,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "ADMIN") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, role, departmentId, semester, rollNumber, residentStatus, isFeeReimbursed } = body;
 
     if (!name || !email || !password || !role) {
       return errorResponse("Missing required fields", 400);
@@ -60,12 +62,24 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const [newUser] = await db.insert(users).values({
+    const insertValues: any = {
       name,
-      email,
+      email: email.toLowerCase(),
       password: hashedPassword,
       role,
-    }).returning();
+    };
+
+    if (role === "STUDENT") {
+      insertValues.departmentId = departmentId || null;
+      insertValues.semester = semester ? parseInt(semester) : null;
+      insertValues.rollNumber = rollNumber || null;
+      insertValues.residentStatus = residentStatus || "DAYSCHOLAR_NORMAL";
+      insertValues.isFeeReimbursed = isFeeReimbursed ?? false;
+    } else if (role === "TEACHER") {
+      insertValues.departmentId = departmentId || null;
+    }
+
+    const [newUser] = await db.insert(users).values(insertValues).returning();
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = newUser;
@@ -74,11 +88,66 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Create user error:", error);
     if (error.code === '23505') {
-      return errorResponse("Email already exists", 400);
+      return errorResponse("Email or Roll Number already exists", 400);
     }
     return errorResponse("Internal server error", 500);
   }
 }
+
+export async function PUT(req: Request) {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get("token")?.value;
+    if (!token) return errorResponse("Unauthorized", 401);
+    
+    const payload = await verifyJwt(token);
+    if (!payload || payload.role !== "ADMIN") return errorResponse("Forbidden", 403);
+
+    const body = await req.json();
+    const { id, name, email, password, role, departmentId, semester, rollNumber, residentStatus, isFeeReimbursed } = body;
+
+    if (!id) return errorResponse("User ID is required", 400);
+
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
+
+    if (!existingUser) return errorResponse("User not found", 404);
+
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email.toLowerCase();
+    if (role !== undefined) updateData.role = role;
+    if (departmentId !== undefined) updateData.departmentId = departmentId || null;
+    
+    if (existingUser.role === "STUDENT" || role === "STUDENT") {
+      if (semester !== undefined) updateData.semester = semester ? parseInt(semester) : null;
+      if (rollNumber !== undefined) updateData.rollNumber = rollNumber || null;
+      if (residentStatus !== undefined) updateData.residentStatus = residentStatus;
+      if (isFeeReimbursed !== undefined) updateData.isFeeReimbursed = isFeeReimbursed;
+    }
+
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    const [updatedUser] = await db.update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+
+    const { password: _, ...userWithoutPassword } = updatedUser;
+
+    return successResponse({ user: userWithoutPassword }, "User updated successfully");
+  } catch (error: any) {
+    console.error("Update user error:", error);
+    if (error.code === '23505') {
+      return errorResponse("Email or Roll Number already exists", 400);
+    }
+    return errorResponse("Internal server error", 500);
+  }
+}
+
 
 export async function DELETE(req: Request) {
   try {

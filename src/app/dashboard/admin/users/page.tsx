@@ -8,6 +8,7 @@ import {
   Plus, 
   X, 
   Trash2, 
+  Edit2,
   ArrowUpCircle, 
   Upload, 
   FileSpreadsheet, 
@@ -30,11 +31,17 @@ export default function AdminUsersPage() {
   
   // Manual User form state
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     role: "STUDENT",
+    departmentId: "",
+    semester: "1",
+    rollNumber: "",
+    residentStatus: "DAYSCHOLAR_NORMAL",
+    isFeeReimbursed: false,
   });
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
@@ -59,6 +66,16 @@ export default function AdminUsersPage() {
     },
   });
 
+  const { data: deptsData } = useQuery({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const res = await fetch("/api/departments");
+      if (!res.ok) throw new Error("Failed to fetch departments");
+      return res.json();
+    },
+  });
+  const departments = deptsData?.data?.departments || [];
+
   const { data: historyData, isLoading: isHistoryLoading, refetch: refetchHistory } = useQuery({
     queryKey: ["importHistory"],
     queryFn: async () => {
@@ -76,14 +93,64 @@ export default function AdminUsersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (!res.ok) throw new Error("Failed to create user");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Failed to create user");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       setIsModalOpen(false);
-      setFormData({ name: "", email: "", password: "", role: "STUDENT" });
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        role: "STUDENT",
+        departmentId: "",
+        semester: "1",
+        rollNumber: "",
+        residentStatus: "DAYSCHOLAR_NORMAL",
+        isFeeReimbursed: false,
+      });
     },
+    onError: (err: any) => {
+      alert(err.message || "An error occurred");
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...formData, id: editingUser.id }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || "Failed to update user");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      setIsModalOpen(false);
+      setEditingUser(null);
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        role: "STUDENT",
+        departmentId: "",
+        semester: "1",
+        rollNumber: "",
+        residentStatus: "DAYSCHOLAR_NORMAL",
+        isFeeReimbursed: false,
+      });
+    },
+    onError: (err: any) => {
+      alert(err.message || "An error occurred");
+    }
   });
 
   const deleteMutation = useMutation({
@@ -120,10 +187,32 @@ export default function AdminUsersPage() {
     setSelectedStudents(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
   };
 
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name || "",
+      email: user.email || "",
+      password: "",
+      role: user.role || "STUDENT",
+      departmentId: user.departmentId || "",
+      semester: user.semester ? String(user.semester) : "1",
+      rollNumber: user.rollNumber || "",
+      residentStatus: user.residentStatus || "DAYSCHOLAR_NORMAL",
+      isFeeReimbursed: !!user.isFeeReimbursed,
+    });
+    setIsModalOpen(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.password || !formData.role) return;
-    createMutation.mutate();
+    if (!formData.name || !formData.email || !formData.role) return;
+    if (!editingUser && !formData.password) return;
+    
+    if (editingUser) {
+      updateMutation.mutate();
+    } else {
+      createMutation.mutate();
+    }
   };
 
   // Bulk Import Logic
@@ -369,7 +458,21 @@ export default function AdminUsersPage() {
                     <ArrowUpCircle size={18} className="mr-2 inline" /> Promote Selected ({selectedStudents.length})
                   </AnimatedButton>
                 )}
-                <AnimatedButton onClick={() => setIsModalOpen(true)}>
+                <AnimatedButton onClick={() => {
+                  setEditingUser(null);
+                  setFormData({
+                    name: "",
+                    email: "",
+                    password: "",
+                    role: "STUDENT",
+                    departmentId: "",
+                    semester: "1",
+                    rollNumber: "",
+                    residentStatus: "DAYSCHOLAR_NORMAL",
+                    isFeeReimbursed: false,
+                  });
+                  setIsModalOpen(true);
+                }}>
                   <Plus size={18} className="mr-2 inline" /> Add User
                 </AnimatedButton>
               </div>
@@ -413,6 +516,19 @@ export default function AdminUsersPage() {
                       <div className="col-span-4 flex flex-col">
                         <span className="font-bold text-primary">{user.name} {user.rollNumber && `(${user.rollNumber})`}</span>
                         <span className="text-foreground/50 text-xs">{user.email}</span>
+                        {user.role === 'STUDENT' && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            <span className="text-[9px] px-1.5 py-0.5 bg-purple-500/10 text-purple-400 rounded border border-purple-500/20 font-bold">
+                              {user.residentStatus === 'DAYSCHOLAR_NORMAL' ? 'Day Scholar' :
+                               user.residentStatus === 'DAYSCHOLAR_BUS' ? 'Day Scholar (Bus)' : 'Hosteler'}
+                            </span>
+                            {user.isFeeReimbursed && (
+                              <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 font-bold">
+                                Scholar
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="col-span-3">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
@@ -429,13 +545,21 @@ export default function AdminUsersPage() {
                       <div className="col-span-2 text-foreground/70">{new Date(user.createdAt).toLocaleDateString()}</div>
                       <div className="col-span-2 text-right">
                         <button 
+                          onClick={() => handleEditUser(user)}
+                          className="p-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors mr-2 inline-flex items-center justify-center"
+                          title="Edit User"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
                           onClick={() => {
                             if (window.confirm("Are you sure you want to delete this user?")) {
                               deleteMutation.mutate(user.id);
                             }
                           }}
                           disabled={deleteMutation.isPending && deleteMutation.variables === user.id}
-                          className="p-2 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-2 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-lg transition-colors disabled:opacity-50 inline-flex items-center justify-center"
+                          title="Delete User"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -862,9 +986,11 @@ export default function AdminUsersPage() {
                 <button onClick={() => setIsModalOpen(false)} className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors">
                   <X size={20} />
                 </button>
-                <h2 className="text-2xl font-bold mb-6 text-primary">Create New User</h2>
+                <h2 className="text-2xl font-bold mb-6 text-primary">
+                  {editingUser ? "Edit User Account" : "Create New User"}
+                </h2>
                 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
                   <AnimatedInput
                     label="Full Name"
                     type="text"
@@ -880,19 +1006,20 @@ export default function AdminUsersPage() {
                     required
                   />
                   <AnimatedInput
-                    label="Password"
+                    label={editingUser ? "New Password (leave blank to keep current)" : "Password"}
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    required
+                    required={!editingUser}
                   />
                   
                   <div>
-                    <label className="block text-sm font-medium text-foreground/70 mb-1 ml-1">Role</label>
+                    <label className="block text-xs font-semibold text-foreground/70 mb-1 ml-1">Role</label>
                     <select 
                       value={formData.role}
                       onChange={(e) => setFormData({...formData, role: e.target.value})}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none text-sm"
+                      disabled={!!editingUser}
                     >
                       <option value="STUDENT">Student</option>
                       <option value="TEACHER">Teacher</option>
@@ -900,9 +1027,82 @@ export default function AdminUsersPage() {
                     </select>
                   </div>
 
+                  {formData.role === "STUDENT" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <AnimatedInput
+                        label="Roll Number"
+                        type="text"
+                        value={formData.rollNumber}
+                        onChange={(e) => setFormData({...formData, rollNumber: e.target.value})}
+                      />
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground/70 mb-1 ml-1">Semester</label>
+                        <select
+                          value={formData.semester}
+                          onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none text-sm"
+                        >
+                          {Array.from({ length: 8 }, (_, i) => i + 1).map(sem => (
+                            <option key={sem} value={String(sem)}>Semester {sem}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {(formData.role === "STUDENT" || formData.role === "TEACHER") && (
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground/70 mb-1 ml-1">Department</label>
+                      <select
+                        value={formData.departmentId}
+                        onChange={(e) => setFormData({...formData, departmentId: e.target.value})}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none text-sm"
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map((dept: any) => (
+                          <option key={dept.id} value={dept.id}>{dept.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {formData.role === "STUDENT" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground/70 mb-1 ml-1">Resident Status</label>
+                        <select
+                          value={formData.residentStatus}
+                          onChange={(e) => setFormData({...formData, residentStatus: e.target.value})}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none text-sm"
+                        >
+                          <option value="DAYSCHOLAR_NORMAL">Day Scholar (Normal)</option>
+                          <option value="DAYSCHOLAR_BUS">Day Scholar (With Bus)</option>
+                          <option value="HOSTELER">Hosteler</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-foreground/70 mb-1 ml-1">Fee Reimbursement</label>
+                        <select
+                          value={formData.isFeeReimbursed ? "true" : "false"}
+                          onChange={(e) => setFormData({...formData, isFeeReimbursed: e.target.value === "true"})}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-primary transition-colors appearance-none text-sm"
+                        >
+                          <option value="false">No Scholarship</option>
+                          <option value="true">Reimbursement (Yes)</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-4 flex justify-end">
-                    <AnimatedButton type="submit" isLoading={createMutation.isPending} className="w-full">
-                      Create Account
+                    <AnimatedButton 
+                      type="submit" 
+                      isLoading={createMutation.isPending || updateMutation.isPending} 
+                      className="w-full"
+                    >
+                      {editingUser 
+                        ? (updateMutation.isPending ? "Saving..." : "Save Changes") 
+                        : (createMutation.isPending ? "Creating..." : "Create Account")}
                     </AnimatedButton>
                   </div>
                 </form>

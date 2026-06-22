@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { payments, users } from "@/db/schema";
+import { payments, users, feeStructure } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -15,20 +15,33 @@ export async function GET() {
     const payload = await verifyJwt(token);
     if (!payload || payload.role !== "ADMIN") return errorResponse("Forbidden", 403);
 
-    const data = await db
+    const rawData = await db
       .select({
         id: payments.id,
         amount: payments.amount,
         status: payments.status,
         receiptUrl: payments.receiptUrl,
         feeType: payments.feeType,
+        feeStructureType: feeStructure.feeType,
         date: payments.date,
         studentName: users.name,
         studentRollNumber: users.rollNumber,
       })
       .from(payments)
       .innerJoin(users, eq(payments.userId, users.id))
+      .leftJoin(feeStructure, eq(payments.feeStructureId, feeStructure.id))
       .orderBy(desc(payments.date));
+
+    const data = rawData.map(item => ({
+      id: item.id,
+      amount: item.amount,
+      status: item.status,
+      receiptUrl: item.receiptUrl,
+      feeType: item.feeStructureType || item.feeType,
+      date: item.date,
+      studentName: item.studentName,
+      studentRollNumber: item.studentRollNumber,
+    }));
 
     return successResponse({ payments: data }, "Fetched all payments successfully");
   } catch (error) {

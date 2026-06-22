@@ -14,19 +14,29 @@ async function ensureDefaultFeesExist(userId: string, semester: number) {
     .from(feeStructure)
     .where(and(eq(feeStructure.userId, userId), eq(feeStructure.semester, semester)));
 
+  const student = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!student) return;
+
+  const hostelAmount = student.residentStatus === "HOSTELER" ? 30000 : 0;
+  const busAmount = student.residentStatus === "DAYSCHOLAR_BUS" ? 15000 : 0;
+  const tuitionAmount = student.isFeeReimbursed ? 0 : 50000;
+
+  const defaultFees = [
+    { feeType: "TUITION", amount: tuitionAmount, dueDate: new Date("2026-05-15") },
+    { feeType: "BUS", amount: busAmount, dueDate: new Date("2026-06-20") },
+    { feeType: "HOSTEL", amount: hostelAmount, dueDate: new Date("2026-06-20") },
+    { feeType: "EXAM", amount: 2000, dueDate: new Date("2026-06-25") },
+    { feeType: "PLACEMENT", amount: 5000, dueDate: new Date("2026-06-30") }
+  ];
+
   if (existingFees.length === 0) {
     const userPayments = await db
       .select()
       .from(payments)
       .where(eq(payments.userId, userId));
-
-    const defaultFees = [
-      { feeType: "TUITION", amount: 50000, dueDate: new Date("2026-05-15") },
-      { feeType: "BUS", amount: 15000, dueDate: new Date("2026-06-20") },
-      { feeType: "HOSTEL", amount: 0, dueDate: new Date("2026-06-20") },
-      { feeType: "EXAM", amount: 2000, dueDate: new Date("2026-06-25") },
-      { feeType: "PLACEMENT", amount: 5000, dueDate: new Date("2026-06-30") }
-    ];
 
     for (const f of defaultFees) {
       const matchPayment = userPayments.find(p => p.feeType === f.feeType && (p.status === "PAID" || p.status === "VERIFIED" || p.status === "COMPLETED"));
@@ -48,6 +58,31 @@ async function ensureDefaultFeesExist(userId: string, semester: number) {
         await db.update(payments)
           .set({ feeStructureId: inserted.id })
           .where(eq(payments.id, matchPayment.id));
+      }
+    }
+  } else {
+    // Dynamic Sync: Check if student's status changed (exemption or residency change) and update unpaid fee structures
+    for (const f of defaultFees) {
+      const match = existingFees.find(ef => ef.feeType === f.feeType);
+      if (match) {
+        // If it's not fully paid and the amount has changed (e.g. resident status changed or reimbursement enabled/disabled)
+        if (match.paidAmount === 0 && match.amount !== f.amount) {
+          const now = new Date();
+          const due = new Date(match.dueDate);
+          let newStatus = match.status;
+          if (f.amount === 0) {
+            newStatus = "PAID";
+          } else {
+            newStatus = now > due ? "OVERDUE" : "PENDING";
+          }
+
+          await db.update(feeStructure)
+            .set({
+              amount: f.amount,
+              status: newStatus,
+            })
+            .where(eq(feeStructure.id, match.id));
+        }
       }
     }
   }

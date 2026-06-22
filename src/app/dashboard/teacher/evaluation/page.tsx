@@ -20,7 +20,6 @@ import {
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { CourseSelect } from "@/components/ui/course-select";
 import { useToast } from "@/hooks/use-toast";
-import { getQuestionsForAssignment } from "@/lib/assignment-questions";
 
 export default function TeacherEvaluationPage() {
   const queryClient = useQueryClient();
@@ -29,8 +28,7 @@ export default function TeacherEvaluationPage() {
   const [evalModal, setEvalModal] = useState<any>(null);
   
   // Evaluation States
-  const [questionMarks, setQuestionMarks] = useState<Record<number, string>>({});
-  const [questionFeedbacks, setQuestionFeedbacks] = useState<Record<number, string>>({});
+  const [marks, setMarks] = useState<string>("");
   const [generalFeedback, setGeneralFeedback] = useState("");
   
   // Panel Resize States
@@ -136,11 +134,11 @@ export default function TeacherEvaluationPage() {
   }, []);
 
   const gradeMutation = useMutation({
-    mutationFn: async ({ marks }: { marks: number }) => {
+    mutationFn: async ({ marks, feedback }: { marks: number; feedback: string }) => {
       const res = await fetch("/api/teacher/evaluation", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId: evalModal.id, marks }),
+        body: JSON.stringify({ submissionId: evalModal.id, marks, feedback }),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -168,44 +166,28 @@ export default function TeacherEvaluationPage() {
   const openEvalModal = (submission: any) => {
     setEvalModal(submission);
     
-    // Retrieve questions
-    const questions = getQuestionsForAssignment(submission.assignmentTitle, submission.courseName);
-    
     // Load local draft
     const savedDraft = localStorage.getItem(`eval-draft-${submission.id}`);
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft);
-        setQuestionMarks(parsed.questionMarks || {});
-        setQuestionFeedbacks(parsed.questionFeedbacks || {});
-        setGeneralFeedback(parsed.generalFeedback || "");
+        setMarks(parsed.marks ?? (submission.marks !== null ? submission.marks.toString() : ""));
+        setGeneralFeedback(parsed.generalFeedback ?? (submission.feedback || ""));
       } catch (err) {
         console.error("Failed to parse draft:", err);
+        setMarks(submission.marks !== null ? submission.marks.toString() : "");
+        setGeneralFeedback(submission.feedback || "");
       }
     } else {
-      if (submission.status === "GRADED" && submission.marks !== null) {
-        const defaultScore = Math.floor(submission.marks / questions.length);
-        const remainder = submission.marks % questions.length;
-        const initialMarks: Record<number, string> = {};
-        questions.forEach((q, idx) => {
-          initialMarks[q.questionNumber] = (defaultScore + (idx < remainder ? 1 : 0)).toString();
-        });
-        setQuestionMarks(initialMarks);
-        setQuestionFeedbacks({});
-        setGeneralFeedback("");
-      } else {
-        setQuestionMarks({});
-        setQuestionFeedbacks({});
-        setGeneralFeedback("");
-      }
+      setMarks(submission.marks !== null ? submission.marks.toString() : "");
+      setGeneralFeedback(submission.feedback || "");
     }
   };
 
   const handleSaveDraft = () => {
     if (!evalModal) return;
     const draftData = {
-      questionMarks,
-      questionFeedbacks,
+      marks,
       generalFeedback,
       updatedAt: new Date().toISOString()
     };
@@ -216,55 +198,42 @@ export default function TeacherEvaluationPage() {
     });
   };
 
-  // Derive dynamic evaluation values
-  const currentQuestions = evalModal ? getQuestionsForAssignment(evalModal.assignmentTitle, evalModal.courseName) : [];
-  const totalObtained = currentQuestions.reduce((sum, q) => {
-    return sum + (Number(questionMarks[q.questionNumber]) || 0);
-  }, 0);
-
   const handleSubmitEvaluation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!evalModal) return;
 
-    for (const q of currentQuestions) {
-      const scoreRaw = questionMarks[q.questionNumber];
-      if (scoreRaw === undefined || scoreRaw === "") {
-        toast({
-          title: "Incomplete Grading",
-          description: `Please enter score for Question ${q.questionNumber}.`,
-          variant: "destructive",
-        });
-        return;
-      }
-      const score = Number(scoreRaw);
-      if (isNaN(score) || score < 0 || score > q.marks) {
-        toast({
-          title: "Invalid Score",
-          description: `Question ${q.questionNumber} must be graded between 0 and ${q.marks}.`,
-          variant: "destructive",
-        });
-        return;
-      }
+    if (marks === undefined || marks === "") {
+      toast({
+        title: "Incomplete Grading",
+        description: "Please enter a grade for this submission.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Persist draft backup
-    const draftData = {
-      questionMarks,
-      questionFeedbacks,
-      generalFeedback,
-      updatedAt: new Date().toISOString()
-    };
-    localStorage.setItem(`eval-draft-${evalModal.id}`, JSON.stringify(draftData));
+    const score = Number(marks);
+    const maxMarks = evalModal.assignmentTotalMarks || 100;
+    if (isNaN(score) || score < 0 || score > maxMarks) {
+      toast({
+        title: "Invalid Score",
+        description: `Score must be a number between 0 and ${maxMarks}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Clear local draft backup on successful submission
+    localStorage.removeItem(`eval-draft-${evalModal.id}`);
 
     // Submit evaluation
-    gradeMutation.mutate({ marks: totalObtained });
+    gradeMutation.mutate({ marks: score, feedback: generalFeedback });
   };
 
   return (
     <div className="max-w-6xl mx-auto pb-12 relative z-10">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-3">
-          <CheckSquare size={32} /> Evaluation & Grading
+          <CheckSquare size={32} /> Assignment Grading
         </h1>
         <p className="text-foreground/70">Review student submissions and assign grades.</p>
       </motion.div>
@@ -496,84 +465,42 @@ export default function TeacherEvaluationPage() {
                             <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Course</p>
                             <p className="text-slate-800 font-semibold mt-0.5">{evalModal.courseName}</p>
                           </div>
-                          <div className="col-span-2">
+                          <div>
                             <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Assignment Title</p>
                             <p className="text-slate-800 font-semibold mt-0.5">{evalModal.assignmentTitle}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-400 font-bold uppercase tracking-wide text-[9px]">Max Marks</p>
+                            <p className="text-slate-800 font-semibold mt-0.5">{evalModal.assignmentTotalMarks || 100}</p>
                           </div>
                         </div>
                       </div>
                       
-                      {/* Section 2: Question-wise Grading */}
-                      <div className="space-y-3">
-                        <h3 className="text-xs font-black uppercase text-[#7C3AED] tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                          <BookOpen size={14} className="text-[#7C3AED]" /> Question-Wise Grading
-                        </h3>
-                        <div className="space-y-3">
-                          {currentQuestions.map((q) => (
-                            <div key={q.questionNumber} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-300 transition-all space-y-3">
-                              <div className="flex justify-between items-start gap-4">
-                                <div className="flex items-start gap-2">
-                                  <span className="text-[#7C3AED] font-bold text-xs leading-none mt-0.5">{q.questionNumber}.</span>
-                                  <p className="text-xs text-slate-800 font-medium leading-relaxed">{q.description}</p>
-                                </div>
-                                <span className="text-[9px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded shrink-0">
-                                  {q.marks} Max
-                                </span>
-                              </div>
-                              
-                              <div className="grid grid-cols-4 gap-3 items-center pt-1.5">
-                                <div className="col-span-1 flex flex-col gap-1">
-                                  <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Score</label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={q.marks}
-                                    placeholder="0"
-                                    value={questionMarks[q.questionNumber] || ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setQuestionMarks(prev => ({ ...prev, [q.questionNumber]: val }));
-                                    }}
-                                    className="bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all"
-                                  />
-                                </div>
-                                <div className="col-span-3 flex flex-col gap-1">
-                                  <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Feedback comments</label>
-                                  <textarea
-                                    placeholder="Specific question feedback..."
-                                    rows={1}
-                                    value={questionFeedbacks[q.questionNumber] || ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setQuestionFeedbacks(prev => ({ ...prev, [q.questionNumber]: val }));
-                                    }}
-                                    className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all resize-none min-h-[35px] max-h-[80px]"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      {/* Section 3: Overall Evaluation */}
+                      {/* Section 2: Grading Details */}
                       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <h3 className="text-xs font-black uppercase text-[#7C3AED] tracking-wider flex items-center gap-1.5 border-b border-slate-200 pb-1.5">
-                          <Award size={14} className="text-[#7C3AED]" /> Overall Evaluation
+                          <Award size={14} className="text-[#7C3AED]" /> Evaluation & Grading
                         </h3>
                         
-                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-700">Total Marks Obtained</span>
-                          <span className="text-xl font-black text-slate-900">
-                            {totalObtained} <span className="text-xs text-slate-400 font-normal">/ 100</span>
-                          </span>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Marks Obtained (out of {evalModal.assignmentTotalMarks || 100})</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max={evalModal.assignmentTotalMarks || 100}
+                            placeholder="0"
+                            value={marks}
+                            onChange={(e) => setMarks(e.target.value)}
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all"
+                            required
+                          />
                         </div>
                         
                         <div className="flex flex-col gap-1.5">
                           <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">General Feedback</label>
                           <textarea
                             placeholder="Enter comprehensive general feedback and advice for the student..."
-                            rows={5}
+                            rows={6}
                             value={generalFeedback}
                             onChange={(e) => setGeneralFeedback(e.target.value)}
                             className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600 transition-all resize-none leading-relaxed"

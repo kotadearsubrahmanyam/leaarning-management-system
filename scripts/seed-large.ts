@@ -116,8 +116,8 @@ async function main() {
   const materialInserts = [];
   const assignmentInserts = [];
   const courseFacultyInserts = [];
-  const allSemesters = [3, 4, 5];
-  const oddSemesters = [3, 5];
+  const allSemesters = [1, 2, 3, 4, 5, 6, 7, 8];
+  const oddSemesters = [1, 3, 5, 7];
   
   // We will build these and map them to their IDs later
   // Unfortunately, bulk insert returning isn't easy to map to original items, so we'll do this loop with individual inserts for courses (it's only 16 courses * 3 depts = 48 courses, which is fast).
@@ -226,7 +226,7 @@ async function main() {
     
     for (const semNumber of oddSemesters) {
       if (semNumber > dept.totalSemesters) continue;
-      const yearPrefix = 26 - Math.floor((semNumber - 1) / 2);
+      const yearPrefix = 27 - Math.ceil(semNumber / 2);
       let rollCounter = 1;
 
       for (let s = 1; s <= 60; s++) {
@@ -320,8 +320,16 @@ async function main() {
             resultInserts.push({
               userId: student.id,
               courseId: course.id,
+              semester: semNumber,
+              studentName: student.name,
+              studentRollNumber: student.rollNumber,
+              subjectCode: course.id.substring(0, 6).toUpperCase(),
+              subjectName: course.title,
               marks,
               grade,
+              status: marks >= 40 ? "PASS" : "FAIL",
+              published: false,
+              credits: course.credits || 3,
               createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
             });
 
@@ -335,8 +343,9 @@ async function main() {
         for (const student of semStudents) {
           let cumulativePoints = 0;
           let cumulativeCredits = 0;
+          const prevSemsList = Array.from({ length: semNumber - 1 }, (_, i) => i + 1);
 
-          for (let prevSem = 1; prevSem < semNumber; prevSem++) {
+          for (const prevSem of prevSemsList) {
             const prevSemesterCourses = createdCourseFacultiesBySemAndDept.get(`${dbDept.id}-${prevSem}`);
             if (!prevSemesterCourses) continue;
 
@@ -362,11 +371,16 @@ async function main() {
               resultInserts.push({
                 userId: student.id,
                 courseId: course.id,
+                semester: prevSem,
+                studentName: student.name,
+                studentRollNumber: student.rollNumber,
+                subjectCode: course.id.substring(0, 6).toUpperCase(),
+                subjectName: course.title,
                 marks,
                 grade,
                 status,
-                semester: prevSem,
                 published: true,
+                credits: course.credits || 3,
                 createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
               });
 

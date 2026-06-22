@@ -342,7 +342,7 @@ export default function AttendancePage() {
     <div className="max-w-4xl mx-auto pb-12 relative z-10">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-3">
-          <Calendar size={32} /> Attendance
+          <Calendar size={32} /> Attendance Tracker
         </h1>
         <p className="text-foreground/70">Track your course attendance and overall presence.</p>
       </motion.div>

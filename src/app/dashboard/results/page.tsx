@@ -3145,7 +3145,7 @@ export default function ResultsPage() {
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 mb-2 flex items-center gap-3">
-            <Award className="text-[#10B981]" size={32} /> Academic Performance Ledger
+            <Award className="text-[#10B981]" size={32} /> Student Semester Wise Result
           </h1>
           <p className="text-slate-550 font-semibold">View your official grade sheets, check your GPA, and plan your academic goals.</p>
         </div>
@@ -3216,7 +3216,7 @@ export default function ResultsPage() {
                   </div>
                   <div>
                     <h3 className="font-extrabold text-slate-900 text-base">Semester {sem} Results</h3>
-                    <p className="text-xs text-slate-400 font-medium">Academic performance ledger for Semester {sem}.</p>
+                    <p className="text-xs text-slate-400 font-medium">Student semester wise result for Semester {sem}.</p>
                   </div>
                 </div>
 

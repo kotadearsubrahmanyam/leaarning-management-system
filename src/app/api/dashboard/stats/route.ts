@@ -55,14 +55,16 @@ export async function GET() {
         enrollmentTrends
       };
     } else if (role === "TEACHER") {
-      // Find all courseFaculty IDs and course IDs for this teacher
+      // Find all courseFaculty IDs and course IDs for this teacher that have enrollments
       const teacherFaculties = await db
         .select({
           cfId: courseFaculty.id,
           courseId: courseFaculty.courseId
         })
         .from(courseFaculty)
-        .where(eq(courseFaculty.teacherId, id as string));
+        .innerJoin(enrollments, eq(enrollments.courseFacultyId, courseFaculty.id))
+        .where(eq(courseFaculty.teacherId, id as string))
+        .groupBy(courseFaculty.id, courseFaculty.courseId);
 
       const cfIds = teacherFaculties.map(f => f.cfId);
       const courseIds = Array.from(new Set(teacherFaculties.map(f => f.courseId)));
@@ -120,6 +122,7 @@ export async function GET() {
           })
           .from(courses)
           .innerJoin(courseFaculty, eq(courseFaculty.courseId, courses.id))
+          .innerJoin(enrollments, eq(enrollments.courseFacultyId, courseFaculty.id))
           .where(eq(courseFaculty.teacherId, id as string))
           .groupBy(courses.id, courses.title, courses.level, courses.semester);
 

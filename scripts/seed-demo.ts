@@ -67,8 +67,16 @@ async function main() {
     await db.insert(results).values({
       userId: student.id,
       courseId: course.id,
+      semester: student.semester || 1,
+      studentName: student.name,
+      studentRollNumber: student.rollNumber,
+      subjectCode: course.id.substring(0, 6).toUpperCase(),
+      subjectName: course.title,
       marks: sub.marks,
       grade: sub.grade,
+      status: sub.marks >= 40 ? "PASS" : "FAIL",
+      published: true,
+      credits: course.credits || 3,
       createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
     });
 

@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "ADMIN") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { title, description, level, teacherId, categoryId } = body;
+    const { title, description, level, teacherId, categoryId, semester } = body;
 
     if (!title || !teacherId) return errorResponse("Title and Teacher are required", 400);
 
@@ -87,6 +87,7 @@ export async function POST(req: Request) {
       level: level || "Beginner",
       teacherId,
       categoryId: categoryId || null,
+      semester: semester ? parseInt(semester) : 1,
     }).returning();
 
     return successResponse({ course }, "Course created successfully");

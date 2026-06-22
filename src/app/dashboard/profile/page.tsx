@@ -873,6 +873,19 @@ export default function ProfilePage() {
                             Semester Dues & Fee Summary
                           </h3>
                           <p className="text-xs text-[#6B7280] mt-1">Overall payment status for all billed courses and amenities</p>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <span className="text-[10px] bg-slate-100 text-slate-700 font-bold px-2.5 py-1 rounded-md border border-slate-200 uppercase tracking-wider">
+                              Status: {user.residentStatus === 'DAYSCHOLAR_NORMAL' ? 'Day Scholar (Normal)' :
+                                       user.residentStatus === 'DAYSCHOLAR_BUS' ? 'Day Scholar (With Bus)' : 'Hosteler'}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md border uppercase tracking-wider ${
+                              user.isFeeReimbursed
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-slate-100 text-slate-700 border-slate-200"
+                            }`}>
+                              Scholarship: {user.isFeeReimbursed ? "Govt Reimbursement (Full Tuition Exemption)" : "Standard Tuition Fees"}
+                            </span>
+                          </div>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
                           pending === 0 

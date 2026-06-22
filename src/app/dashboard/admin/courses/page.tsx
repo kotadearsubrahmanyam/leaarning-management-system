@@ -96,6 +96,7 @@ export default function AdminCoursesPage() {
     level: "Beginner",
     teacherId: "",
     categoryId: "",
+    semester: 1,
   });
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -168,7 +169,7 @@ export default function AdminCoursesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
       setIsModalOpen(false);
-      setFormData({ title: "", description: "", level: "Beginner", teacherId: "", categoryId: "" });
+      setFormData({ title: "", description: "", level: "Beginner", teacherId: "", categoryId: "", semester: 1 });
       toast({ title: "Success", description: "Course created successfully!" });
     },
     onError: (error: any) => {
@@ -288,9 +289,9 @@ export default function AdminCoursesPage() {
               courseCount: 0,
             };
 
-            // Available semesters that have courses in this department
-            const availableSemesters = Array.from(new Set(deptCourses.map((c: any) => c.semester || 1))).sort((a: any, b: any) => a - b) as number[];
-            const activeSem = selectedSemesters[dept.id] || (availableSemesters.length > 0 ? availableSemesters[0] : 1);
+            // Available semesters - Admin wants to see all 8 semesters
+            const availableSemesters = [1, 2, 3, 4, 5, 6, 7, 8];
+            const activeSem = selectedSemesters[dept.id] || 1;
             
             // Filtered courses for this department based on selected semester
             const filteredDeptCourses = deptCourses.filter((c: any) => (c.semester || 1) === activeSem);
@@ -496,8 +497,8 @@ export default function AdminCoursesPage() {
                       {/* Semester tabs selector for unassigned */}
                       {(() => {
                         const unassignedCourses = coursesByDept["Unassigned"] || [];
-                        const unassignedAvailableSemesters = Array.from(new Set(unassignedCourses.map((c: any) => c.semester || 1))).sort((a: any, b: any) => a - b) as number[];
-                        const activeUnassignedSem = selectedSemesters["unassigned"] || (unassignedAvailableSemesters.length > 0 ? unassignedAvailableSemesters[0] : 1);
+                        const unassignedAvailableSemesters = [1, 2, 3, 4, 5, 6, 7, 8];
+                        const activeUnassignedSem = selectedSemesters["unassigned"] || 1;
                         const filteredUnassignedCourses = unassignedCourses.filter((c: any) => (c.semester || 1) === activeUnassignedSem);
 
                         return (
@@ -636,7 +637,7 @@ export default function AdminCoursesPage() {
                     />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-500 mb-1 ml-1">Level</label>
                       <select 
@@ -647,6 +648,18 @@ export default function AdminCoursesPage() {
                         <option value="Beginner">Beginner</option>
                         <option value="Intermediate">Intermediate</option>
                         <option value="Advanced">Advanced</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-500 mb-1 ml-1">Semester</label>
+                      <select 
+                        value={formData.semester}
+                        onChange={(e) => setFormData({...formData, semester: parseInt(e.target.value) || 1})}
+                        className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent transition-all"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                          <option key={sem} value={sem}>Semester {sem}</option>
+                        ))}
                       </select>
                     </div>
                     <div>

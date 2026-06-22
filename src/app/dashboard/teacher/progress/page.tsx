@@ -199,7 +199,7 @@ export default function CourseAttendanceAnalyticsPage() {
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-3">
-            <Sparkles size={32} className="text-emerald-500" /> Course Attendance Analytics
+            <Sparkles size={32} className="text-emerald-500" /> Student Analytics
           </h1>
           <p className="text-foreground/70 text-sm">
             Monitor attendance metrics, evaluate warning thresholds, view session logs, and contact critical status students.
