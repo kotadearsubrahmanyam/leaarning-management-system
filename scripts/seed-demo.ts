@@ -69,6 +69,7 @@ async function main() {
       courseId: course.id,
       marks: sub.marks,
       grade: sub.grade,
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
     });
 
     // Add 2 Assignments per course

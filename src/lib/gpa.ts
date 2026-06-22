@@ -69,7 +69,32 @@ export async function recalculateStudentGpas(studentId: string) {
     // Recalculate summaries for all semesters from 1 up to currentSemester
     for (let sem = 1; sem <= currentSemester; sem++) {
       const semResults = allResults.filter(r => r.semester === sem);
-      if (semResults.length === 0) continue; // Skip if no results recorded for this semester yet
+
+      // Check if all results for this student in this semester are published
+      const studentResultsForSem = await db.select({ published: results.published })
+        .from(results)
+        .where(and(eq(results.userId, studentId), eq(results.semester, sem)));
+
+      const isSemPublished = studentResultsForSem.length > 0 && studentResultsForSem.every(r => r.published);
+
+      if (semResults.length === 0) {
+        // If no published results, but summary exists, update it to unpublished
+        const existing = await db.query.studentSemesterSummary.findFirst({
+          where: and(
+            eq(studentSemesterSummary.userId, studentId),
+            eq(studentSemesterSummary.semester, sem)
+          )
+        });
+        if (existing) {
+          await db.update(studentSemesterSummary).set({
+            published: false,
+            sgpa: "0.00",
+            status: "FAIL",
+            backlogCount: 0,
+          }).where(eq(studentSemesterSummary.id, existing.id));
+        }
+        continue; // Skip if no results recorded for this semester yet
+      }
 
       const semCredits = semResults.reduce((sum, r) => sum + (r.credits || 3), 0);
       const semPoints = semResults.reduce((sum, r) => sum + (getPoints(r) * (r.credits || 3)), 0);
@@ -99,7 +124,7 @@ export async function recalculateStudentGpas(studentId: string) {
           cgpa,
           status,
           backlogCount,
-          published: true,
+          published: isSemPublished,
         }).where(eq(studentSemesterSummary.id, existing.id));
       } else {
         await db.insert(studentSemesterSummary).values({
@@ -109,7 +134,7 @@ export async function recalculateStudentGpas(studentId: string) {
           cgpa,
           status,
           backlogCount,
-          published: true,
+          published: isSemPublished,
         });
       }
     }

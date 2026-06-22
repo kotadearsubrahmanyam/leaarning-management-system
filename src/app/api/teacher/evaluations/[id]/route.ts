@@ -77,7 +77,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
           marks: totalMarks,
           grade,
           status,
-          published: true, // Auto publish result
+          published: false, // Default to draft (do not auto-publish)
           createdAt: new Date(), // Update timestamp to trigger "Recently Updated" row highlighting
         })
         .where(eq(results.id, existingResult.id));
@@ -95,7 +95,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         studentRollNumber,
         subjectCode: evaluation.course.id.substring(0, 6).toUpperCase(),
         subjectName: evaluation.course.title,
-        published: true, // Auto publish result
+        published: false, // Default to draft (do not auto-publish)
         createdAt: new Date(),
       });
     }

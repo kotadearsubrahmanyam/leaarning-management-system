@@ -322,6 +322,7 @@ async function main() {
               courseId: course.id,
               marks,
               grade,
+              createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
             });
 
             studentIndex++;
@@ -366,6 +367,7 @@ async function main() {
                 status,
                 semester: prevSem,
                 published: true,
+                createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
               });
 
               semPoints += gp * courseCredits;
