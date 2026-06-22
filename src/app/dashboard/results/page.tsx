@@ -186,6 +186,30 @@ const getTimeAgo = (dateString: string | Date | null): string => {
   return `${days}d ago`;
 };
 
+const avatarColorClass = (type: string): string => {
+  switch (type) {
+    case "eval":
+      return "bg-purple-50 text-purple-600 border-purple-200";
+    case "result":
+      return "bg-blue-50 text-blue-600 border-blue-200";
+    case "count":
+      return "bg-amber-50 text-amber-655 border-amber-200";
+    case "publish":
+      return "bg-emerald-50 text-emerald-600 border-emerald-200";
+    default:
+      return "bg-slate-50 text-slate-600 border-slate-200";
+  }
+};
+
+const getInitials = (name: string): string => {
+  if (!name) return "??";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return parts[0].substring(0, 2).toUpperCase();
+};
+
 export default function ResultsPage() {
   const queryClient = useQueryClient();
   const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
@@ -199,9 +223,12 @@ export default function ResultsPage() {
   const [isSavingPolicy, setIsSavingPolicy] = useState(false);
 
   // Search & Filters for Admin
-  const [adminTab, setAdminTab] = useState<"subjects" | "publish" | "policy">("subjects");
+  const [adminTab, setAdminTab] = useState<"subjects" | "policy" | "evaluations" | "faculty">("subjects");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSemester, setFilterSemester] = useState<string>("ALL");
+  const [filterFaculty, setFilterFaculty] = useState<string>("ALL");
+  const [filterDept, setFilterDept] = useState<string>("ALL");
+  const [showAllSemesters, setShowAllSemesters] = useState(false);
   const [isPublishingAll, setIsPublishingAll] = useState(false);
 
   // New Department & Semester selectors for Publishing
@@ -210,11 +237,15 @@ export default function ResultsPage() {
   const [isPublishingBatch, setIsPublishingBatch] = useState(false);
 
   // Redesigned Hierarchy View States
-  const [selectedDeptId, setSelectedDeptId] = useState<string>("");
+   const [selectedDeptId, setSelectedDeptId] = useState<string>("");
   const [expandedSemester, setExpandedSemester] = useState<number | null>(null);
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [filterPublish, setFilterPublish] = useState<string>("ALL");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [isBulkPublishModalOpen, setIsBulkPublishModalOpen] = useState(false);
+  const [bulkPublishOption, setBulkPublishOption] = useState<"semester" | "department" | "selected" | "verified">("semester");
 
   // Add/Edit Subject Modal
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
@@ -337,6 +368,13 @@ export default function ResultsPage() {
       setSelectedPublishDeptId(departments[0].id);
     }
   }, [departments, selectedPublishDeptId]);
+
+  // Reset semester filter if showAllSemesters is toggled off and active semester is out of range
+  useEffect(() => {
+    if (!showAllSemesters && !["ALL", "3", "4", "5"].includes(filterSemester)) {
+      setFilterSemester("ALL");
+    }
+  }, [showAllSemesters, filterSemester]);
 
   // Batch selections & calculations
   const batchStudents = useMemo(() => {
@@ -841,10 +879,145 @@ export default function ResultsPage() {
       ? (adminResults.reduce((sum: number, r: any) => sum + r.marks, 0) / adminResults.length).toFixed(1)
       : "0";
 
+    const activeEvaluatorsCount = new Set(allEvaluations.map((ev: any) => ev.faculty?.name).filter(Boolean)).size;
+    const scriptsEvaluatedToday = allEvaluations.filter((ev: any) => ev.status === "EVALUATED" && new Date(ev.updatedAt || ev.createdAt).toDateString() === new Date().toDateString()).length;
+    const totalResultsGenerated = adminResults.length;
+
+    const activeSemestersList = showAllSemesters ? [1, 2, 3, 4, 5, 6, 7, 8] : [3, 4, 5];
+
     const recentEvaluations = allEvaluations
       .filter((e: any) => e.status === "EVALUATED")
       .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
       .slice(0, 6);
+
+    // Dynamic Recent Evaluation Activities
+    const recentActivities = (() => {
+      const activities: { 
+        id: string; 
+        text: string; 
+        time: Date; 
+        type: string; 
+        faculty?: string; 
+        subjectName?: string; 
+        department?: string; 
+        semester?: number;
+      }[] = [];
+      
+      // Evaluated scripts
+      allEvaluations
+        .filter((e: any) => e.status === "EVALUATED")
+        .forEach((e: any) => {
+          const deptName = departments.find((d: any) => d.id === e.course?.categoryId)?.name || "CSE";
+          activities.push({
+            id: `eval-${e.id}`,
+            text: `${e.faculty?.name || "Faculty"} completed ${e.course?.title || "evaluation"}`,
+            time: new Date(e.updatedAt || e.createdAt),
+            type: "eval",
+            faculty: e.faculty?.name || "Faculty",
+            subjectName: e.course?.title || "Subject",
+            department: mapDeptName(deptName),
+            semester: e.course?.semester || 3,
+          });
+        });
+
+      // Automatically generated results
+      allEvaluations
+        .filter((e: any) => e.status === "EVALUATED")
+        .forEach((e: any) => {
+          const deptName = departments.find((d: any) => d.id === e.course?.categoryId)?.name || "CSE";
+          activities.push({
+            id: `res-gen-${e.id}`,
+            text: `${e.course?.title || "Subject"} results generated automatically`,
+            time: new Date(e.updatedAt || e.createdAt),
+            type: "result",
+            faculty: "System Engine",
+            subjectName: e.course?.title || "Subject",
+            department: mapDeptName(deptName),
+            semester: e.course?.semester || 3,
+          });
+        });
+
+      // Evaluated script counts per semester
+      const semCounts: Record<number, number> = {};
+      allEvaluations.filter((e: any) => e.status === "EVALUATED").forEach((e: any) => {
+        const sem = e.course?.semester;
+        if (sem) semCounts[sem] = (semCounts[sem] || 0) + 1;
+      });
+      Object.entries(semCounts).forEach(([sem, count]) => {
+        activities.push({
+          id: `sem-count-${sem}`,
+          text: `${count} scripts evaluated in Semester ${sem}`,
+          time: new Date(Date.now() - 10 * 60 * 1050),
+          type: "count",
+          faculty: "Controller of Exams",
+          subjectName: `Semester ${sem} Exams`,
+          department: "Central Office",
+          semester: parseInt(sem),
+        });
+      });
+
+      // Published results
+      dbSummaries
+        .filter((s: any) => s.published)
+        .forEach((s: any) => {
+          activities.push({
+            id: `pub-${s.id}`,
+            text: `Admin verified and published Semester ${s.semester} results`,
+            time: new Date(s.updatedAt || s.createdAt),
+            type: "publish",
+            faculty: "Super Admin",
+            subjectName: `Semester ${s.semester} Results`,
+            department: "Central Office",
+            semester: s.semester,
+          });
+        });
+
+      return activities
+        .sort((a, b) => b.time.getTime() - a.time.getTime())
+        .slice(0, 8);
+    })();
+    // Faculty Tracker Data Aggregation
+    const facultyTrackerData = (() => {
+      const groups: Record<string, {
+        facultyName: string;
+        subject: string;
+        department: string;
+        semester: number;
+        assigned: number;
+        evaluated: number;
+        pending: number;
+      }> = {};
+
+      allEvaluations.forEach((ev: any) => {
+        const key = `${ev.facultyId}-${ev.courseId}`;
+        if (!groups[key]) {
+          const deptName = departments.find((d: any) => d.id === ev.course?.categoryId)?.name || "N/A";
+          groups[key] = {
+            facultyName: ev.faculty?.name || "N/A",
+            subject: ev.course?.title || "N/A",
+            department: mapDeptName(deptName),
+            semester: ev.course?.semester || 0,
+            assigned: 0,
+            evaluated: 0,
+            pending: 0,
+          };
+        }
+        groups[key].assigned++;
+        if (ev.status === "EVALUATED") {
+          groups[key].evaluated++;
+        } else {
+          groups[key].pending++;
+        }
+      });
+
+      return Object.values(groups).map(g => {
+        const completionRate = g.assigned > 0 ? Math.round((g.evaluated / g.assigned) * 100) : 0;
+        return {
+          ...g,
+          completionRate,
+        };
+      });
+    })();
 
     // Compute Recharts Chart Data
     // A. Department-wise Pass Percentage
@@ -861,7 +1034,7 @@ export default function ResultsPage() {
     });
 
     // B. Semester-wise Performance (Average Marks)
-    const semPerfData = [1, 2, 3, 4, 5, 6, 7, 8].map((sem: number) => {
+    const semPerfData = activeSemestersList.map((sem: number) => {
       const semResults = adminResults.filter((r: any) => r.semester === sem);
       const avgMarks = semResults.length > 0
         ? parseFloat((semResults.reduce((sum: number, r: any) => sum + r.marks, 0) / semResults.length).toFixed(1))
@@ -884,11 +1057,36 @@ export default function ResultsPage() {
     // Compute Department Grid Statistics
     const departmentStats = departments.map((dept: any) => {
       const deptStudents = students.filter((s: any) => s.departmentId === dept.id);
+      const deptStudentIds = deptStudents.map((s: any) => s.id);
       const deptResults = adminResults.filter((r: any) => deptStudents.some((s: any) => s.id === r.userId));
       const totalRes = deptResults.length;
       const passRes = deptResults.filter((r: any) => r.status === "PASS").length;
       const passRate = totalRes > 0 ? Math.round((passRes / totalRes) * 100) : 0;
-      const pendingRes = deptResults.filter((r: any) => !r.published).length;
+      const failRate = 100 - passRate;
+
+      const activeSemResults = deptResults.filter((r: any) => activeSemestersList.includes(r.semester)).length;
+      const deptFailCount = deptResults.filter((r: any) => r.status === "FAIL").length;
+      const publishedCount = deptResults.filter((r: any) => r.published).length;
+      const publishedStudentsCount = new Set(dbSummaries.filter((s: any) => deptStudentIds.includes(s.userId) && s.published).map((s: any) => s.userId)).size;
+      const pendingEvaluations = allEvaluations.filter((e: any) => e.status === "PENDING" && e.course?.categoryId === dept.id).length;
+
+      const deptSummaries = dbSummaries.filter((s: any) => deptStudentIds.includes(s.userId));
+      const deptSgpas = deptSummaries.map((s: any) => parseFloat(s.sgpa || "0")).filter((g: number) => g > 0);
+      const avgSgpa = deptSgpas.length > 0 ? (deptSgpas.reduce((sum: number, g: number) => sum + g, 0) / deptSgpas.length).toFixed(1) : "0.0";
+
+      const marksList = deptResults.map((r: any) => r.marks || 0);
+      const avgMarks = marksList.length > 0 ? Math.round(marksList.reduce((sum: number, m: number) => sum + m, 0) / marksList.length) : 0;
+
+      const hasAnyPublished = publishedStudentsCount > 0 ? "Yes" : "No";
+
+      // Calculate latest published date
+      const publishedSummaries = deptSummaries.filter((s: any) => s.published);
+      const publishedDates = publishedSummaries
+        .map((s: any) => new Date(s.updatedAt || s.createdAt))
+        .filter((d: Date) => !isNaN(d.getTime()));
+      const latestPublishedDate = publishedDates.length > 0
+        ? new Date(Math.max(...publishedDates.map((d: Date) => d.getTime()))).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+        : "N/A";
 
       let emoji = "🎓";
       const nameUpper = dept.name.toUpperCase();
@@ -901,9 +1099,19 @@ export default function ResultsPage() {
       return {
         ...dept,
         totalStudents: deptStudents.length,
+        activeSemResults,
+        passCount: passRes,
+        failCount: deptFailCount,
         passRate,
-        pendingResults: pendingRes,
+        failRate,
+        avgSgpa,
+        avgMarks,
+        hasAnyPublished,
+        publishedCount,
+        publishedStudentsCount,
+        pendingEvaluations,
         emoji,
+        latestPublishedDate,
       };
     });
 
@@ -911,7 +1119,7 @@ export default function ResultsPage() {
 
     // Compute Semester Stats for selected department
     const semesterStats = selectedDeptId
-      ? [1, 2, 3, 4, 5, 6, 7, 8].map((sem: number) => {
+      ? activeSemestersList.map((sem: number) => {
           const semStudents = students.filter((s: any) => s.departmentId === selectedDeptId && s.semester === sem);
           const semStudentIds = semStudents.map((s: any) => s.id);
           const semResults = adminResults.filter((r: any) => semStudentIds.includes(r.userId) && r.semester === sem);
@@ -936,6 +1144,9 @@ export default function ResultsPage() {
           const lowestMarks = marksList.length > 0 ? Math.min(...marksList) : 0;
 
           const semSummaries = dbSummaries.filter((s: any) => semStudentIds.includes(s.userId) && s.semester === sem);
+          const semSgpas = semSummaries.map((s: any) => parseFloat(s.sgpa || "0")).filter((g: number) => g > 0);
+          const avgSgpa = semSgpas.length > 0 ? (semSgpas.reduce((sum: number, g: number) => sum + g, 0) / semSgpas.length).toFixed(1) : "0.0";
+
           let topPerformerName = "N/A";
           let topGpa = 0;
 
@@ -948,19 +1159,31 @@ export default function ResultsPage() {
             }
           });
 
+          const publishedCount = semSummaries.filter((s: any) => s.published).length;
+
           return {
             semester: sem,
             totalStudents: semStudents.length,
             passed: passedStudentsCount,
             failed: failedStudentsCount,
             avgMarks,
+            avgSgpa,
             highestMarks,
             lowestMarks,
             topPerformer: topPerformerName,
             topGpa: topGpa > 0 ? topGpa.toFixed(2) : "N/A",
+            publishedCount,
           };
         })
       : [];
+
+    const displayedDepartments = filterDept === "ALL" 
+      ? departmentStats 
+      : departmentStats.filter((d: any) => d.id === filterDept);
+
+    const displayedSemesters = filterSemester === "ALL"
+      ? semesterStats
+      : semesterStats.filter((s: any) => String(s.semester) === filterSemester);
 
     const hasActiveSearchOrFilter =
       searchTerm.trim() !== "" ||
@@ -981,10 +1204,15 @@ export default function ResultsPage() {
 
       const matchesSemester = filterSemester === "ALL" || String(r.semester) === filterSemester;
       const matchesStatus = filterStatus === "ALL" || r.status === filterStatus;
+      const matchesDept = filterDept === "ALL" || student.departmentId === filterDept;
+
+      const matchingEval = allEvaluations.find((e: any) => e.studentId === r.userId && e.courseId === r.courseId);
+      const matchesFaculty = filterFaculty === "ALL" || (matchingEval?.faculty?.name === filterFaculty);
+
       const matchesPublish = filterPublish === "ALL" ||
         (filterPublish === "PUBLISHED" ? r.published : !r.published);
 
-      return matchesText && matchesSemester && matchesStatus && matchesPublish;
+      return matchesText && matchesSemester && matchesStatus && matchesDept && matchesFaculty && matchesPublish;
     });
 
     const filteredSearchGrouped = (() => {
@@ -1030,6 +1258,38 @@ export default function ResultsPage() {
       return Object.values(groups);
     })();
 
+    const draftCount = filteredSearchGrouped.filter((g: any) => !g.isPublished).length;
+
+    const handlePublishAllFilteredDrafts = async () => {
+      const drafts = filteredSearchGrouped.filter((g: any) => !g.isPublished);
+      if (drafts.length === 0) {
+        alert("No draft results found matching current filters.");
+        return;
+      }
+      if (!confirm(`Are you sure you want to publish results for all ${drafts.length} draft records matching your search/filters?`)) return;
+
+      setIsPublishingAll(true);
+      try {
+        await Promise.all(
+          drafts.map((g: any) =>
+            fetch("/api/admin/results/publish", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: g.student.id, semester: g.semester, publish: true }),
+            })
+          )
+        );
+        queryClient.invalidateQueries({ queryKey: ["results"] });
+        queryClient.invalidateQueries({ queryKey: ["adminSummaries"] });
+        alert(`Successfully published ${drafts.length} results!`);
+      } catch (error) {
+        console.error("Bulk publish drafts error:", error);
+        alert("Failed to publish draft results.");
+      } finally {
+        setIsPublishingAll(false);
+      }
+    };
+
     const handleDeclareResults = async (deptId: string, semesterNum: number) => {
       const dept = departments.find((d: any) => d.id === deptId);
       const deptName = dept?.name || "Department";
@@ -1062,8 +1322,107 @@ export default function ResultsPage() {
       }
     };
 
+    const handleBulkPublish = async () => {
+      const dept = departments.find((d: any) => d.id === selectedDeptId);
+      const deptName = dept?.name || "Department";
+
+      if (!expandedSemester && bulkPublishOption !== "department") {
+        alert("Please select a semester first.");
+        return;
+      }
+
+      let confirmMsg = "";
+      if (bulkPublishOption === "semester") {
+        confirmMsg = `Publish results for Semester ${expandedSemester} - ${deptName}?`;
+      } else if (bulkPublishOption === "department") {
+        confirmMsg = `Publish all results across all semesters for ${deptName}?`;
+      } else if (bulkPublishOption === "selected") {
+        if (selectedStudentIds.length === 0) {
+          alert("No students selected. Please check students in the list first.");
+          return;
+        }
+        confirmMsg = `Publish results for the ${selectedStudentIds.length} selected students in Semester ${expandedSemester} - ${deptName}?`;
+      } else if (bulkPublishOption === "verified") {
+        confirmMsg = `Publish all verified (evaluated but draft) results in Semester ${expandedSemester} - ${deptName}?`;
+      }
+
+      if (!confirm(confirmMsg)) return;
+
+      setIsPublishingBatch(true);
+      try {
+        if (bulkPublishOption === "semester") {
+          const res = await fetch("/api/admin/declare-results", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ departmentId: selectedDeptId, semester: expandedSemester }),
+          });
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.message || "Failed to declare semester results");
+          }
+        } else if (bulkPublishOption === "department") {
+          const activeSemesters = showAllSemesters ? [1, 2, 3, 4, 5, 6, 7, 8] : [3, 4, 5];
+          await Promise.all(
+            activeSemesters.map(async (sem) => {
+              const res = await fetch("/api/admin/declare-results", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ departmentId: selectedDeptId, semester: sem }),
+              });
+              if (!res.ok) console.error(`Failed to declare results for sem ${sem}`);
+            })
+          );
+        } else if (bulkPublishOption === "selected") {
+          await Promise.all(
+            selectedStudentIds.map(async (userId) => {
+              await fetch("/api/admin/results/publish", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId, semester: expandedSemester, publish: true }),
+              });
+            })
+          );
+          setSelectedStudentIds([]);
+        } else if (bulkPublishOption === "verified") {
+          const semStudents = students.filter((s: any) => s.departmentId === selectedDeptId && s.semester === expandedSemester);
+          const drafts = semStudents.filter((student: any) => {
+            const studentResults = adminResults.filter((r: any) => r.userId === student.id && r.semester === expandedSemester);
+            if (studentResults.length === 0) return false;
+            const summary = dbSummaries.find((sum: any) => sum.userId === student.id && sum.semester === expandedSemester);
+            return !summary || !summary.published;
+          });
+
+          if (drafts.length === 0) {
+            alert("No verified draft results found to publish.");
+            setIsPublishingBatch(false);
+            return;
+          }
+
+          await Promise.all(
+            drafts.map(async (student: any) => {
+              await fetch("/api/admin/results/publish", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: student.id, semester: expandedSemester, publish: true }),
+              });
+            })
+          );
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["results"] });
+        queryClient.invalidateQueries({ queryKey: ["adminSummaries"] });
+        alert("Bulk publishing completed successfully!");
+        setIsBulkPublishModalOpen(false);
+      } catch (error: any) {
+        console.error("Bulk publish error:", error);
+        alert(error.message || "Failed to complete bulk publishing.");
+      } finally {
+        setIsPublishingBatch(false);
+      }
+    };
+
     return (
-      <div className="max-w-6xl mx-auto pb-12 relative z-10 text-slate-800">
+      <div className="max-w-6xl mx-auto pb-12 relative z-10 text-slate-805">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900 mb-2 flex items-center gap-3">
@@ -1079,61 +1438,70 @@ export default function ResultsPage() {
           </button>
         </motion.div>
 
-        {/* Overview Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        {/* Compact Summary Row showing modern statistic cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          {/* Card 1: Active Evaluators */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-300">
             <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Evaluated Scripts</span>
-              <span className="text-xl font-black text-slate-800 mt-1 block">{totalEvaluatedScripts} Papers</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Active Evaluators</span>
+              <span className="text-2xl font-black text-slate-800 mt-1 block">{activeEvaluatorsCount}</span>
             </div>
-            <div className="p-2.5 bg-[#7C3AED]/10 text-[#7C3AED] rounded-xl border border-purple-100">
-              <Book size={20} />
+            <div className="p-3 bg-violet-50 text-[#7C3AED] rounded-xl border border-purple-100">
+              <Users size={22} />
             </div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+
+          {/* Card 2: Scripts Evaluated Today */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-300">
+            <div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Evaluated Today</span>
+              <span className="text-2xl font-black text-emerald-600 mt-1 block">{scriptsEvaluatedToday}</span>
+            </div>
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+              <CheckCircle size={22} />
+            </div>
+          </div>
+
+          {/* Card 3: Pending Evaluations */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-300">
             <div>
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending Evaluations</span>
-              <span className="text-xl font-black text-amber-600 mt-1 block">{pendingEvaluations} Scripts</span>
+              <span className="text-2xl font-black text-amber-600 mt-1 block">{pendingEvaluations}</span>
             </div>
-            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
-              <Activity size={20} />
-            </div>
-          </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-            <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Published Results</span>
-              <span className="text-xl font-black text-emerald-600 mt-1 block">{totalPublished} Grades</span>
-            </div>
-            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
-              <CheckCircle size={20} />
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
+              <Activity size={22} />
             </div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+
+          {/* Card 4: Results Generated */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-300">
             <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Recently Updated</span>
-              <span className="text-xl font-black text-blue-600 mt-1 block">{recentlyUpdatedResults} Rows</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Results Generated</span>
+              <span className="text-2xl font-black text-blue-600 mt-1 block">{totalResultsGenerated}</span>
             </div>
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
-              <TrendingUp size={20} />
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+              <Book size={22} />
             </div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+
+          {/* Card 5: Results Published */}
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between hover:-translate-y-1 hover:shadow-md transition-all duration-300">
             <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Average Performance</span>
-              <span className="text-xl font-black text-indigo-600 mt-1 block">{avgDeptPerformance}%</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Results Published</span>
+              <span className="text-2xl font-black text-indigo-600 mt-1 block">{totalPublished}</span>
             </div>
-            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
-              <Percent size={20} />
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+              <Award size={22} />
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 mt-8">
-          {/* Left Column (70%) */}
-          <div className="w-full lg:w-[70%] space-y-6">
+        <div className="space-y-8 mt-8">
+          {/* Main Content Column */}
+          <div className="w-full space-y-8">
             {/* Charts & Analytics Drawer */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm lg:col-span-2">
+          <div className="bg-white border border-[#E2E8F0] rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-0.5 lg:col-span-2 transition-all duration-300">
             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
               <BarChart3 size={18} className="text-[#7C3AED]" /> Department-wise Pass Percentage & Semester Averages
             </h3>
@@ -1165,7 +1533,7 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm flex flex-col">
+          <div className="bg-white border border-[#E2E8F0] rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-0.5 flex flex-col transition-all duration-300">
             <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Activity size={18} className="text-[#7C3AED]" /> Academic Success Distribution
             </h3>
@@ -1209,28 +1577,56 @@ export default function ResultsPage() {
         </div>
 
         {/* Tab Selection Row for Administration Modes */}
-        <div className="flex bg-[#F1F5F9] p-1.5 rounded-2xl gap-2 w-full md:w-max mb-6 border border-[#E2E8F0]">
-          <button
-            onClick={() => setAdminTab("subjects")}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
-              adminTab === "subjects" ? "bg-white text-[#7C3AED] shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
-            }`}
-          >
-            <Book size={18} /> Structured Results Hierarchy
-          </button>
-          <button
-            onClick={() => setAdminTab("policy")}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
-              adminTab === "policy" ? "bg-white text-[#7C3AED] shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
-            }`}
-          >
-            <Sliders size={18} /> Recalculation Policies
-          </button>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex bg-[#F1F5F9] p-1.5 rounded-2xl gap-2 overflow-x-auto w-full md:w-max border border-[#E2E8F0]">
+            <button
+              onClick={() => setAdminTab("subjects")}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap ${
+                adminTab === "subjects" ? "bg-white text-[#7C3AED] shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
+              }`}
+            >
+              <Book size={18} /> Structured Results Hierarchy
+            </button>
+            <button
+              onClick={() => setAdminTab("evaluations")}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap ${
+                adminTab === "evaluations" ? "bg-white text-[#7C3AED] shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
+              }`}
+            >
+              <Activity size={18} /> Evaluation Monitoring
+            </button>
+            <button
+              onClick={() => setAdminTab("faculty")}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap ${
+                adminTab === "faculty" ? "bg-white text-[#7C3AED] shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
+              }`}
+            >
+              <Users size={18} /> Faculty Tracker
+            </button>
+            <button
+              onClick={() => setAdminTab("policy")}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap ${
+                adminTab === "policy" ? "bg-white text-[#7C3AED] shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
+              }`}
+            >
+              <Sliders size={18} /> Recalculation Policies
+            </button>
+          </div>
+
+          <label className="flex items-center gap-2.5 cursor-pointer bg-white px-4 py-2 border border-[#E2E8F0] rounded-xl shadow-xs self-start md:self-auto select-none">
+            <input
+              type="checkbox"
+              checked={showAllSemesters}
+              onChange={(e) => setShowAllSemesters(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-[#7C3AED] focus:ring-[#7C3AED]"
+            />
+            <span className="text-xs font-bold text-slate-700">Include Inactive Semesters (1-8)</span>
+          </label>
         </div>
 
         {/* Search & Filter Header Control */}
         <div className="bg-white border border-[#E2E8F0] p-5 rounded-2xl shadow-sm mb-6 flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-3.5 h-4.5 w-4.5 text-slate-400" />
               <input
@@ -1245,11 +1641,23 @@ export default function ResultsPage() {
               <select
                 value={filterSemester}
                 onChange={(e) => setFilterSemester(e.target.value)}
-                className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-705 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] text-sm h-[46px] transition-all"
+                className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] text-sm h-[46px] transition-all"
               >
                 <option value="ALL">All Semesters</option>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
+                {activeSemestersList.map(s => (
                   <option key={s} value={String(s)}>Semester {s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <select
+                value={filterDept}
+                onChange={(e) => setFilterDept(e.target.value)}
+                className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] text-sm h-[46px] transition-all"
+              >
+                <option value="ALL">All Departments</option>
+                {departments.map((d: any) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
             </div>
@@ -1257,11 +1665,23 @@ export default function ResultsPage() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-705 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] text-sm h-[46px] transition-all"
+                className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] text-sm h-[46px] transition-all"
               >
-                <option value="ALL">All Success Statuses</option>
+                <option value="ALL">All Statuses</option>
                 <option value="PASS">PASS ONLY</option>
-                <option value="FAIL">FAIL/BACKLOG ONLY</option>
+                <option value="FAIL">FAIL ONLY</option>
+              </select>
+            </div>
+            <div>
+              <select
+                value={filterFaculty}
+                onChange={(e) => setFilterFaculty(e.target.value)}
+                className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] text-sm h-[46px] transition-all"
+              >
+                <option value="ALL">All Faculty</option>
+                {Array.from(new Set(allEvaluations.map((ev: any) => ev.faculty?.name).filter(Boolean))).map((name: any) => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -1289,594 +1709,711 @@ export default function ResultsPage() {
         {/* MODE A: Structured Results Hierarchy */}
         {adminTab === "subjects" && (
           <div>
-            {/* If there is an active search or filter term, show matching results directly */}
-            {hasActiveSearchOrFilter ? (
+            {!selectedDeptId ? (
+              // Step 1: Department Cards Grid
               <div className="space-y-4">
-                <div className="flex justify-between items-center px-2">
-                  <h3 className="font-extrabold text-slate-800 text-lg flex items-center gap-2">
-                    <Search size={18} className="text-[#7C3AED]" /> Smart Search Results
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setSearchTerm("");
-                      setFilterSemester("ALL");
-                      setFilterStatus("ALL");
-                      setFilterPublish("ALL");
-                    }}
-                    className="text-xs text-[#7C3AED] font-bold hover:underline"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider ml-1">Select Department to Configure Results</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {displayedDepartments.map((dept: any) => (
+                    <motion.div
+                      key={dept.id}
+                      whileHover={{ scale: 1.02, y: -4 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedDeptId(dept.id)}
+                      className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group flex flex-col justify-between min-h-[300px]"
+                    >
+                      <div className="absolute top-0 left-0 w-2 h-full bg-[#7C3AED]"></div>
+                      
+                      <div>
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-3xl">{dept.emoji}</span>
+                          <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${
+                            dept.publishedStudentsCount > 0 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
+                          }`}>
+                            Published: {dept.hasAnyPublished}
+                          </span>
+                        </div>
+                        <h4 className="font-extrabold text-slate-800 text-lg mb-4 group-hover:text-[#7C3AED] transition-colors">{dept.name}</h4>
+                        
+                        <div className="space-y-2 text-xs font-semibold text-slate-650">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Total Students:</span>
+                            <span className="text-slate-800 font-extrabold">{dept.totalStudents}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Total Published Results:</span>
+                            <span className="text-slate-800 font-extrabold">{dept.publishedCount}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Pass Percentage:</span>
+                            <span className="text-emerald-600 font-extrabold">{dept.passRate}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Fail Percentage:</span>
+                            <span className="text-rose-600 font-extrabold">{dept.failRate}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Average SGPA:</span>
+                            <span className="text-slate-800 font-extrabold">{dept.avgSgpa}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Average Marks:</span>
+                            <span className="text-slate-805 font-extrabold">{dept.avgMarks}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Published:</span>
+                            <span className={`font-extrabold ${dept.hasAnyPublished === "Yes" ? "text-emerald-600" : "text-amber-600"}`}>{dept.hasAnyPublished}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400 font-bold">Published Date:</span>
+                            <span className="text-slate-800 font-extrabold">{dept.latestPublishedDate}</span>
+                          </div>
+                        </div>
+                      </div>
 
-                <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden shadow-sm">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[800px]">
-                      <thead>
-                        <tr className="bg-[#5B21B6] text-white font-bold text-xs uppercase tracking-wider border-b border-[#E2E8F0]">
-                          <th className="p-4 pl-6">Roll Number</th>
-                          <th className="p-4">Student</th>
-                          <th className="p-4 text-center">Semester</th>
-                          <th className="p-4 text-center">Subject Details</th>
-                          <th className="p-4 text-center">SGPA</th>
-                          <th className="p-4 text-center">Pass Status</th>
-                          <th className="p-4 text-center">Publish Status</th>
-                          <th className="p-4 pr-6 text-center">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#E2E8F0] text-sm text-slate-700">
-                        {filteredSearchGrouped.map((g: any, idx: number) => {
-                          const isRecent = g.results.some((r: any) => isRecentlyUpdated(r.createdAt));
-                          const rowBg = isRecent 
-                            ? "bg-emerald-50/60 border-l-4 border-l-emerald-500" 
-                            : (idx % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]");
-                          const isStudentExpanded = expandedStudentId === `${g.student.id}-${g.semester}`;
-
-                          return (
-                            <React.Fragment key={idx}>
-                              <tr className={`${rowBg} hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]`}>
-                                <td className="p-4 pl-6 font-mono text-xs font-semibold text-slate-500">{g.student.rollNumber || "N/A"}</td>
-                                <td className="p-4 font-bold text-slate-800">
-                                  <div className="flex items-center gap-2">
-                                    <span>{g.student.name}</span>
-                                    {isRecent && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-250 animate-pulse">
-                                        Recently Updated
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-4 text-center font-extrabold text-slate-600">Semester {g.semester}</td>
-                                <td className="p-4 text-center">
-                                  <button
-                                    onClick={() => setExpandedStudentId(isStudentExpanded ? null : `${g.student.id}-${g.semester}`)}
-                                    className="px-3 py-1 bg-purple-50 text-[#7C3AED] rounded-lg border border-purple-100 text-xs font-bold hover:bg-purple-100 transition-colors flex items-center gap-1 mx-auto"
-                                  >
-                                    {g.results.length} Marks {isStudentExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                  </button>
-                                </td>
-                                <td className="p-4 text-center font-bold text-slate-750">{g.calculatedSgpa}</td>
-                                <td className="p-4 text-center">
-                                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                                    g.status === "PASS"
-                                      ? "bg-green-50 text-green-600 border-green-200"
-                                      : "bg-red-50 text-red-600 border-red-200"
-                                  }`}>
-                                    {g.status}
-                                  </span>
-                                </td>
-                                <td className="p-4 text-center">
-                                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                                    g.isPublished
-                                      ? "bg-green-50 text-green-600 border-green-200"
-                                      : "bg-amber-50 text-amber-600 border-amber-205"
-                                  }`}>
-                                    {g.isPublished ? "PUBLISHED" : "DRAFT"}
-                                  </span>
-                                </td>
-                                <td className="p-4 pr-6 text-center">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <button
-                                      onClick={() => handleTogglePublish(g.student.id, g.semester, g.isPublished)}
-                                      className={`px-3 py-1 rounded-lg border text-xs font-bold transition-all ${
-                                        g.isPublished
-                                          ? "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200"
-                                          : "bg-[#7C3AED] border-transparent text-white hover:bg-[#6D28D9]"
-                                      }`}
-                                    >
-                                      {g.isPublished ? "Unpublish" : "Publish"}
-                                    </button>
-                                    <button
-                                      onClick={() => openOverrideModal(g.student.id, g.student.name, g.semester)}
-                                      className="p-1.5 border border-[#E2E8F0] hover:bg-slate-50 rounded-lg text-slate-500"
-                                      title="Set GPAs Override"
-                                    >
-                                      <Sliders size={14} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-
-                              {/* Student grades expanded sheet sub-table */}
-                              {isStudentExpanded && (
-                                <tr>
-                                  <td colSpan={8} className="p-4 bg-slate-50/50">
-                                    <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 shadow-inner max-w-4xl mx-auto">
-                                      <div className="flex justify-between items-center mb-3">
-                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Detailed Report Card</span>
-                                        <button
-                                          onClick={() => {
-                                            resetForm();
-                                            setSubjectFormData({
-                                              ...subjectFormData,
-                                              userId: g.student.id,
-                                              semester: g.semester,
-                                            });
-                                            setIsSubjectModalOpen(true);
-                                          }}
-                                          className="text-xs text-[#7C3AED] font-bold flex items-center gap-1 hover:underline"
-                                        >
-                                          <Plus size={12} /> Add Marks
-                                        </button>
-                                      </div>
-                                      <table className="w-full text-left text-xs border-collapse">
-                                        <thead>
-                                          <tr className="bg-slate-50 text-slate-400 font-extrabold uppercase border-b border-[#E2E8F0]">
-                                            <th className="p-3">Course Code</th>
-                                            <th className="p-3">Course Name</th>
-                                            <th className="p-3 text-center">Internal</th>
-                                            <th className="p-3 text-center">External</th>
-                                            <th className="p-3 text-center">Total</th>
-                                            <th className="p-3 text-center">Credits</th>
-                                            <th className="p-3 text-center">Grade</th>
-                                            <th className="p-3 text-center">Status</th>
-                                            <th className="p-3 text-center">Actions</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 font-medium">
-                                          {g.results.map((res: any) => {
-                                            const isSubjectRecent = isRecentlyUpdated(res.createdAt);
-                                            return (
-                                              <tr key={res.id} className="hover:bg-slate-50/50">
-                                                <td className="p-3 font-mono font-bold text-purple-600">{res.subjectCode}</td>
-                                                <td className="p-3 font-bold text-slate-800">
-                                                  <div className="flex items-center gap-2">
-                                                    <span>{res.subjectName}</span>
-                                                    {isSubjectRecent && (
-                                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                        New Marks
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </td>
-                                                <td className="p-3 text-center text-slate-500">{res.internalMarks}</td>
-                                                <td className="p-3 text-center text-slate-500">{res.externalMarks}</td>
-                                                <td className="p-3 text-center font-bold text-slate-800">{res.marks}/100</td>
-                                                <td className="p-3 text-center">{res.credits}</td>
-                                                <td className="p-3 text-center font-black text-[#7C3AED]">{res.grade}</td>
-                                                <td className="p-3 text-center">
-                                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                                    res.status === "PASS" ? "bg-green-50 text-green-600 border border-green-150" : "bg-red-50 text-red-600 border border-red-150"
-                                                  }`}>
-                                                    {res.status}
-                                                  </span>
-                                                </td>
-                                                <td className="p-3 text-center">
-                                                  <div className="flex items-center justify-center gap-2">
-                                                    <button onClick={() => openEditModal(res)} className="text-[#7C3AED] hover:underline">Edit</button>
-                                                    <button onClick={() => handleDeleteSubject(res.id)} className="text-red-500 hover:underline">Delete</button>
-                                                  </div>
-                                                </td>
-                                              </tr>
-                                            );
-                                          })}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                        {filteredSearchGrouped.length === 0 && (
-                          <tr>
-                            <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
-                              No results matches found for query "{searchTerm}" under chosen filters.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                      <div className="pt-6 border-t border-slate-100 mt-6">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDeptId(dept.id);
+                          }}
+                          className="w-full py-2.5 bg-purple-50 text-[#7C3AED] hover:bg-purple-100 rounded-xl text-xs font-bold text-center border border-purple-150 transition-colors"
+                        >
+                          View Department
+                        </button>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             ) : (
-              // DEFAULT COLLAPSIBLE HIERARCHY
-              <div>
-                {!selectedDeptId ? (
-                  // Step 1: Department Cards Grid
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider ml-1">Select Department to Configure Results</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {departmentStats.map((dept: any) => (
-                        <motion.div
-                          key={dept.id}
-                          whileHover={{ scale: 1.02, y: -4 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setSelectedDeptId(dept.id)}
-                          className="bg-white border border-[#E2E8F0] rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group"
-                        >
-                          <div className="absolute top-0 left-0 w-2 h-full bg-[#7C3AED]"></div>
-                          <div className="flex justify-between items-start mb-4">
-                            <span className="text-3xl">{dept.emoji}</span>
-                            <span className="text-xs font-black px-2.5 py-1 bg-purple-50 text-[#7C3AED] rounded-full border border-purple-100">
-                              {dept.passRate}% Pass Rate
+              // Step 2: Semesters Grid inside Selected Department
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setSelectedDeptId("");
+                      setExpandedSemester(null);
+                      setExpandedStudentId(null);
+                    }}
+                    className="p-2 border border-[#E2E8F0] hover:bg-slate-50 text-slate-500 rounded-xl transition-all"
+                    title="Back to Departments"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <div>
+                    <span className="text-xs font-black text-[#7C3AED] uppercase tracking-wider block">Academic Department</span>
+                    <h2 className="text-xl font-black text-slate-800">{selectedDept?.name}</h2>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {displayedSemesters.map((semStat: any) => {
+                    const isSemExpanded = expandedSemester === semStat.semester;
+                    const passRate = semStat.totalStudents > 0 ? Math.round((semStat.passed / semStat.totalStudents) * 100) : 0;
+                    
+                    // Published Status badge details
+                    let publishLabel = "Draft";
+                    let publishClass = "bg-amber-50 text-amber-700 border-amber-200";
+                    if (semStat.totalStudents === 0) {
+                      publishLabel = "No Enrolled";
+                      publishClass = "bg-slate-50 text-slate-400 border-slate-200";
+                    } else if (semStat.publishedCount === semStat.totalStudents) {
+                      publishLabel = "Published";
+                      publishClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                    } else if (semStat.publishedCount > 0) {
+                      publishLabel = `Partial (${semStat.publishedCount}/${semStat.totalStudents})`;
+                      publishClass = "bg-indigo-50 text-indigo-700 border-indigo-200";
+                    }
+
+                    return (
+                      <div
+                        key={semStat.semester}
+                        className={`bg-white border rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_15px_35px_rgba(124,58,237,0.08)] hover:-translate-y-1.5 transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[300px] ${
+                          isSemExpanded ? "border-[#7C3AED] ring-4 ring-[#7C3AED]/10" : "border-[#E2E8F0]"
+                        }`}
+                      >
+                        {/* Decorative Background Blur */}
+                        <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#7C3AED]/5 rounded-full blur-xl pointer-events-none"></div>
+
+                        <div className="space-y-4">
+                          {/* Header */}
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-[#7C3AED] border border-purple-100 font-black text-sm">
+                                S{semStat.semester}
+                              </div>
+                              <div>
+                                <h4 className="font-extrabold text-slate-800 text-sm">Semester {semStat.semester}</h4>
+                              </div>
+                            </div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black border uppercase tracking-wider ${publishClass}`}>
+                              {publishLabel}
                             </span>
                           </div>
-                          <h4 className="font-extrabold text-slate-800 text-lg mb-2 group-hover:text-[#7C3AED] transition-colors">{dept.name}</h4>
-                          <div className="flex gap-4 text-xs font-semibold text-slate-500">
-                            <span>👥 {dept.totalStudents} Students</span>
-                            {dept.pendingResults > 0 ? (
-                              <span className="text-amber-600 font-bold">⚠️ {dept.pendingResults} Drafts</span>
-                            ) : (
-                              <span className="text-emerald-600 font-bold">✓ All Published</span>
-                            )}
+
+                          {/* Detailed list metrics */}
+                          <div className="space-y-2 text-xs font-semibold text-slate-650 pt-2 border-t border-slate-100">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400 font-bold">Total Students:</span>
+                              <span className="text-slate-800 font-extrabold">{semStat.totalStudents} Students</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400 font-bold">Passed Students:</span>
+                              <span className="text-emerald-600 font-extrabold">{semStat.passed} Passed</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400 font-bold">Failed Students:</span>
+                              <span className="text-rose-600 font-extrabold">{semStat.failed} Failed</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400 font-bold">Pass Percentage:</span>
+                              <span className="text-emerald-600 font-extrabold">{passRate}% Pass Rate</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400 font-bold">Average SGPA:</span>
+                              <span className="text-slate-800 font-extrabold">{semStat.avgSgpa}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400 font-bold">Average Marks:</span>
+                              <span className="text-slate-800 font-extrabold">{semStat.avgMarks}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400 font-bold">Result Status:</span>
+                              <span className="text-slate-800 font-extrabold">{publishLabel}</span>
+                            </div>
                           </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  // Step 2: Semesters Grid inside Selected Department
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => {
-                          setSelectedDeptId("");
-                          setExpandedSemester(null);
-                          setExpandedStudentId(null);
-                        }}
-                        className="p-2 border border-[#E2E8F0] hover:bg-slate-50 text-slate-500 rounded-xl transition-all"
-                        title="Back to Departments"
-                      >
-                        <ArrowLeft size={18} />
-                      </button>
-                      <div>
-                        <span className="text-xs font-black text-[#7C3AED] uppercase tracking-wider block">Academic Department</span>
-                        <h2 className="text-xl font-black text-slate-800">{selectedDept?.name}</h2>
+                        </div>
+
+                        {/* Buttons */}
+                        <div className="flex gap-3 pt-4 border-t border-slate-100 mt-4">
+                          <button
+                            onClick={() => {
+                              setExpandedSemester(isSemExpanded ? null : semStat.semester);
+                              setExpandedStudentId(null);
+                              setCurrentPage(1);
+                              setSelectedStudentIds([]);
+                            }}
+                            className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-center border transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                              isSemExpanded
+                                ? "bg-purple-50 border-purple-200 text-[#7C3AED]"
+                                : "bg-white border-[#E2E8F0] text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            View Results
+                          </button>
+                          <button
+                            onClick={() => handleDeclareResults(selectedDeptId, semStat.semester)}
+                            disabled={semStat.totalStudents === 0 || isPublishingBatch}
+                            className="flex-1 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-xs font-bold text-center transition-colors disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
+                          >
+                            {isPublishingBatch ? "..." : "Declare All"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Recent Evaluation & Publishing Activity Timeline */}
+                  <div className="col-span-full bg-white border border-[#E2E8F0] rounded-[24px] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <Activity size={20} className="text-[#7C3AED]" />
+                        <div>
+                          <h3 className="font-extrabold text-slate-800 text-base">Recent Evaluation & Publishing Activity</h3>
+                          <p className="text-xs text-slate-400 font-medium">Real-time audit log of examiner activity and result declaration events.</p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {semesterStats.map((semStat: any) => {
-                        const isSemExpanded = expandedSemester === semStat.semester;
+                    <div className="relative border-l border-slate-100 ml-4 pl-8 space-y-6">
+                      {recentActivities.map((act) => {
+                        const initials = getInitials(act.faculty || "System");
+                        const colorClass = avatarColorClass(act.type);
                         return (
-                          <div
-                            key={semStat.semester}
-                            className={`bg-white border rounded-2xl p-5 shadow-sm transition-all relative overflow-hidden flex flex-col justify-between h-48 hover:shadow-md ${
-                              isSemExpanded ? "border-[#7C3AED] ring-2 ring-[#7C3AED]/10" : "border-[#E2E8F0]"
-                            }`}
-                          >
-                            <div>
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-extrabold text-[#7C3AED] text-sm">Semester {semStat.semester}</span>
-                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider">{semStat.totalStudents} Enrolled</span>
-                              </div>
-                              <div className="space-y-1 text-xs font-bold text-slate-500">
-                                <div className="flex justify-between">
-                                  <span>Passed:</span>
-                                  <span className="text-emerald-600">{semStat.passed}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Failed / Backlog:</span>
-                                  <span className="text-rose-600">{semStat.failed}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Average Score:</span>
-                                  <span className="text-slate-800">{semStat.avgMarks}/100</span>
-                                </div>
-                              </div>
+                          <div key={act.id} className="relative group">
+                            {/* Timeline Dot/Avatar */}
+                            <div className={`absolute -left-[49px] top-0.5 w-9 h-9 rounded-xl border flex items-center justify-center text-xs font-bold shadow-sm transition-all duration-300 group-hover:scale-110 ${colorClass}`}>
+                              {initials}
                             </div>
-
-                            <div className="flex gap-2 pt-3 border-t border-slate-100 mt-2">
-                              <button
-                                onClick={() => {
-                                  setExpandedSemester(isSemExpanded ? null : semStat.semester);
-                                  setExpandedStudentId(null);
-                                }}
-                                className={`flex-1 py-2 rounded-lg text-xs font-bold text-center border transition-all ${
-                                  isSemExpanded
-                                    ? "bg-purple-50 border-purple-200 text-[#7C3AED]"
-                                    : "bg-white border-[#E2E8F0] text-slate-600 hover:bg-slate-50"
-                                }`}
-                              >
-                                {isSemExpanded ? "Hide Results" : "View Results"}
-                              </button>
-                              <button
-                                onClick={() => handleDeclareResults(selectedDeptId, semStat.semester)}
-                                disabled={semStat.totalStudents === 0 || isPublishingBatch}
-                                className="flex-1 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg text-xs font-bold text-center transition-colors disabled:opacity-50"
-                              >
-                                {isPublishingBatch ? "..." : "Declare"}
-                              </button>
+                            
+                            {/* Activity Content Card */}
+                            <div className="bg-slate-50/50 hover:bg-slate-50 border border-slate-100 hover:border-slate-200/80 rounded-2xl p-4 transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="space-y-1">
+                                <p className="text-sm font-bold text-slate-800 leading-snug">{act.text}</p>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 font-semibold">
+                                  {act.faculty && (
+                                    <span className="flex items-center gap-1">
+                                      <span className="text-slate-350">Faculty:</span>
+                                      <span className="text-slate-600">{act.faculty}</span>
+                                    </span>
+                                  )}
+                                  {act.subjectName && (
+                                    <span className="flex items-center gap-1">
+                                      <span className="text-slate-350">Subject:</span>
+                                      <span className="text-slate-600">{act.subjectName}</span>
+                                    </span>
+                                  )}
+                                  {act.department && (
+                                    <span className="flex items-center gap-1">
+                                      <span className="text-slate-350">Dept:</span>
+                                      <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-bold">{act.department}</span>
+                                    </span>
+                                  )}
+                                  {act.semester && (
+                                    <span className="flex items-center gap-1">
+                                      <span className="text-slate-350">Sem:</span>
+                                      <span className="bg-purple-50 text-[#7C3AED] px-1.5 py-0.5 rounded text-[10px] font-bold">Semester {act.semester}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-xs text-slate-400 font-extrabold whitespace-nowrap self-end sm:self-center">
+                                ⏱️ {getTimeAgo(act.time)}
+                              </div>
                             </div>
                           </div>
                         );
                       })}
+                      {recentActivities.length === 0 && (
+                        <div className="text-center py-6 text-slate-400 text-sm font-medium">
+                          No recent activities recorded.
+                        </div>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Step 3: Collapsible Student Results details for expanded semester */}
-                    {expandedSemester !== null && (
+                  {/* Step 3: Collapsible Student Results details for expanded semester */}
+                  {expandedSemester !== null && (() => {
+                    const semStudents = students.filter((s: any) => s.departmentId === selectedDeptId && s.semester === expandedSemester);
+                    const filteredSemStudents = semStudents.filter((student: any) => {
+                      const studentResults = adminResults.filter((r: any) => r.userId === student.id && r.semester === expandedSemester);
+                      const hasFail = studentResults.some((r: any) => r.status === "FAIL");
+                      const status = studentResults.length === 0 ? "NO MARKS" : hasFail ? "FAIL" : "PASS";
+                      
+                      const summary = dbSummaries.find((s: any) => s.userId === student.id && s.semester === expandedSemester);
+                      const isPublished = summary ? summary.published : false;
+
+                      const matchesStatus = filterStatus === "ALL" || status === filterStatus;
+                      const matchesPublish = filterPublish === "ALL" || 
+                        (filterPublish === "PUBLISHED" ? isPublished : !isPublished);
+
+                      const matchingEval = allEvaluations.find((e: any) => e.studentId === student.id && e.course?.semester === expandedSemester && e.faculty?.name === filterFaculty);
+                      const matchesFaculty = filterFaculty === "ALL" || !!matchingEval;
+
+                      const matchesSearch = 
+                        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (student.rollNumber || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+                      return matchesStatus && matchesPublish && matchesFaculty && matchesSearch;
+                    });
+
+                    const ITEMS_PER_PAGE = 20;
+                    const totalStudentsCount = filteredSemStudents.length;
+                    const totalPages = Math.ceil(totalStudentsCount / ITEMS_PER_PAGE) || 1;
+                    const safeCurrentPage = Math.min(currentPage, totalPages);
+                    const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+                    const endIndex = startIndex + ITEMS_PER_PAGE;
+                    const paginatedStudents = filteredSemStudents.slice(startIndex, endIndex);
+
+                    const isPageAllSelected = paginatedStudents.length > 0 && paginatedStudents.every((s: any) => selectedStudentIds.includes(s.id));
+                    const handleSelectPageAll = () => {
+                      if (isPageAllSelected) {
+                        setSelectedStudentIds(prev => prev.filter((id: string) => !paginatedStudents.some((ps: any) => ps.id === id)));
+                      } else {
+                        const newIds = paginatedStudents.map((s: any) => s.id).filter((id: string) => !selectedStudentIds.includes(id));
+                        setSelectedStudentIds(prev => [...prev, ...newIds]);
+                      }
+                    };
+
+                    return (
                       <motion.div
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-sm mt-6"
+                        className="bg-white border border-[#E2E8F0] rounded-[24px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.02)] mt-6 transition-all col-span-full"
                       >
-                        <div className="p-5 border-b border-[#E2E8F0] bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        {/* Accordion style header */}
+                        <div 
+                          onClick={() => {
+                            setExpandedSemester(null);
+                            setExpandedStudentId(null);
+                          }}
+                          className="p-5 border-b border-[#E2E8F0] bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-slate-50 transition-colors select-none"
+                        >
                           <div>
-                            <h3 className="font-extrabold text-slate-805 text-base flex items-center gap-2">
-                              🎓 Semester {expandedSemester} Student Results Ledger
+                            <h3 className="font-extrabold text-slate-855 text-base flex items-center gap-2">
+                              🎓 Semester {expandedSemester} Student Results Ledger <span className="text-xs font-normal text-slate-400">(Click to Collapse)</span>
                             </h3>
                             <p className="text-xs text-slate-400 font-medium">Viewing student grade performance for {selectedDept?.name}.</p>
                           </div>
-                          
-                          {/* Student Performance Analytics summary drawer */}
-                          {(() => {
-                            const activeSemStat = semesterStats.find(s => s.semester === expandedSemester);
-                            if (!activeSemStat) return null;
-                            return (
-                              <div className="flex gap-4 text-xs font-bold bg-purple-50/80 border border-purple-100 p-3 rounded-xl max-w-xl flex-wrap">
-                                <div>
-                                  <span className="text-slate-450 text-[9px] uppercase tracking-wider block">Avg Score</span>
-                                  <span className="text-slate-800">{activeSemStat.avgMarks}%</span>
-                                </div>
-                                <div className="border-l border-purple-200/50 px-1"></div>
-                                <div>
-                                  <span className="text-slate-455 text-[9px] uppercase tracking-wider block">Highest / Lowest</span>
-                                  <span className="text-slate-800">{activeSemStat.highestMarks}% / {activeSemStat.lowestMarks}%</span>
-                                </div>
-                                <div className="border-l border-purple-200/50 px-1"></div>
-                                <div>
-                                  <span className="text-slate-460 text-[9px] uppercase tracking-wider block">Top Performer</span>
-                                  <span className="text-[#7C3AED]">{activeSemStat.topPerformer} ({activeSemStat.topGpa} GPA)</span>
-                                </div>
+                          <span className="text-slate-400 text-xs font-black">▼ Collapsible</span>
+                        </div>
+
+                        {/* Smart Result Summary */}
+                        {(() => {
+                          const semStudentIds = semStudents.map((s: any) => s.id);
+                          const semSummaries = dbSummaries.filter((s: any) => semStudentIds.includes(s.userId) && s.semester === expandedSemester);
+                          const sgpaList = semSummaries.map((s: any) => parseFloat(s.sgpa || "0")).filter((g: number) => g > 0);
+                          const avgSgpa = sgpaList.length > 0 ? (sgpaList.reduce((sum: number, g: number) => sum + g, 0) / sgpaList.length).toFixed(2) : "0.00";
+                          const highestSgpa = sgpaList.length > 0 ? Math.max(...sgpaList).toFixed(2) : "0.00";
+                          const lowestSgpa = sgpaList.length > 0 ? Math.min(...sgpaList).toFixed(2) : "0.00";
+
+                          const activeSemStat = semesterStats.find(s => s.semester === expandedSemester);
+                          const passedCount = activeSemStat?.passed || 0;
+                          const failedCount = activeSemStat?.failed || 0;
+                          const passRate = totalStudentsCount > 0 ? Math.round((passedCount / totalStudentsCount) * 100) : 0;
+                          const failRate = totalStudentsCount > 0 ? Math.round((failedCount / totalStudentsCount) * 100) : 0;
+                          const publishedCount = activeSemStat?.publishedCount || 0;
+
+                          return (
+                            <div className="grid grid-cols-2 md:grid-cols-7 gap-4 p-5 bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs font-bold">
+                              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col justify-center shadow-xs">
+                                <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Total Students</span>
+                                <span className="text-sm font-black text-slate-800 mt-0.5">{totalStudentsCount} Enrolled</span>
                               </div>
-                            );
-                          })()}
+                              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col justify-center shadow-xs">
+                                <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Pass Rate (%)</span>
+                                <span className="text-sm font-black text-emerald-600 mt-0.5">{passRate}% ({passedCount})</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col justify-center shadow-xs">
+                                <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Fail Rate (%)</span>
+                                <span className="text-sm font-black text-rose-600 mt-0.5">{failRate}% ({failedCount})</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col justify-center shadow-xs">
+                                <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Average SGPA</span>
+                                <span className="text-sm font-black text-slate-700 mt-0.5">{avgSgpa}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col justify-center shadow-xs">
+                                <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Highest SGPA</span>
+                                <span className="text-sm font-black text-[#7C3AED] mt-0.5">{highestSgpa}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col justify-center shadow-xs">
+                                <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Lowest SGPA</span>
+                                <span className="text-sm font-black text-slate-500 mt-0.5">{lowestSgpa}</span>
+                              </div>
+                              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col justify-center shadow-xs col-span-2 md:col-span-1">
+                                <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Published Status</span>
+                                <span className="text-sm font-black text-blue-600 mt-0.5">{publishedCount} / {totalStudentsCount}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Bulk action buttons header */}
+                        <div className="flex items-center justify-between p-4 border-b border-[#E2E8F0] bg-slate-50/30 gap-4 flex-wrap">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-xs font-black text-slate-455 uppercase tracking-wider mr-1">Bulk Actions:</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBulkPublishOption("semester");
+                                setIsBulkPublishModalOpen(true);
+                              }}
+                              className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                              Publish Entire Semester
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBulkPublishOption("department");
+                                setIsBulkPublishModalOpen(true);
+                              }}
+                              className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                              Publish Entire Department
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBulkPublishOption("verified");
+                                setIsBulkPublishModalOpen(true);
+                              }}
+                              className="px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                              Publish All Verified Results
+                            </button>
+                            {selectedStudentIds.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBulkPublishOption("selected");
+                                  setIsBulkPublishModalOpen(true);
+                                }}
+                                className="px-4 py-2 border border-purple-250 text-[#7C3AED] bg-purple-50 hover:bg-purple-100 rounded-xl text-xs font-bold transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+                              >
+                                Publish Selected ({selectedStudentIds.length})
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         <div className="overflow-x-auto">
                           <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
                               <tr className="bg-[#5B21B6] text-white font-bold text-xs uppercase tracking-wider border-b border-[#E2E8F0]">
+                                <th className="p-4 pl-6 text-center w-12">
+                                  <input
+                                    type="checkbox"
+                                    checked={isPageAllSelected}
+                                    onChange={handleSelectPageAll}
+                                    className="h-4 w-4 rounded border-slate-300 text-[#7C3AED] focus:ring-[#7C3AED]"
+                                  />
+                                </th>
                                 <th className="p-4 pl-6">Roll Number</th>
                                 <th className="p-4">Student</th>
-                                <th className="p-4 text-center">Marks Configured</th>
-                                <th className="p-4 text-center">Calculated SGPA</th>
+                                <th className="p-4 text-center">Subject Details</th>
+                                <th className="p-4 text-center">SGPA</th>
                                 <th className="p-4 text-center">Pass Status</th>
                                 <th className="p-4 text-center">Publish Status</th>
                                 <th className="p-4 pr-6 text-center">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[#E2E8F0] text-sm text-slate-700">
-                              {(() => {
-                                const semStudents = students.filter((s: any) => s.departmentId === selectedDeptId && s.semester === expandedSemester);
-                                const filteredSemStudents = semStudents.filter((student: any) => {
-                                  const studentResults = adminResults.filter((r: any) => r.userId === student.id && r.semester === expandedSemester);
-                                  const hasFail = studentResults.some((r: any) => r.status === "FAIL");
-                                  const status = studentResults.length === 0 ? "NO MARKS" : hasFail ? "FAIL" : "PASS";
-                                  
-                                  const summary = dbSummaries.find((s: any) => s.userId === student.id && s.semester === expandedSemester);
-                                  const isPublished = summary ? summary.published : (studentResults[0]?.published || false);
-
-                                  const matchesStatus = filterStatus === "ALL" || status === filterStatus;
-                                  const matchesPublish = filterPublish === "ALL" || 
-                                    (filterPublish === "PUBLISHED" ? isPublished : !isPublished);
-
-                                  return matchesStatus && matchesPublish;
-                                });
-
-                                if (filteredSemStudents.length === 0) {
-                                  return (
-                                    <tr>
-                                      <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">
-                                        No student records match chosen status filters for Semester {expandedSemester}.
-                                      </td>
-                                    </tr>
-                                  );
+                              {paginatedStudents.map((student: any) => {
+                                const studentResults = adminResults.filter(
+                                  (r: any) => r.userId === student.id && r.semester === expandedSemester
+                                );
+                                const subjectCount = studentResults.length;
+                                
+                                let calculatedSgpa = "0.00";
+                                const totalCredits = studentResults.reduce((sum: number, r: any) => sum + (r.credits || 0), 0);
+                                if (totalCredits > 0) {
+                                  const totalPoints = studentResults.reduce((sum: number, r: any) => sum + (getGradePoints(r.grade) * (r.credits || 0)), 0);
+                                  calculatedSgpa = (totalPoints / totalCredits).toFixed(2);
                                 }
 
-                                return filteredSemStudents.map((student: any, idx: number) => {
-                                  const studentResults = adminResults.filter((r: any) => r.userId === student.id && r.semester === expandedSemester);
-                                  const subjectCount = studentResults.length;
-                                  
-                                  let calculatedSgpa = "0.00";
-                                  const totalCredits = studentResults.reduce((sum: number, r: any) => sum + (r.credits || 0), 0);
-                                  if (totalCredits > 0) {
-                                    const totalPoints = studentResults.reduce((sum: number, r: any) => sum + (getGradePoints(r.grade) * (r.credits || 0)), 0);
-                                    calculatedSgpa = (totalPoints / totalCredits).toFixed(2);
-                                  }
+                                const summary = dbSummaries.find((s: any) => s.userId === student.id && s.semester === expandedSemester);
+                                const isPublished = summary ? summary.published : false;
 
-                                  const summary = dbSummaries.find((s: any) => s.userId === student.id && s.semester === expandedSemester);
-                                  const isPublished = summary ? summary.published : (studentResults[0]?.published || false);
+                                const hasFail = studentResults.some((r: any) => r.status === "FAIL");
+                                const passStatus = subjectCount === 0 ? "NO MARKS" : hasFail ? "FAIL" : "PASS";
 
-                                  const hasFail = studentResults.some((r: any) => r.status === "FAIL");
-                                  const passStatus = subjectCount === 0 ? "NO MARKS" : hasFail ? "FAIL" : "PASS";
+                                const isRecent = studentResults.some((r: any) => isRecentlyUpdated(r.createdAt));
+                                const rowBg = isRecent 
+                                  ? "bg-emerald-50/60 border-l-4 border-l-emerald-500" 
+                                  : "bg-white";
+                                const isStudentExpanded = expandedStudentId === student.id;
 
-                                  const isRecent = studentResults.some((r: any) => isRecentlyUpdated(r.createdAt));
-                                  const rowBg = isRecent 
-                                    ? "bg-emerald-50/60 border-l-4 border-l-emerald-500" 
-                                    : (idx % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]");
-                                  const isStudentExpanded = expandedStudentId === student.id;
+                                const isSelected = selectedStudentIds.includes(student.id);
 
-                                  return (
-                                    <React.Fragment key={student.id}>
-                                      <tr className={`${rowBg} hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]`}>
-                                        <td className="p-4 pl-6 font-mono text-xs font-semibold text-slate-500">{student.rollNumber || "N/A"}</td>
-                                        <td className="p-4 font-bold text-slate-850">
-                                          <div className="flex items-center gap-2">
-                                            <span>{student.name}</span>
-                                            {isRecent && (
-                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-250 animate-pulse">
-                                                Recently Updated
-                                              </span>
-                                            )}
-                                          </div>
-                                        </td>
-                                        <td className="p-4 text-center">
+                                return (
+                                  <React.Fragment key={student.id}>
+                                    <tr className={`${rowBg} hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]`}>
+                                      <td className="p-4 pl-6 text-center select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={() => {
+                                            setSelectedStudentIds(prev =>
+                                              prev.includes(student.id)
+                                                ? prev.filter(id => id !== student.id)
+                                                : [...prev, student.id]
+                                            );
+                                          }}
+                                          className="h-4 w-4 rounded border-slate-300 text-[#7C3AED] focus:ring-[#7C3AED]"
+                                        />
+                                      </td>
+                                      <td className="p-4 font-mono text-xs font-semibold text-slate-500">{student.rollNumber || "N/A"}</td>
+                                      <td className="p-4 font-bold text-slate-850">
+                                        <div className="flex items-center gap-2">
+                                          <span>{student.name}</span>
+                                          {isRecent && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-250 animate-pulse">
+                                              Recently Updated
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="p-4 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => setExpandedStudentId(isStudentExpanded ? null : student.id)}
+                                          className="px-3 py-1 bg-purple-50 text-[#7C3AED] rounded-lg border border-purple-100 text-xs font-bold hover:bg-purple-100 transition-colors flex items-center gap-1 mx-auto"
+                                        >
+                                          {subjectCount} Subjects {isStudentExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                        </button>
+                                      </td>
+                                      <td className="p-4 text-center font-bold text-slate-800">{calculatedSgpa}</td>
+                                      <td className="p-4 text-center">
+                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                                          passStatus === "PASS"
+                                            ? "bg-green-50 text-green-600 border-green-200"
+                                            : passStatus === "FAIL"
+                                            ? "bg-red-50 text-red-600 border-red-200"
+                                            : "bg-slate-50 text-slate-400 border border-slate-200"
+                                        }`}>
+                                          {passStatus}
+                                        </span>
+                                      </td>
+                                      <td className="p-4 text-center">
+                                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                                          isPublished
+                                            ? "bg-green-50 text-green-600 border-green-200"
+                                            : "bg-amber-50 text-amber-600 border-amber-205"
+                                        }`}>
+                                          {isPublished ? "PUBLISHED" : "DRAFT"}
+                                        </span>
+                                      </td>
+                                      <td className="p-4 pr-6 text-center">
+                                        <div className="flex items-center justify-center gap-2.5">
                                           <button
-                                            onClick={() => setExpandedStudentId(isStudentExpanded ? null : student.id)}
-                                            className="px-3 py-1 bg-purple-50 text-[#7C3AED] rounded-lg border border-purple-100 text-xs font-bold hover:bg-purple-100 transition-colors flex items-center gap-1 mx-auto animate-none"
+                                            type="button"
+                                            onClick={() => handleTogglePublish(student.id, expandedSemester, isPublished)}
+                                            className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                                              isPublished
+                                                ? "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200"
+                                                : "bg-[#7C3AED] border-transparent text-white hover:bg-[#6D28D9]"
+                                            }`}
                                           >
-                                            {subjectCount} Subjects {isStudentExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                            {isPublished ? "Unpublish" : "Publish"}
                                           </button>
-                                        </td>
-                                        <td className="p-4 text-center font-bold text-slate-800">{calculatedSgpa}</td>
-                                        <td className="p-4 text-center">
-                                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                                            passStatus === "PASS"
-                                              ? "bg-green-50 text-green-600 border-green-200"
-                                              : passStatus === "FAIL"
-                                              ? "bg-red-50 text-red-600 border-red-200"
-                                              : "bg-slate-50 text-slate-400 border border-slate-200"
-                                          }`}>
-                                            {passStatus}
-                                          </span>
-                                        </td>
-                                        <td className="p-4 text-center">
-                                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                                            isPublished
-                                              ? "bg-green-50 text-green-600 border-green-200"
-                                              : "bg-amber-50 text-amber-600 border-amber-205"
-                                          }`}>
-                                            {isPublished ? "PUBLISHED" : "DRAFT"}
-                                          </span>
-                                        </td>
-                                        <td className="p-4 pr-6 text-center">
-                                          <div className="flex items-center justify-center gap-2.5">
-                                            <button
-                                              onClick={() => handleTogglePublish(student.id, expandedSemester, isPublished)}
-                                              className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
-                                                isPublished
-                                                  ? "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200"
-                                                  : "bg-[#7C3AED] border-transparent text-white hover:bg-[#6D28D9]"
-                                              }`}
-                                            >
-                                              {isPublished ? "Unpublish" : "Publish"}
-                                            </button>
-                                            <button
-                                              onClick={() => openOverrideModal(student.id, student.name, expandedSemester)}
-                                              className="p-1.5 border border-[#E2E8F0] hover:bg-slate-50 rounded-lg text-slate-500"
-                                              title="Set GPAs Override"
-                                            >
-                                              <Sliders size={14} />
-                                            </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => openOverrideModal(student.id, student.name, expandedSemester)}
+                                            className="p-1.5 border border-[#E2E8F0] hover:bg-slate-50 rounded-lg text-slate-500"
+                                            title="Set GPAs Override"
+                                          >
+                                            <Sliders size={14} />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+
+                                    {/* Student grades expanded sheet sub-table */}
+                                    {isStudentExpanded && (
+                                      <tr>
+                                        <td colSpan={8} className="p-4 bg-slate-50/50">
+                                          <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 shadow-inner max-w-4xl mx-auto">
+                                            <div className="flex justify-between items-center mb-3">
+                                              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Detailed Report Card</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  resetForm();
+                                                  setSubjectFormData({
+                                                    ...subjectFormData,
+                                                    userId: student.id,
+                                                    semester: expandedSemester,
+                                                  });
+                                                  setIsSubjectModalOpen(true);
+                                                }}
+                                                className="text-xs text-[#7C3AED] font-bold flex items-center gap-1 hover:underline"
+                                              >
+                                                <Plus size={12} /> Add Marks
+                                              </button>
+                                            </div>
+                                            <table className="w-full text-left text-xs border-collapse">
+                                              <thead>
+                                                <tr className="bg-slate-50 text-slate-400 font-extrabold uppercase border-b border-[#E2E8F0]">
+                                                  <th className="p-3">Course Code</th>
+                                                  <th className="p-3">Course Name</th>
+                                                  <th className="p-3 text-center">Internal</th>
+                                                  <th className="p-3 text-center">External</th>
+                                                  <th className="p-3 text-center">Total</th>
+                                                  <th className="p-3 text-center">Credits</th>
+                                                  <th className="p-3 text-center">Grade</th>
+                                                  <th className="p-3 text-center">Status</th>
+                                                  <th className="p-3 text-center">Actions</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                                                {studentResults.map((res: any) => {
+                                                  const isSubjectRecent = isRecentlyUpdated(res.createdAt);
+                                                  return (
+                                                    <tr key={res.id} className="hover:bg-slate-50/50">
+                                                      <td className="p-3 font-mono font-bold text-purple-600">{res.subjectCode}</td>
+                                                      <td className="p-3 font-bold text-slate-800">
+                                                        <div className="flex items-center gap-2">
+                                                          <span>{res.subjectName}</span>
+                                                          {isSubjectRecent && (
+                                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                              New Marks
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                      </td>
+                                                      <td className="p-3 text-center text-slate-500">{res.internalMarks}</td>
+                                                      <td className="p-3 text-center text-slate-500">{res.externalMarks}</td>
+                                                      <td className="p-3 text-center font-bold text-slate-800">{res.marks}/100</td>
+                                                      <td className="p-3 text-center">{res.credits}</td>
+                                                      <td className="p-3 text-center font-black text-[#7C3AED]">{res.grade}</td>
+                                                      <td className="p-3 text-center">
+                                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                                          res.status === "PASS" ? "bg-green-50 text-green-600 border-green-200" : "bg-red-50 text-red-600 border-red-200"
+                                                        }`}>
+                                                          {res.status}
+                                                        </span>
+                                                      </td>
+                                                      <td className="p-3 text-center">
+                                                        <div className="flex items-center justify-center gap-2.5">
+                                                          <button type="button" onClick={() => openEditModal(res)} className="text-[#7C3AED] hover:underline font-bold">Edit</button>
+                                                          <button type="button" onClick={() => handleDeleteSubject(res.id)} className="text-red-500 hover:underline font-bold">Delete</button>
+                                                        </div>
+                                                      </td>
+                                                    </tr>
+                                                  );
+                                                })}
+                                                {studentResults.length === 0 && (
+                                                  <tr>
+                                                    <td colSpan={9} className="p-4 text-center text-slate-400">No subject marks registered.</td>
+                                                  </tr>
+                                                )}
+                                              </tbody>
+                                            </table>
                                           </div>
                                         </td>
                                       </tr>
-
-                                      {/* Student grades expanded sheet sub-table */}
-                                      {isStudentExpanded && (
-                                        <tr>
-                                          <td colSpan={7} className="p-4 bg-slate-50/50">
-                                            <div className="bg-white rounded-xl border border-[#E2E8F0] p-4 shadow-inner max-w-4xl mx-auto">
-                                              <div className="flex justify-between items-center mb-3">
-                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Detailed Report Card</span>
-                                                <button
-                                                  onClick={() => {
-                                                    resetForm();
-                                                    setSubjectFormData({
-                                                      ...subjectFormData,
-                                                      userId: student.id,
-                                                      semester: expandedSemester,
-                                                    });
-                                                    setIsSubjectModalOpen(true);
-                                                  }}
-                                                  className="text-xs text-[#7C3AED] font-bold flex items-center gap-1 hover:underline animate-none"
-                                                >
-                                                  <Plus size={12} /> Add Marks
-                                                </button>
-                                              </div>
-                                              <table className="w-full text-left text-xs border-collapse">
-                                                <thead>
-                                                  <tr className="bg-slate-50 text-slate-400 font-extrabold uppercase border-b border-[#E2E8F0]">
-                                                    <th className="p-3">Course Code</th>
-                                                    <th className="p-3">Course Name</th>
-                                                    <th className="p-3 text-center">Internal</th>
-                                                    <th className="p-3 text-center">External</th>
-                                                    <th className="p-3 text-center">Total</th>
-                                                    <th className="p-3 text-center">Credits</th>
-                                                    <th className="p-3 text-center">Grade</th>
-                                                    <th className="p-3 text-center">Status</th>
-                                                    <th className="p-3 text-center">Actions</th>
-                                                  </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                                                  {studentResults.map((res: any) => {
-                                                    const isSubjectRecent = isRecentlyUpdated(res.createdAt);
-                                                    return (
-                                                      <tr key={res.id} className="hover:bg-slate-50/50">
-                                                        <td className="p-3 font-mono font-bold text-purple-600">{res.subjectCode}</td>
-                                                        <td className="p-3 font-bold text-slate-800">
-                                                          <div className="flex items-center gap-2">
-                                                            <span>{res.subjectName}</span>
-                                                            {isSubjectRecent && (
-                                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                                New Marks
-                                                              </span>
-                                                            )}
-                                                          </div>
-                                                        </td>
-                                                        <td className="p-3 text-center text-slate-500">{res.internalMarks}</td>
-                                                        <td className="p-3 text-center text-slate-500">{res.externalMarks}</td>
-                                                        <td className="p-3 text-center font-bold text-slate-800">{res.marks}/100</td>
-                                                        <td className="p-3 text-center">{res.credits}</td>
-                                                        <td className="p-3 text-center font-black text-[#7C3AED]">{res.grade}</td>
-                                                        <td className="p-3 text-center">
-                                                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                                            res.status === "PASS" ? "bg-green-50 text-green-600 border-green-200" : "bg-red-50 text-red-600 border-red-200"
-                                                          }`}>
-                                                            {res.status}
-                                                          </span>
-                                                        </td>
-                                                        <td className="p-3 text-center">
-                                                          <div className="flex items-center justify-center gap-2.5">
-                                                            <button onClick={() => openEditModal(res)} className="text-[#7C3AED] hover:underline font-bold">Edit</button>
-                                                            <button onClick={() => handleDeleteSubject(res.id)} className="text-red-500 hover:underline font-bold">Delete</button>
-                                                          </div>
-                                                        </td>
-                                                      </tr>
-                                                    );
-                                                  })}
-                                                  {studentResults.length === 0 && (
-                                                    <tr>
-                                                      <td colSpan={9} className="p-4 text-center text-slate-400">No subject marks registered.</td>
-                                                    </tr>
-                                                  )}
-                                                </tbody>
-                                              </table>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )}
-                                    </React.Fragment>
-                                  );
-                                });
-                              })()}
+                                    )}
+                                  </React.Fragment>
+                                );
+                              })}
+                              {paginatedStudents.length === 0 && (
+                                <tr>
+                                  <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
+                                    No student records match chosen status filters for Semester {expandedSemester}.
+                                  </td>
+                                </tr>
+                              )}
                             </tbody>
                           </table>
                         </div>
+
+                        {/* Pagination controls */}
+                        {totalPages > 1 && (
+                          <div className="flex items-center justify-between p-5 bg-slate-50 border-t border-[#E2E8F0] text-xs font-bold text-slate-500 flex-wrap gap-4">
+                            <span>
+                              Showing {startIndex + 1}–{Math.min(endIndex, totalStudentsCount)} of {totalStudentsCount} Students
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={safeCurrentPage === 1}
+                                className="px-4 py-2 border border-[#E2E8F0] bg-white text-slate-655 hover:bg-slate-50 rounded-xl transition-all disabled:opacity-50 font-bold"
+                              >
+                                Previous
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={safeCurrentPage === totalPages}
+                                className="px-4 py-2 border border-[#E2E8F0] bg-white text-slate-655 hover:bg-slate-50 rounded-xl transition-all disabled:opacity-50 font-bold"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
-                    )}
-                  </div>
-                )}
+                    );
+                  })()}
               </div>
+            </div>
             )}
           </div>
         )}
 
-        {/* MODE B: GPA Recalculation Policies */}
+          {/* MODE B: GPA Recalculation Policies */}
         {adminTab === "policy" && (
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 shadow-sm max-w-2xl mx-auto space-y-6">
             <div>
@@ -1898,7 +2435,7 @@ export default function ResultsPage() {
                   className="mt-1.5 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED] border-slate-350"
                 />
                 <div>
-                  <span className="block font-bold text-slate-850">Policy A: Latest Grade Replacement</span>
+                  <span className="block font-bold text-slate-855">Policy A: Latest Grade Replacement</span>
                   <span className="block text-xs text-slate-500 mt-1">
                     Replace the failed grade with the actual grade achieved in the supplementary exam (e.g. F becomes B). Recalculate SGPA for the original semester and CGPA for all subsequent semesters.
                   </span>
@@ -1916,7 +2453,7 @@ export default function ResultsPage() {
                   className="mt-1.5 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED] border-slate-350"
                 />
                 <div>
-                  <span className="block font-bold text-slate-850">Policy B: Pass Grade Replacement</span>
+                  <span className="block font-bold text-slate-855">Policy B: Pass Grade Replacement</span>
                   <span className="block text-xs text-slate-500 mt-1">
                     Replace the failed grade with a fixed minimum passing grade (D, 5 points) defined by the institution, regardless of the actual grade scored in the supplementary exam.
                   </span>
@@ -1934,7 +2471,7 @@ export default function ResultsPage() {
                   className="mt-1.5 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED] border-slate-350"
                 />
                 <div>
-                  <span className="block font-bold text-slate-850">Policy C: Original Grade Retention</span>
+                  <span className="block font-bold text-slate-855">Policy C: Original Grade Retention</span>
                   <span className="block text-xs text-slate-500 mt-1">
                     Retain the original failed grade (F, 0 points) in GPA calculations and only update the subject's status to passed. Backlog count is updated, but SGPA and CGPA remain unchanged.
                   </span>
@@ -1943,60 +2480,133 @@ export default function ResultsPage() {
             </div>
           </div>
         )}
-          </div>
 
-          {/* Right Column (30%) - Recently Evaluated Sidebar */}
-          <div className="w-full lg:w-[30%] space-y-6">
-            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-purple-50 text-[#7C3AED] rounded-lg">
-                    <Activity size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800">Recently Evaluated</h3>
-                    <p className="text-[10px] text-slate-400 font-medium">Real-time grading stream</p>
-                  </div>
-                </div>
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-              </div>
-
-              <div className="space-y-3.5">
-                {recentEvaluations.length === 0 ? (
-                  <div className="text-center py-6 text-slate-400 text-xs font-medium border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                    No recently evaluated papers.
-                  </div>
-                ) : (
-                  recentEvaluations.map((ev: any) => (
-                    <div
-                      key={ev.id}
-                      className="group relative p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-[#F3E8FF]/40 hover:border-[#D8B4FE]/50 transition-all duration-300"
-                    >
-                      <div className="flex justify-between items-start mb-1.5">
-                        <span className="font-mono text-[10px] font-bold text-[#7C3AED] bg-[#F3E8FF] px-1.5 py-0.5 rounded border border-[#E9D5FF]">
-                          {ev.student?.rollNumber || "N/A"}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                          {getTimeAgo(ev.updatedAt)}
-                        </span>
-                      </div>
-                      <h4 className="font-bold text-xs text-slate-800 line-clamp-1 group-hover:text-slate-900 transition-colors">
-                        {ev.course?.title || "N/A"}
-                      </h4>
-                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100/60 text-[10px] font-bold text-slate-500">
-                        <span>By: <span className="text-slate-700 font-extrabold">{ev.faculty?.name || "N/A"}</span></span>
-                        <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100 font-black">
-                          {ev.marks} Marks
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+        {/* MODE C: Admin Evaluation Monitoring */}
+        {adminTab === "evaluations" && (
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-[#E2E8F0] bg-slate-50/50">
+              <h3 className="font-extrabold text-slate-805 text-base flex items-center gap-2">
+                <Activity size={20} className="text-[#7C3AED]" /> Blind Evaluation Monitoring
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">Track end-semester answer sheet grading progress and evaluator assignments.</p>
             </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                  <tr className="bg-[#5B21B6] text-white font-bold text-xs uppercase tracking-wider border-b border-[#E2E8F0]">
+                    <th className="p-4 pl-6">Faculty Name</th>
+                    <th className="p-4">Subject</th>
+                    <th className="p-4">Department</th>
+                    <th className="p-4 text-center">Semester</th>
+                    <th className="p-4 text-center">Student Marks</th>
+                    <th className="p-4 text-center">Evaluation Date/Time</th>
+                    <th className="p-4 pr-6 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2E8F0] text-sm text-slate-700">
+                  {allEvaluations.map((ev: any) => {
+                    const deptName = departments.find((d: any) => d.id === ev.course?.categoryId)?.name || "N/A";
+                    const isEvalRecent = isRecentlyUpdated(ev.updatedAt);
+                    const rowBg = isEvalRecent ? "bg-emerald-50/60" : "bg-white";
+                    
+                    return (
+                      <tr key={ev.id} className={`${rowBg} hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]`}>
+                        <td className="p-4 pl-6 font-bold text-slate-800">{ev.faculty?.name || "N/A"}</td>
+                        <td className="p-4 font-semibold text-slate-700">{ev.course?.title || "N/A"}</td>
+                        <td className="p-4 font-mono text-xs">{mapDeptName(deptName)}</td>
+                        <td className="p-4 text-center font-extrabold text-slate-500">Semester {ev.course?.semester || "N/A"}</td>
+                        <td className="p-4 text-center font-bold text-slate-800">
+                          {ev.status === "EVALUATED" ? `${ev.marks} / 100` : "-"}
+                        </td>
+                        <td className="p-4 text-center text-xs text-slate-400">
+                          {ev.status === "EVALUATED" ? new Date(ev.updatedAt || ev.createdAt).toLocaleString() : "-"}
+                        </td>
+                        <td className="p-4 pr-6 text-center">
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                            ev.status === "EVALUATED"
+                              ? "bg-green-50 text-green-600 border-green-200"
+                              : "bg-amber-50 text-amber-600 border-amber-205"
+                          }`}>
+                            {ev.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {allEvaluations.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">No blind evaluations records found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* MODE D: Faculty Evaluation Tracker */}
+        {adminTab === "faculty" && (
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-[#E2E8F0] bg-slate-50/50">
+              <h3 className="font-extrabold text-slate-805 text-base flex items-center gap-2">
+                <Users size={20} className="text-[#7C3AED]" /> Faculty Evaluation Tracker
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">Monitor individual faculty grading performance, load, and completion rates.</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                  <tr className="bg-[#5B21B6] text-white font-bold text-xs uppercase tracking-wider border-b border-[#E2E8F0]">
+                    <th className="p-4 pl-6">Faculty Name</th>
+                    <th className="p-4">Subject</th>
+                    <th className="p-4">Department</th>
+                    <th className="p-4 text-center">Semester</th>
+                    <th className="p-4 text-center">Assigned Scripts</th>
+                    <th className="p-4 text-center">Evaluated Scripts</th>
+                    <th className="p-4 text-center">Pending Scripts</th>
+                    <th className="p-4 pr-6 text-center">Completion Rate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2E8F0] text-sm text-slate-700">
+                  {facultyTrackerData.map((tracker: any, idx: number) => {
+                    const barColor = tracker.completionRate === 100 
+                      ? "bg-emerald-500" 
+                      : tracker.completionRate > 50 
+                      ? "bg-purple-500" 
+                      : "bg-amber-500";
+                      
+                    return (
+                      <tr key={idx} className="hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]">
+                        <td className="p-4 pl-6 font-bold text-slate-800">{tracker.facultyName}</td>
+                        <td className="p-4 font-semibold text-slate-700">{tracker.subject}</td>
+                        <td className="p-4 font-mono text-xs">{tracker.department}</td>
+                        <td className="p-4 text-center font-extrabold text-slate-500">Semester {tracker.semester}</td>
+                        <td className="p-4 text-center font-bold text-slate-650">{tracker.assigned}</td>
+                        <td className="p-4 text-center font-extrabold text-emerald-600">{tracker.evaluated}</td>
+                        <td className="p-4 text-center font-extrabold text-rose-600">{tracker.pending}</td>
+                        <td className="p-4 pr-6 text-center">
+                          <div className="flex items-center gap-3 justify-center">
+                            <div className="w-24 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+                              <div className={`h-full ${barColor}`} style={{ width: `${tracker.completionRate}%` }}></div>
+                            </div>
+                            <span className="font-black text-xs min-w-[35px] text-right">{tracker.completionRate}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {facultyTrackerData.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">No faculty evaluations tracking records found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
           </div>
         </div>
 
@@ -2147,7 +2757,7 @@ export default function ResultsPage() {
                         placeholder={`Auto: ${formGrade}`}
                         value={subjectFormData.grade}
                         onChange={(e) => setSubjectFormData({ ...subjectFormData, grade: e.target.value.toUpperCase() })}
-                        className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all font-bold"
+                        className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-805 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all font-bold"
                       />
                     </div>
                     <div>
@@ -2157,7 +2767,7 @@ export default function ResultsPage() {
                       <select
                         value={subjectFormData.status}
                         onChange={(e) => setSubjectFormData({ ...subjectFormData, status: e.target.value })}
-                        className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all font-semibold"
+                        className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-805 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all font-semibold"
                       >
                         <option value="">Auto: {formStatus}</option>
                         <option value="PASS">PASS</option>
@@ -2261,7 +2871,7 @@ export default function ResultsPage() {
                     <button
                       type="button"
                       onClick={() => setIsOverrideModalOpen(false)}
-                      className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors"
+                      className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-707 font-bold rounded-xl text-sm transition-colors"
                     >
                       Cancel
                     </button>
@@ -2277,10 +2887,143 @@ export default function ResultsPage() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* MODAL: Bulk Results Publishing */}
+        <AnimatePresence>
+          {isBulkPublishModalOpen && (() => {
+            const dept = departments.find((d: any) => d.id === selectedDeptId);
+            const deptName = dept?.name || "Department";
+
+            return (
+              <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                  className="bg-white rounded-[24px] border border-[#E2E8F0] w-full max-w-md overflow-hidden shadow-2xl relative animate-none"
+                >
+                  <div className="p-6 border-b border-[#E2E8F0] flex justify-between items-center bg-slate-50/50">
+                    <h3 className="font-extrabold text-lg text-slate-805">
+                      Publish Results - {deptName}
+                    </h3>
+                    <button onClick={() => setIsBulkPublishModalOpen(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-full transition-colors">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <div className="p-6 space-y-6">
+                    <div className="bg-[#7C3AED]/5 border border-[#7C3AED]/10 p-4 rounded-2xl">
+                      <span className="block text-[10px] font-black text-purple-600 uppercase tracking-wider mb-1">Confirmation Prompt</span>
+                      <h4 className="font-extrabold text-slate-805 text-sm">
+                        {bulkPublishOption === "semester" && `Publish results for Semester ${expandedSemester} - ${deptName}?`}
+                        {bulkPublishOption === "department" && `Publish all results across all semesters for ${deptName}?`}
+                        {bulkPublishOption === "selected" && `Publish results for ${selectedStudentIds.length} selected students in Semester ${expandedSemester} - ${deptName}?`}
+                        {bulkPublishOption === "verified" && `Publish all verified (evaluated draft) results in Semester ${expandedSemester} - ${deptName}?`}
+                      </h4>
+                    </div>
+
+                    <div className="space-y-3">
+                      <span className="block text-[10px] font-black text-slate-450 uppercase tracking-wider mb-1 ml-1">Choose Publishing Range</span>
+                      
+                      {/* Option 1: Entire Semester */}
+                      <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-colors ${
+                        bulkPublishOption === "semester" ? "border-[#7C3AED] bg-purple-50/30" : "border-[#E2E8F0] hover:bg-slate-50"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="bulkPublishOption"
+                          value="semester"
+                          checked={bulkPublishOption === "semester"}
+                          onChange={() => setBulkPublishOption("semester")}
+                          className="mt-1 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED]"
+                        />
+                        <div>
+                          <span className="block text-xs font-bold text-slate-800">Publish Entire Semester</span>
+                          <span className="block text-[10px] text-slate-450 mt-0.5">Declare and publish results for all students in Semester {expandedSemester} - {deptName}.</span>
+                        </div>
+                      </label>
+
+                      {/* Option 2: Entire Department */}
+                      <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-colors ${
+                        bulkPublishOption === "department" ? "border-[#7C3AED] bg-purple-50/30" : "border-[#E2E8F0] hover:bg-slate-50"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="bulkPublishOption"
+                          value="department"
+                          checked={bulkPublishOption === "department"}
+                          onChange={() => setBulkPublishOption("department")}
+                          className="mt-1 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED]"
+                        />
+                        <div>
+                          <span className="block text-xs font-bold text-slate-800">Publish Entire Department</span>
+                          <span className="block text-[10px] text-slate-450 mt-0.5">Declare results for all active semesters inside the {deptName} department.</span>
+                        </div>
+                      </label>
+
+                      {/* Option 3: Selected Students */}
+                      <label className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-colors ${
+                        selectedStudentIds.length === 0 ? "opacity-50 cursor-not-allowed bg-slate-50/50" : "cursor-pointer hover:bg-slate-50"
+                      } ${bulkPublishOption === "selected" && selectedStudentIds.length > 0 ? "border-[#7C3AED] bg-purple-50/30" : "border-[#E2E8F0]"}`}>
+                        <input
+                          type="radio"
+                          name="bulkPublishOption"
+                          value="selected"
+                          disabled={selectedStudentIds.length === 0}
+                          checked={bulkPublishOption === "selected"}
+                          onChange={() => setBulkPublishOption("selected")}
+                          className="mt-1 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED] disabled:opacity-50"
+                        />
+                        <div>
+                          <span className="block text-xs font-bold text-slate-805">Publish Selected Students ({selectedStudentIds.length} checked)</span>
+                          <span className="block text-[10px] text-slate-450 mt-0.5">Publish grades only for the individual student checkboxes selected in the ledger.</span>
+                        </div>
+                      </label>
+
+                      {/* Option 4: Verified Drafts Only */}
+                      <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-colors ${
+                        bulkPublishOption === "verified" ? "border-[#7C3AED] bg-purple-50/30" : "border-[#E2E8F0] hover:bg-slate-50"
+                      }`}>
+                        <input
+                          type="radio"
+                          name="bulkPublishOption"
+                          value="verified"
+                          checked={bulkPublishOption === "verified"}
+                          onChange={() => setBulkPublishOption("verified")}
+                          className="mt-1 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED]"
+                        />
+                        <div>
+                          <span className="block text-xs font-bold text-slate-800">Publish All Verified Drafts</span>
+                          <span className="block text-[10px] text-slate-450 mt-0.5">Only publish results that are already evaluated but remain in draft status.</span>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkPublishModalOpen(false)}
+                        className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-705 font-bold rounded-xl text-sm transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleBulkPublish}
+                        disabled={isPublishingBatch}
+                        className="flex-1 px-4 py-3 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-bold rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        {isPublishingBatch ? "Publishing..." : "Confirm Publish"}
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            );
+          })()}
+        </AnimatePresence>
       </div>
     );
   }
-
   // --- STUDENT RENDER ---
 
 

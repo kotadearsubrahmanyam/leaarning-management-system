@@ -416,6 +416,15 @@ const matchDbFileToSubfolder = (title: string, category: string, subfolder: stri
   return false;
 };
 
+const cleanTitle = (t: string): string => {
+  return t.toLowerCase()
+    .replace(/^(dbms|ase|toc|os)\s*[-_]?\s*/i, "")
+    .replace(/^(unit\s*\d+\s*-\s*)/i, "")
+    .replace(/\.pdf$/i, "")
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+};
+
 export default function CourseDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -460,7 +469,11 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const { data: coursesData } = useQuery({
     queryKey: ["courses", role],
     queryFn: async () => {
-      const url = role === "TEACHER" ? "/api/courses?teacherOnly=true" : "/api/courses";
+      const url = role === "TEACHER" 
+        ? "/api/courses?teacherOnly=true" 
+        : role === "STUDENT"
+        ? "/api/courses/enrolled"
+        : "/api/courses";
       const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch courses");
       return res.json();
@@ -664,30 +677,26 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
     const { category, subfolder } = navPath;
     if (!category) return [];
     
-    let files: MockResource[] = [];
+    let rawSeeds: Omit<MockResource, "categoryKey">[] = [];
 
     // 1. Load mock seed files
     if (category === "SYLLABUS") {
-      files = mockRepo.syllabus.map(f => ({ ...f, categoryKey: "SYLLABUS" }));
+      rawSeeds = mockRepo.syllabus;
     } else if (category === "UNIT_NOTES" && subfolder) {
-      const seeds = mockRepo.unitNotes[subfolder] || [];
-      files = seeds.map(f => ({ ...f, categoryKey: "UNIT_NOTES", subfolderName: subfolder }));
+      rawSeeds = mockRepo.unitNotes[subfolder] || [];
     } else if (category === "IMPORTANT_QUESTIONS" && subfolder) {
-      const seeds = mockRepo.importantQuestions[subfolder] || [];
-      files = seeds.map(f => ({ ...f, categoryKey: "IMPORTANT_QUESTIONS", subfolderName: subfolder }));
+      rawSeeds = mockRepo.importantQuestions[subfolder] || [];
     } else if (category === "QUESTION_PAPERS" && subfolder) {
-      const seeds = mockRepo.questionPapers.filter(f => f.subfolderName === subfolder);
-      files = seeds.map(f => ({ ...f, categoryKey: "QUESTION_PAPERS", subfolderName: subfolder }));
+      rawSeeds = mockRepo.questionPapers.filter(f => f.subfolderName === subfolder);
     } else if (category === "REFERENCE_MATERIALS" && subfolder) {
-      const seeds = mockRepo.referenceMaterials[subfolder] || [];
-      files = seeds.map(f => ({ ...f, categoryKey: "REFERENCE_MATERIALS", subfolderName: subfolder }));
+      rawSeeds = mockRepo.referenceMaterials[subfolder] || [];
     }
 
-    // 2. Load and merge DB uploaded materials
-    dbMaterials.forEach(m => {
+    // 2. Load and filter DB uploaded materials
+    const matchedDbMaterials = dbMaterials.filter(m => {
       // Ignore mid-term exam papers
       if (category === "QUESTION_PAPERS" && /(mid\s*[1-2]|internal)/i.test(m.title)) {
-        return;
+        return false;
       }
 
       // Check category match
@@ -700,27 +709,49 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
       if (isCategoryMatch) {
         // Check subfolder match if subfolders exist
         if (subfolder) {
-          const isMatch = matchDbFileToSubfolder(m.title, category, subfolder);
-          if (isMatch) {
-            files.push({
-              title: m.title,
-              fileUrl: m.fileUrl,
-              size: m.size || "Unknown Size",
-              isLink: !m.fileUrl.endsWith(".pdf") && !m.fileType?.includes("pdf"),
-              categoryKey: category,
-              subfolderName: subfolder
-            });
-          }
+          return matchDbFileToSubfolder(m.title, category, subfolder);
         } else if (category === "SYLLABUS") {
-          // Syllabus has no subfolders, add directly
-          files.push({
-            title: m.title,
-            fileUrl: m.fileUrl,
-            size: m.size || "Unknown Size",
-            isLink: !m.fileUrl.endsWith(".pdf") && !m.fileType?.includes("pdf"),
-            categoryKey: "SYLLABUS"
-          });
+          return true;
         }
+      }
+      return false;
+    });
+
+    const usedDbIds = new Set<string>();
+
+    // 3. Merge: Map mock placeholders to DB matches if they exist
+    const files = rawSeeds.map(seed => {
+      const seedClean = cleanTitle(seed.title);
+      const match = matchedDbMaterials.find(m => !usedDbIds.has(m.id) && cleanTitle(m.title) === seedClean);
+      if (match) {
+        usedDbIds.add(match.id);
+        return {
+          title: match.title,
+          fileUrl: match.fileUrl,
+          size: match.size || "Unknown Size",
+          isLink: !match.fileUrl.endsWith(".pdf") && !match.fileType?.includes("pdf"),
+          categoryKey: category,
+          subfolderName: subfolder || undefined
+        };
+      }
+      return {
+        ...seed,
+        categoryKey: category,
+        subfolderName: subfolder || undefined
+      };
+    });
+
+    // 4. Append remaining DB materials that were not matched to a placeholder
+    matchedDbMaterials.forEach(m => {
+      if (!usedDbIds.has(m.id)) {
+        files.push({
+          title: m.title,
+          fileUrl: m.fileUrl,
+          size: m.size || "Unknown Size",
+          isLink: !m.fileUrl.endsWith(".pdf") && !m.fileType?.includes("pdf"),
+          categoryKey: category,
+          subfolderName: subfolder || undefined
+        });
       }
     });
 
@@ -731,67 +762,96 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const searchQueryResult = useMemo(() => {
     if (!searchQuery) return [];
     const q = searchQuery.toLowerCase();
-    const allFiles: MockResource[] = [];
-
-    // Syllabus
-    mockRepo.syllabus.forEach(f => allFiles.push({ ...f, categoryKey: "SYLLABUS" }));
-    // Unit notes
+    
+    // 1. Gather all mock seeds
+    const mockSeeds: MockResource[] = [];
+    mockRepo.syllabus.forEach(f => mockSeeds.push({ ...f, categoryKey: "SYLLABUS" }));
     Object.keys(mockRepo.unitNotes).forEach(sub => {
-      mockRepo.unitNotes[sub].forEach(f => allFiles.push({ ...f, categoryKey: "UNIT_NOTES", subfolderName: sub }));
+      mockRepo.unitNotes[sub].forEach(f => mockSeeds.push({ ...f, categoryKey: "UNIT_NOTES", subfolderName: sub }));
     });
-    // Questions
     Object.keys(mockRepo.importantQuestions).forEach(sub => {
-      mockRepo.importantQuestions[sub].forEach(f => allFiles.push({ ...f, categoryKey: "IMPORTANT_QUESTIONS", subfolderName: sub }));
+      mockRepo.importantQuestions[sub].forEach(f => mockSeeds.push({ ...f, categoryKey: "IMPORTANT_QUESTIONS", subfolderName: sub }));
     });
-    // Papers
-    mockRepo.questionPapers.forEach(f => allFiles.push({ ...f, categoryKey: "QUESTION_PAPERS" }));
-    // Reference
+    mockRepo.questionPapers.forEach(f => mockSeeds.push({ ...f, categoryKey: "QUESTION_PAPERS" }));
     Object.keys(mockRepo.referenceMaterials).forEach(sub => {
-      mockRepo.referenceMaterials[sub].forEach(f => allFiles.push({ ...f, categoryKey: "REFERENCE_MATERIALS", subfolderName: sub }));
+      mockRepo.referenceMaterials[sub].forEach(f => mockSeeds.push({ ...f, categoryKey: "REFERENCE_MATERIALS", subfolderName: sub }));
     });
 
-    // DB Files
-    dbMaterials.forEach(m => {
-      // Filter out mids
-      if (/(mid\s*[1-2]|internal)/i.test(m.title)) return;
-      
-      const cat = m.category === "EXAM_PREP_KIT" ? "REFERENCE_MATERIALS" : m.category;
-      
-      // Determine subfolder dynamically
-      let matchedSubfolder = "";
-      if (cat === "UNIT_NOTES") {
-        if (/(unit\s*1|u\s*1)/i.test(m.title)) matchedSubfolder = "Unit 1 - Introduction to Databases";
-        else if (/(unit\s*2|u\s*2)/i.test(m.title)) matchedSubfolder = "Unit 2 - ER & Relational Model";
-        else if (/(unit\s*3|u\s*3)/i.test(m.title)) matchedSubfolder = "Unit 3 - SQL Queries";
-        else if (/(unit\s*4|u\s*4)/i.test(m.title)) matchedSubfolder = "Unit 4 - Normalization";
-        else if (/(unit\s*5|u\s*5)/i.test(m.title)) matchedSubfolder = "Unit 5 - Transactions";
-        else matchedSubfolder = "General Notes & Guides";
-      } else if (cat === "IMPORTANT_QUESTIONS") {
-        if (/5\s*(marks?|m)/i.test(m.title)) matchedSubfolder = "5 Marks Questions";
-        else if (/10\s*(marks?|m)/i.test(m.title)) matchedSubfolder = "10 Marks Questions";
-        else if (/(viva|lab)/i.test(m.title)) matchedSubfolder = "Viva Questions";
-        else matchedSubfolder = "General Question Banks";
-      } else if (cat === "QUESTION_PAPERS") {
-        if (/model/i.test(m.title)) matchedSubfolder = "Model Papers";
-        else matchedSubfolder = "Semester Previous Papers";
-      } else if (cat === "REFERENCE_MATERIALS") {
-        if (/(text\s*book|textbook|silberschatz|linz|pressman)/i.test(m.title)) matchedSubfolder = "Text Books";
-        else if (/reference/i.test(m.title)) matchedSubfolder = "Reference Books";
-        else if (/(lab|manual|instruction)/i.test(m.title)) matchedSubfolder = "Lab Manuals";
-        else matchedSubfolder = "Additional Reading Material";
-      }
+    // 2. Gather all DB files (filtering out mids)
+    const validDbMaterials = dbMaterials.filter(m => !/(mid\s*[1-2]|internal)/i.test(m.title));
 
-      allFiles.push({
-        title: m.title,
-        fileUrl: m.fileUrl,
-        size: m.size || "Unknown Size",
-        isLink: !m.fileUrl.endsWith(".pdf") && !m.fileType?.includes("pdf"),
-        categoryKey: cat,
-        subfolderName: matchedSubfolder || undefined
+    const usedDbIds = new Set<string>();
+
+    // 3. Merge: Override mock seeds if matching DB materials exist
+    const mergedFiles = mockSeeds.map(seed => {
+      const seedClean = cleanTitle(seed.title);
+      const match = validDbMaterials.find(m => {
+        if (usedDbIds.has(m.id)) return false;
+        
+        let isCatMatch = m.category === seed.categoryKey;
+        if (m.category === "EXAM_PREP_KIT" && seed.categoryKey === "REFERENCE_MATERIALS") {
+          isCatMatch = true;
+        }
+        if (!isCatMatch) return false;
+
+        return cleanTitle(m.title) === seedClean;
       });
+
+      if (match) {
+        usedDbIds.add(match.id);
+        return {
+          title: match.title,
+          fileUrl: match.fileUrl,
+          size: match.size || "Unknown Size",
+          isLink: !match.fileUrl.endsWith(".pdf") && !match.fileType?.includes("pdf"),
+          categoryKey: seed.categoryKey,
+          subfolderName: seed.subfolderName
+        };
+      }
+      return seed;
     });
 
-    return allFiles.filter(f => f.title.toLowerCase().includes(q));
+    // 4. Append remaining unmatched DB materials
+    validDbMaterials.forEach(m => {
+      if (!usedDbIds.has(m.id)) {
+        const cat = m.category === "EXAM_PREP_KIT" ? "REFERENCE_MATERIALS" : m.category;
+        
+        // Determine subfolder dynamically
+        let matchedSubfolder = "";
+        if (cat === "UNIT_NOTES") {
+          if (/(unit\s*1|u\s*1)/i.test(m.title)) matchedSubfolder = "Unit 1 - Introduction to Databases";
+          else if (/(unit\s*2|u\s*2)/i.test(m.title)) matchedSubfolder = "Unit 2 - ER & Relational Model";
+          else if (/(unit\s*3|u\s*3)/i.test(m.title)) matchedSubfolder = "Unit 3 - SQL Queries";
+          else if (/(unit\s*4|u\s*4)/i.test(m.title)) matchedSubfolder = "Unit 4 - Normalization";
+          else if (/(unit\s*5|u\s*5)/i.test(m.title)) matchedSubfolder = "Unit 5 - Transactions";
+          else matchedSubfolder = "General Notes & Guides";
+        } else if (cat === "IMPORTANT_QUESTIONS") {
+          if (/5\s*(marks?|m)/i.test(m.title)) matchedSubfolder = "5 Marks Questions";
+          else if (/10\s*(marks?|m)/i.test(m.title)) matchedSubfolder = "10 Marks Questions";
+          else if (/(viva|lab)/i.test(m.title)) matchedSubfolder = "Viva Questions";
+          else matchedSubfolder = "General Question Banks";
+        } else if (cat === "QUESTION_PAPERS") {
+          if (/model/i.test(m.title)) matchedSubfolder = "Model Papers";
+          else matchedSubfolder = "Semester Previous Papers";
+        } else if (cat === "REFERENCE_MATERIALS") {
+          if (/(text\s*book|textbook|silberschatz|linz|pressman)/i.test(m.title)) matchedSubfolder = "Text Books";
+          else if (/reference/i.test(m.title)) matchedSubfolder = "Reference Books";
+          else if (/(lab|manual|instruction)/i.test(m.title)) matchedSubfolder = "Lab Manuals";
+          else matchedSubfolder = "Additional Reading Material";
+        }
+
+        mergedFiles.push({
+          title: m.title,
+          fileUrl: m.fileUrl,
+          size: m.size || "Unknown Size",
+          isLink: !m.fileUrl.endsWith(".pdf") && !m.fileType?.includes("pdf"),
+          categoryKey: cat,
+          subfolderName: matchedSubfolder || undefined
+        });
+      }
+    });
+
+    return mergedFiles.filter(f => f.title.toLowerCase().includes(q));
   }, [searchQuery, mockRepo, dbMaterials]);
 
   const displayCode = useMemo(() => {

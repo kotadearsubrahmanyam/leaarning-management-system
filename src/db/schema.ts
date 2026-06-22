@@ -114,6 +114,10 @@ export const materials = pgTable("Material", {
   fileType: text("fileType").notNull(), // e.g. "PDF", "Video"
   size: text("size").notNull(), // e.g. "2.4 MB"
   category: text("category").default("REFERENCE_MATERIALS").notNull(),
+  subcategory: text("subcategory"),
+  unitNumber: text("unitNumber"),
+  uploadedBy: text("uploadedBy").default("FACULTY").notNull(),
+  updatedAt: timestamp("updatedAt", { precision: 3, mode: "date" }),
   createdAt: timestamp("createdAt", { precision: 3, mode: "date" })
     .defaultNow()
     .notNull(),
