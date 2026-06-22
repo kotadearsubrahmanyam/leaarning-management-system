@@ -4,15 +4,6 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, RefreshCw, AlertCircle } from "lucide-react";
 
-// Semester 1 Courses provided by user
-const COURSES = {
-  MATH: { name: "Linear Algebra and Calculus", faculty: "CSE Faculty 1" },
-  EG: { name: "Engineering Graphics", faculty: "CSE Faculty 4" },
-  C_PROG: { name: "Programming for Problem Solving using C", faculty: "CSE Faculty 7" },
-  ENGLISH: { name: "English Communication Skills", faculty: "CSE Faculty 10" },
-  LUNCH: { name: "Lunch Break", faculty: "-" },
-};
-
 const TIME_SLOTS = [
   { id: "slot1", time: "09:30 AM - 10:30 AM" },
   { id: "slot2", time: "10:30 AM - 11:30 AM" },
@@ -44,6 +35,7 @@ export default function TimetablePage() {
 
   const activeTimetable = timetableData?.data?.timetable || DEFAULT_TIMETABLE;
   const isTemporary = timetableData?.data?.isTemporary;
+  const courses = timetableData?.data?.courses || [];
 
   if (isLoading) {
     return <div className="p-12 flex justify-center"><RefreshCw className="animate-spin text-slate-400" /></div>;
@@ -133,13 +125,21 @@ export default function TimetablePage() {
               </tr>
             </thead>
             <tbody>
-              {Object.values(COURSES).filter(c => c.name !== "Lunch Break").map((course, index) => (
-                <tr key={course.name}>
-                  <td className="p-3 border-b border-r border-slate-300 text-slate-700 text-sm text-center">{index + 1}</td>
-                  <td className="p-3 border-b border-r border-slate-300 text-slate-800 text-sm">{course.name}</td>
-                  <td className="p-3 border-b border-slate-300 text-slate-800 text-sm">{course.faculty}</td>
+              {courses.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="p-3 text-center text-slate-500 text-sm">
+                    No courses enrolled for this semester
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                courses.map((course: any, index: number) => (
+                  <tr key={course.name || index}>
+                    <td className="p-3 border-b border-r border-slate-300 text-slate-700 text-sm text-center">{index + 1}</td>
+                    <td className="p-3 border-b border-r border-slate-300 text-slate-800 text-sm">{course.name}</td>
+                    <td className="p-3 border-b border-slate-300 text-slate-800 text-sm">{course.faculty || "Unassigned"}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -147,3 +147,4 @@ export default function TimetablePage() {
     </div>
   );
 }
+
