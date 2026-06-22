@@ -65,6 +65,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         { href: "/dashboard/teacher/progress", icon: BarChart, label: "Student Tracker" },
         { href: "/dashboard/teacher/attendance", icon: Calendar, label: "Attendance" },
         { href: "/dashboard/teacher/evaluation", icon: CheckSquare, label: "Evaluation" },
+        { href: "/dashboard/teacher/internals", icon: ClipboardList, label: "Internal Marks" },
         { href: "/dashboard/teacher/endsem", icon: Shield, label: "Blind Correction" },
         { href: "/dashboard/community", icon: Users, label: "Community" },
       ];

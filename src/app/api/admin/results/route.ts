@@ -8,11 +8,12 @@ import { desc, eq } from "drizzle-orm";
 import { recalculateStudentGpas, assignLearningPathOnFail } from "@/lib/gpa";
 
 const getAutoGrade = (total: number): string => {
-  if (total >= 90) return "A+";
-  if (total >= 80) return "A";
-  if (total >= 70) return "B+";
-  if (total >= 60) return "B";
-  if (total >= 50) return "C";
+  if (total >= 90) return "O";
+  if (total >= 80) return "A+";
+  if (total >= 70) return "A";
+  if (total >= 60) return "B+";
+  if (total >= 50) return "B";
+  if (total >= 45) return "C";
   if (total >= 40) return "D";
   return "F";
 };
@@ -38,6 +39,11 @@ export async function GET() {
         subjectName: results.subjectName,
         internalMarks: results.internalMarks,
         externalMarks: results.externalMarks,
+        classInternal: results.classInternal,
+        classExternal: results.classExternal,
+        mid1: results.mid1,
+        mid2: results.mid2,
+        assignmentMarks: results.assignmentMarks,
         marks: results.marks,
         credits: results.credits,
         grade: results.grade,
@@ -92,7 +98,7 @@ export async function POST(req: Request) {
       return errorResponse("Missing required fields", 400);
     }
 
-    const internal = parseInt(internalMarks);
+    const internal = 0; // Admins are blocked from setting internal marks
     const external = parseInt(externalMarks);
     const total = internal + external;
 
@@ -166,12 +172,12 @@ export async function PUT(req: Request) {
 
     if (!existingResult) return errorResponse("Result not found", 404);
 
-    const internal = internalMarks !== undefined ? parseInt(internalMarks) : existingResult.internalMarks;
+    const internal = existingResult.internalMarks; // Admins are blocked from editing internal marks
     const external = externalMarks !== undefined ? parseInt(externalMarks) : existingResult.externalMarks;
     const total = internal + external;
 
-    const calculatedGrade = customGrade || ( (internalMarks !== undefined || externalMarks !== undefined) ? getAutoGrade(total) : existingResult.grade );
-    const calculatedStatus = customStatus || ( (internalMarks !== undefined || externalMarks !== undefined || customGrade !== undefined) ? (total >= 40 && calculatedGrade !== "F" ? "PASS" : "FAIL") : existingResult.status );
+    const calculatedGrade = customGrade || ( (externalMarks !== undefined) ? getAutoGrade(total) : existingResult.grade );
+    const calculatedStatus = customStatus || ( (externalMarks !== undefined || customGrade !== undefined) ? (total >= 40 && calculatedGrade !== "F" ? "PASS" : "FAIL") : existingResult.status );
 
     const updateData: any = {};
     if (semester !== undefined) updateData.semester = parseInt(semester);

@@ -7,6 +7,7 @@ import {
   Award,
   BookOpen,
   CheckCircle,
+  Clock,
   XCircle,
   TrendingUp,
   GraduationCap,
@@ -79,11 +80,12 @@ const getGradePoints = (grade: string): number => {
 };
 
 const getAutoGrade = (total: number): string => {
-  if (total >= 90) return "A+";
-  if (total >= 80) return "A";
-  if (total >= 70) return "B+";
-  if (total >= 60) return "B";
-  if (total >= 50) return "C";
+  if (total >= 90) return "O";
+  if (total >= 80) return "A+";
+  if (total >= 70) return "A";
+  if (total >= 60) return "B+";
+  if (total >= 50) return "B";
+  if (total >= 45) return "C";
   if (total >= 40) return "D";
   return "F";
 };
@@ -257,6 +259,8 @@ export default function ResultsPage() {
     subjectName: "",
     internalMarks: "",
     externalMarks: "",
+    classInternal: "",
+    classExternal: "",
     credits: 3,
     grade: "",
     status: "",
@@ -299,6 +303,7 @@ export default function ResultsPage() {
       return res.json();
     },
     enabled: !!role,
+    refetchInterval: role === "STUDENT" ? 3000 : undefined,
   });
 
   // Fetch users for admin autocomplete/dropdown
@@ -607,6 +612,8 @@ export default function ResultsPage() {
       subjectName: "",
       internalMarks: "",
       externalMarks: "",
+      classInternal: "",
+      classExternal: "",
       credits: 3,
       grade: "",
       status: "",
@@ -630,6 +637,8 @@ export default function ResultsPage() {
       subjectName: sub.subjectName || "",
       internalMarks: String(sub.internalMarks || 0),
       externalMarks: String(sub.externalMarks || 0),
+      classInternal: String(sub.classInternal || 0),
+      classExternal: String(sub.classExternal || 0),
       credits: sub.credits || 3,
       grade: sub.grade || "",
       status: sub.status || "",
@@ -881,7 +890,7 @@ export default function ResultsPage() {
     const scriptsEvaluatedToday = allEvaluations.filter((ev: any) => ev.status === "EVALUATED" && new Date(ev.updatedAt || ev.createdAt).toDateString() === new Date().toDateString()).length;
     const totalResultsGenerated = adminResults.length;
 
-    const activeSemestersList = showAllSemesters ? [1, 2, 3, 4, 5, 6, 7, 8] : [3, 4, 5];
+    const activeSemestersList = showAllSemesters ? [1, 2, 3, 4, 5, 6, 7, 8] : [1, 2, 3];
 
     const recentEvaluations = allEvaluations
       .filter((e: any) => e.status === "EVALUATED")
@@ -1159,6 +1168,12 @@ export default function ResultsPage() {
 
           const publishedCount = semSummaries.filter((s: any) => s.published).length;
 
+          // Check if every student in the semester has at least 4 subjects marks allotted
+          const allStudentsHaveFourSubjects = semStudents.length > 0 && semStudents.every((student: any) => {
+            const studentResults = semResults.filter((r: any) => r.userId === student.id);
+            return studentResults.length >= 4;
+          });
+
           return {
             semester: sem,
             totalStudents: semStudents.length,
@@ -1171,6 +1186,7 @@ export default function ResultsPage() {
             topPerformer: topPerformerName,
             topGpa: topGpa > 0 ? topGpa.toFixed(2) : "N/A",
             publishedCount,
+            allStudentsHaveFourSubjects,
           };
         })
       : [];
@@ -1289,6 +1305,12 @@ export default function ResultsPage() {
     };
 
     const handleDeclareResults = async (deptId: string, semesterNum: number) => {
+      const activeSemStat = semesterStats.find(s => s.semester === semesterNum);
+      if (!activeSemStat?.allStudentsHaveFourSubjects) {
+        alert("Cannot declare results. All students in this semester must have marks allotted for at least 4 subjects.");
+        return;
+      }
+
       const dept = departments.find((d: any) => d.id === deptId);
       const deptName = dept?.name || "Department";
 
@@ -1349,6 +1371,12 @@ export default function ResultsPage() {
       setIsPublishingBatch(true);
       try {
         if (bulkPublishOption === "semester") {
+          const activeSemStat = semesterStats.find(s => s.semester === expandedSemester);
+          if (!activeSemStat?.allStudentsHaveFourSubjects) {
+            alert("Cannot publish entire semester. All students must have marks allotted for at least 4 subjects.");
+            setIsPublishingBatch(false);
+            return;
+          }
           const res = await fetch("/api/admin/declare-results", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1899,13 +1927,15 @@ export default function ResultsPage() {
                           >
                             View Results
                           </button>
-                          <button
-                            onClick={() => handleDeclareResults(selectedDeptId, semStat.semester)}
-                            disabled={semStat.totalStudents === 0 || isPublishingBatch}
-                            className="flex-1 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-xs font-bold text-center transition-colors disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
-                          >
-                            {isPublishingBatch ? "..." : "Declare All"}
-                          </button>
+                          {semStat.allStudentsHaveFourSubjects && (
+                            <button
+                              onClick={() => handleDeclareResults(selectedDeptId, semStat.semester)}
+                              disabled={semStat.totalStudents === 0 || isPublishingBatch}
+                              className="flex-1 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-xs font-bold text-center transition-colors disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                              {isPublishingBatch ? "..." : "Declare All"}
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1982,6 +2012,7 @@ export default function ResultsPage() {
 
                   {/* Step 3: Collapsible Student Results details for expanded semester */}
                   {expandedSemester !== null && (() => {
+                    const activeSemStat = semesterStats.find(s => s.semester === expandedSemester);
                     const semStudents = students.filter((s: any) => s.departmentId === selectedDeptId && s.semester === expandedSemester);
                     const filteredSemStudents = semStudents.filter((student: any) => {
                       const studentResults = adminResults.filter((r: any) => r.userId === student.id && r.semester === expandedSemester);
@@ -2100,16 +2131,18 @@ export default function ResultsPage() {
                         <div className="flex items-center justify-between p-4 border-b border-[#E2E8F0] bg-slate-50/30 gap-4 flex-wrap">
                           <div className="flex items-center gap-3 flex-wrap">
                             <span className="text-xs font-black text-slate-455 uppercase tracking-wider mr-1">Bulk Actions:</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setBulkPublishOption("semester");
-                                setIsBulkPublishModalOpen(true);
-                              }}
-                              className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
-                            >
-                              Publish Entire Semester
-                            </button>
+                            {activeSemStat?.allStudentsHaveFourSubjects && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBulkPublishOption("semester");
+                                  setIsBulkPublishModalOpen(true);
+                                }}
+                                className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-xs font-bold transition-all shadow-xs hover:scale-[1.02] active:scale-[0.98]"
+                              >
+                                Publish Entire Semester
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => {
@@ -2211,16 +2244,18 @@ export default function ResultsPage() {
                                           className="h-4 w-4 rounded border-slate-300 text-[#7C3AED] focus:ring-[#7C3AED]"
                                         />
                                       </td>
-                                      <td className="p-4 font-mono text-xs font-semibold text-slate-500">{student.rollNumber || "N/A"}</td>
-                                      <td className="p-4 font-bold text-slate-850">
+                                      <td className="p-4 font-mono text-xs font-semibold text-slate-500">
                                         <div className="flex items-center gap-2">
-                                          <span>{student.name}</span>
+                                          <span>{student.rollNumber || "N/A"}</span>
                                           {isRecent && (
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-250 animate-pulse">
-                                              Recently Updated
+                                              Recently Evaluated
                                             </span>
                                           )}
                                         </div>
+                                      </td>
+                                      <td className="p-4 font-bold text-slate-850">
+                                        {student.name}
                                       </td>
                                       <td className="p-4 text-center">
                                         <button
@@ -2715,29 +2750,53 @@ export default function ResultsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        Internal Marks
+                        Class Internal (Max 50)
                       </label>
                       <input
                         type="number"
-                        min="0"
-                        max="100"
-                        required
-                        placeholder="Max 30 usually"
-                        value={subjectFormData.internalMarks}
-                        onChange={(e) => setSubjectFormData({ ...subjectFormData, internalMarks: e.target.value })}
-                        className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all"
+                        disabled
+                        placeholder="Managed by Teacher"
+                        value={subjectFormData.classInternal}
+                        className="w-full bg-slate-50 border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-400 focus:outline-none text-sm transition-all cursor-not-allowed"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        External Marks
+                        Class External (Max 50)
+                      </label>
+                      <input
+                        type="number"
+                        disabled
+                        placeholder="Managed by Teacher"
+                        value={subjectFormData.classExternal}
+                        className="w-full bg-slate-50 border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-400 focus:outline-none text-sm transition-all cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                        Internal Marks (Averaged)
+                      </label>
+                      <input
+                        type="number"
+                        disabled
+                        placeholder="Averaged out of 50"
+                        value={subjectFormData.internalMarks}
+                        className="w-full bg-slate-100 border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none text-sm transition-all cursor-not-allowed font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                        External Marks (Max 50)
                       </label>
                       <input
                         type="number"
                         min="0"
-                        max="100"
+                        max="50"
                         required
-                        placeholder="Max 70 usually"
+                        placeholder="Max 50"
                         value={subjectFormData.externalMarks}
                         onChange={(e) => setSubjectFormData({ ...subjectFormData, externalMarks: e.target.value })}
                         className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all"
@@ -2891,6 +2950,8 @@ export default function ResultsPage() {
           {isBulkPublishModalOpen && (() => {
             const dept = departments.find((d: any) => d.id === selectedDeptId);
             const deptName = dept?.name || "Department";
+            const activeSemStat = semesterStats.find(s => s.semester === expandedSemester);
+            const canPublishSemester = activeSemStat?.allStudentsHaveFourSubjects;
 
             return (
               <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -2923,22 +2984,24 @@ export default function ResultsPage() {
                       <span className="block text-[10px] font-black text-slate-450 uppercase tracking-wider mb-1 ml-1">Choose Publishing Range</span>
                       
                       {/* Option 1: Entire Semester */}
-                      <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-colors ${
-                        bulkPublishOption === "semester" ? "border-[#7C3AED] bg-purple-50/30" : "border-[#E2E8F0] hover:bg-slate-50"
-                      }`}>
-                        <input
-                          type="radio"
-                          name="bulkPublishOption"
-                          value="semester"
-                          checked={bulkPublishOption === "semester"}
-                          onChange={() => setBulkPublishOption("semester")}
-                          className="mt-1 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED]"
-                        />
-                        <div>
-                          <span className="block text-xs font-bold text-slate-800">Publish Entire Semester</span>
-                          <span className="block text-[10px] text-slate-450 mt-0.5">Declare and publish results for all students in Semester {expandedSemester} - {deptName}.</span>
-                        </div>
-                      </label>
+                      {canPublishSemester && (
+                        <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-colors ${
+                          bulkPublishOption === "semester" ? "border-[#7C3AED] bg-purple-50/30" : "border-[#E2E8F0] hover:bg-slate-50"
+                        }`}>
+                          <input
+                            type="radio"
+                            name="bulkPublishOption"
+                            value="semester"
+                            checked={bulkPublishOption === "semester"}
+                            onChange={() => setBulkPublishOption("semester")}
+                            className="mt-1 h-4 w-4 text-[#7C3AED] focus:ring-[#7C3AED]"
+                          />
+                          <div>
+                            <span className="block text-xs font-bold text-slate-800">Publish Entire Semester</span>
+                            <span className="block text-[10px] text-slate-450 mt-0.5">Declare and publish results for all students in Semester {expandedSemester} - {deptName}.</span>
+                          </div>
+                        </label>
+                      )}
 
                       {/* Option 2: Entire Department */}
                       <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-colors ${
@@ -3077,220 +3140,263 @@ export default function ResultsPage() {
     : (selectedSemester ? studentSummaries[selectedSemester] : null);
 
   return (
-    <div className="max-w-5xl mx-auto pb-12 relative z-10">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
-          <Award className="text-[#10B981]" size={32} /> Exam Results
-        </h1>
-        <p className="text-slate-500">
-          View your academic performance and gradesheet.
-        </p>
+    <div className="max-w-5xl mx-auto pb-12 relative z-10 text-slate-800">
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900 mb-2 flex items-center gap-3">
+            <Award className="text-[#10B981]" size={32} /> Academic Performance Ledger
+          </h1>
+          <p className="text-slate-550 font-semibold">View your official grade sheets, check your GPA, and plan your academic goals.</p>
+        </div>
       </motion.div>
 
-      <div className="space-y-6">
-        <div className="flex gap-2.5 overflow-x-auto pb-3 scrollbar-thin select-none">
-          {tabsList.map((sem) => (
-            <button
-              key={sem}
-              onClick={() => setSelectedSemester(sem)}
-              className={`relative px-6 py-3 rounded-full font-extrabold transition-all whitespace-nowrap text-sm ${
-                selectedSemester === sem
-                  ? "bg-[#10B981] text-white shadow-[0_4px_15px_rgba(16,185,129,0.35)] scale-[1.03]"
-                  : "bg-white text-slate-600 border border-slate-300 hover:bg-slate-50"
-              }`}
-            >
-              Semester {sem}
-            </button>
-          ))}
-        </div>
+      {/* Academic Overview Statistics Dashboard Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white border border-[#E2E8F0] rounded-[24px] p-6 shadow-sm mb-8 relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#10B981]/5 rounded-full blur-2xl pointer-events-none"></div>
+        <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">Academic Overview</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Cumulative CGPA</span>
+            <span className="text-3xl font-black text-slate-900 mt-1 block">
+              {publishedSemesters.length > 0 ? (
+                officialCgpa.toFixed(2)
+              ) : "N/A"}
+            </span>
+          </div>
 
-        {selectedSemester && (
-          <AnimatePresence mode="wait">
+          <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Credits Earned</span>
+            <span className="text-3xl font-black text-slate-900 mt-1 block">
+              {publishedCredits.toFixed(1)}
+            </span>
+          </div>
+
+          <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Current Status</span>
+            <span className="text-sm font-extrabold mt-2.5 px-3 py-1 bg-green-50 text-green-600 border border-green-200 rounded-full inline-block text-center">
+              ACTIVE / PASS
+            </span>
+          </div>
+
+          <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Department / Major</span>
+            <span className="text-sm font-bold text-slate-800 mt-2 block truncate">
+              {authData?.data?.user?.department?.name || "Computer Science"}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Semester Sections Stack */}
+      <div className="space-y-8">
+        {tabsList.map((sem) => {
+          const isPublished = publishedSemesters.includes(sem);
+          const semSummary = studentSummaries[sem];
+          
+          // Get results for this semester
+          const semResults = studentResults.filter((r: any) => r.semester === sem);
+
+          return (
             <motion.div
-              key={selectedSemester}
+              key={sem}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
+              className="bg-white border border-[#E2E8F0] rounded-[24px] overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
             >
-              {!publishedSemesters.includes(selectedSemester) ? (
-                <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center max-w-2xl mx-auto shadow-sm flex flex-col items-center">
-                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-4 shadow-inner">
-                    <Award size={24} className="text-slate-400" />
+              {/* Header Row */}
+              <div className="p-5 bg-slate-50/60 border-b border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#10B981]/10 flex items-center justify-center text-[#10B981] border border-[#10B981]/20 font-black text-sm">
+                    S{sem}
                   </div>
-                  <h2 className="text-xl font-black text-slate-800 mb-1">Results Not Published Yet</h2>
-                  <p className="text-slate-500 text-sm leading-relaxed max-w-md">
-                    Grades for Semester {selectedSemester} have not been officially published. {selectedSemester === planningSem && "You can use the Goal Planner widget below to estimate your performance and project your GPA."}
-                  </p>
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-base">Semester {sem} Results</h3>
+                    <p className="text-xs text-slate-400 font-medium">Academic performance ledger for Semester {sem}.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full font-black border uppercase tracking-wider ${
+                    isPublished 
+                      ? "bg-green-50 text-green-700 border-green-100" 
+                      : "bg-amber-50 text-amber-700 border-amber-100 animate-pulse"
+                  }`}>
+                    {isPublished ? "Published" : "Pending Publication"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Semester Summary Metrics Block */}
+              {isPublished && semSummary && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-white border-b border-[#E2E8F0] text-xs font-bold">
+                  <div className="bg-slate-50/40 p-3 rounded-xl border border-slate-100 flex flex-col justify-center">
+                    <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Semester SGPA</span>
+                    <span className="text-sm font-black text-slate-800 mt-0.5">{semSummary.sgpa}</span>
+                  </div>
+                  <div className="bg-slate-50/40 p-3 rounded-xl border border-slate-100 flex flex-col justify-center">
+                    <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Cumulative CGPA</span>
+                    <span className="text-sm font-black text-slate-800 mt-0.5">{semSummary.cgpa}</span>
+                  </div>
+                  <div className="bg-slate-50/40 p-3 rounded-xl border border-slate-100 flex flex-col justify-center">
+                    <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Credits Earned</span>
+                    <span className="text-sm font-black text-slate-800 mt-0.5">{semSummary.totalCredits}</span>
+                  </div>
+                  <div className="bg-slate-50/40 p-3 rounded-xl border border-slate-100 flex flex-col justify-center">
+                    <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Pass Status</span>
+                    <span className={`text-sm font-bold mt-0.5 ${
+                      semSummary.status === "PASS" ? "text-green-600" : "text-red-500"
+                    }`}>{semSummary.status}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Content Render based on publication status */}
+              {isPublished ? (
+                /* Subjectwise Grade Sheet Table */
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-800 font-extrabold text-xs uppercase tracking-wider border-b border-[#E2E8F0]">
+                        <th className="p-4 pl-6 text-center w-16">S.No</th>
+                        <th className="p-4">Course Code</th>
+                        <th className="p-4">Course Name</th>
+                        <th className="p-4 text-center font-bold">Grade</th>
+                        <th className="p-4 text-center">Grade Points</th>
+                        <th className="p-4 text-center">Credits</th>
+                        <th className="p-4 pr-6 text-center">Result</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
+                      {semResults.map((sub: any, index: number) => (
+                        <tr key={sub.id || index} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-4 pl-6 text-center font-bold text-slate-400">{index + 1}</td>
+                          <td className="p-4 font-mono text-xs font-bold text-[#10B981]">{sub.subjectCode}</td>
+                          <td className="p-4 font-bold text-slate-850">
+                            <div>{sub.courseName}</div>
+                            {sub.passType === "SUPPLEMENTARY" && (
+                              <div className="text-[11px] text-amber-600 font-extrabold mt-1 flex items-center gap-1 bg-amber-50 border border-amber-200/55 rounded-full px-2 py-0.5 w-max">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
+                                Cleared via Supplementary in Sem {sub.clearedSemester} (Attempt {sub.attemptNumber})
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className={`font-black ${["A+", "A", "B+", "B", "O"].includes(sub.grade) ? "text-[#10B981]" : sub.grade === "F" ? "text-red-500" : "text-slate-700"}`}>
+                              {sub.grade}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center font-bold text-slate-800">{getGradePoints(sub.grade)}</td>
+                          <td className="p-4 text-center font-semibold">{sub.credits ? parseFloat(sub.credits).toFixed(1) : "3.0"}</td>
+                          <td className="p-4 pr-6 text-center">
+                            <span className={`font-bold ${
+                              sub.status === "PASS"
+                                ? "text-[#10B981]"
+                                : sub.status === "-"
+                                ? "text-slate-400"
+                                : "text-red-500"
+                            }`}>
+                              {sub.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
-                selectedSummary && (
-                  <>
-                    {/* Semester Summary Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">SGPA</span>
-                        <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.sgpa}</span>
-                      </div>
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">CGPA</span>
-                        <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.cgpa}</span>
-                      </div>
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Total Credits</span>
-                        <span className="text-3xl font-black text-slate-900 mt-2">{selectedSummary.totalCredits}</span>
-                      </div>
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Passed</span>
-                        <span className="text-3xl font-black text-green-600 mt-2">{selectedSummary.passedCount}</span>
-                      </div>
-                      <div className="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow col-span-2 md:col-span-1">
-                        <span className="text-xs text-slate-500 font-extrabold uppercase tracking-wider">Status</span>
-                        <span className={`text-sm font-bold mt-2.5 px-3 py-1 rounded-full text-center border ${
-                          selectedSummary.status === "PASS"
-                            ? "bg-green-50 text-green-600 border-green-200"
-                            : selectedSummary.status === "PROJECTED"
-                            ? "bg-blue-50 text-blue-600 border-blue-200"
-                            : "bg-red-50 text-red-600 border-red-200"
-                        }`}>
-                          {selectedSummary.status}
-                        </span>
-                      </div>
+                /* Unpublished View (Goal Planner & Expected SGPA Calculator) */
+                <div className="p-6 space-y-6">
+                  {/* Results Not Published Yet Card */}
+                  <div className="bg-slate-50/50 border border-dashed border-slate-200 p-6 rounded-2xl text-center max-w-xl mx-auto shadow-inner flex flex-col items-center">
+                    <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-3 border border-amber-100 shadow-sm animate-pulse">
+                      <Clock size={20} />
                     </div>
+                    <h4 className="text-sm font-black text-slate-800 mb-1">Results Not Published Yet</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed max-w-md">
+                      Grades for Semester {sem} have not been officially published. {sem === planningSem && "You can use the Goal Planner widget below to estimate your performance and project your CGPA."}
+                    </p>
+                  </div>
 
-                    {/* Subject Details Table */}
-                    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                      <div className="p-5 bg-slate-50 border-b border-slate-200 flex items-center gap-2.5">
-                        <GraduationCap className="text-[#10B981]" size={22} />
-                        <h3 className="font-bold text-slate-800">Semester {selectedSemester} - Grade Sheet</h3>
+                  {/* Goal Planner Widget */}
+                  {sem === planningSem && (
+                    <div className="bg-[#FAF9F6]/50 rounded-2xl border border-slate-200 p-5 space-y-4">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                        <Sliders className="text-[#10B981]" size={18} />
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-sm">CGPA & SGPA Goal Planner (Semester {sem})</h4>
+                          <p className="text-[11px] text-slate-400">Select your target grades for Semester {sem} courses to preview your SGPA and projected CGPA.</p>
+                        </div>
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[700px]">
-                          <thead>
-                            <tr className="bg-slate-50 text-slate-800 font-extrabold text-xs uppercase tracking-wider border-b border-slate-300">
-                              <th className="p-4 pl-6 text-center w-16">S.No</th>
-                              <th className="p-4">Course Code</th>
-                              <th className="p-4">Course Name</th>
-                              <th className="p-4 text-center">{selectedSemester ? getExamMonthYear(selectedSemester, authData?.data?.user?.rollNumber, authData?.data?.user?.semester) : "Exam"}</th>
-                              <th className="p-4 text-center font-bold">Grade</th>
-                              <th className="p-4 text-center">Grade Points</th>
-                              <th className="p-4 text-center">Credits</th>
-                              <th className="p-4 pr-6 text-center">Result</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                            {selectedSemesterResults.map((sub: any, index: number) => (
-                              <tr key={sub.id || index} className="hover:bg-slate-50 transition-colors">
-                                <td className="p-4 pl-6 text-center font-bold text-slate-400">{index + 1}</td>
-                                <td className="p-4 font-mono text-xs font-bold text-[#10B981]">{sub.subjectCode}</td>
-                                <td className="p-4 font-bold text-slate-800">
-                                  <div>{sub.courseName}</div>
-                                  {sub.passType === "SUPPLEMENTARY" && (
-                                    <div className="text-[11px] text-amber-600 font-extrabold mt-1 flex items-center gap-1 bg-amber-50 border border-amber-200/55 rounded-full px-2 py-0.5 w-max">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
-                                      Cleared via Supplementary in Sem {sub.clearedSemester} (Attempt {sub.attemptNumber})
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="p-4 text-center font-bold text-slate-600">{sub.grade}</td>
-                                <td className="p-4 text-center">
-                                  <span className={`font-black ${["A+", "A", "B+", "B", "O"].includes(sub.grade) ? "text-[#10B981]" : sub.grade === "F" ? "text-red-500" : "text-slate-700"}`}>
-                                    {sub.grade}
-                                  </span>
-                                </td>
-                                <td className="p-4 text-center font-bold text-slate-800">{getGradePoints(sub.grade)}</td>
-                                <td className="p-4 text-center font-semibold">{sub.credits ? parseFloat(sub.credits).toFixed(1) : "3.0"}</td>
-                                <td className="p-4 pr-6 text-center">
-                                  <span className={`font-bold ${
-                                    sub.status === "PASS"
-                                      ? "text-[#10B981]"
-                                      : sub.status === "-"
-                                      ? "text-slate-400"
-                                      : "text-red-500"
-                                  }`}>
-                                    {sub.status === "PASS" ? "P" : sub.status === "FAIL" ? "F" : "-"}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Active Courses Target Grades Selector */}
+                        <div className="space-y-3">
+                          <h5 className="text-xs font-bold text-slate-650">Active Courses:</h5>
+                          {activeCourses.length === 0 ? (
+                            <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-250 text-center text-xs text-slate-400 font-medium">
+                              No active courses found for Semester {sem}.
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {activeCourses.map((c: any) => (
+                                <div key={c.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-150">
+                                  <div>
+                                    <div className="font-bold text-xs text-slate-700">{c.title}</div>
+                                    <div className="text-[10px] text-slate-450 font-semibold">{c.credits} Credits</div>
+                                  </div>
+                                  <select
+                                    value={plannerGrades[c.id] || "A"}
+                                    onChange={(e) => {
+                                      setPlannerGrades({ ...plannerGrades, [c.id]: e.target.value });
+                                      setHasUserModified(true);
+                                    }}
+                                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#10B981]"
+                                  >
+                                    <option value="A+">A+ (10)</option>
+                                    <option value="A">A (9)</option>
+                                    <option value="B+">B+ (8)</option>
+                                    <option value="B">B (7)</option>
+                                    <option value="C">C (6)</option>
+                                    <option value="D">D (5)</option>
+                                    <option value="F">F (0)</option>
+                                  </select>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Expected Outputs Dashboard */}
+                        <div className="flex flex-col justify-center space-y-4">
+                          <h5 className="text-xs font-bold text-slate-650">Expected Outputs:</h5>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col justify-center shadow-xs">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Current CGPA</span>
+                              <span className="text-lg font-black text-slate-700 mt-1">{officialCgpa.toFixed(2)}</span>
+                            </div>
+                            <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col justify-center shadow-xs">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Projected SGPA</span>
+                              <span className="text-lg font-black text-slate-800 mt-1">{projectedSgpa}</span>
+                            </div>
+                            <div className="p-3 rounded-xl bg-white border border-[#10B981]/30 bg-[#10B981]/5 flex flex-col justify-center shadow-xs">
+                              <span className="text-[9px] font-black text-[#10B981] uppercase tracking-wider">Projected CGPA</span>
+                              <span className="text-lg font-black text-[#10B981] mt-1">{projectedCgpa}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </>
-                )
+                  )}
+                </div>
               )}
             </motion.div>
-          </AnimatePresence>
-        )}
-
-        {/* GPA Goal Planner Widget */}
-        {isPlanningSelected && (
-          <div className="bg-white rounded-3xl border border-slate-300 p-6 shadow-sm space-y-6">
-            <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">
-              <Sliders className="text-[#10B981]" size={22} />
-              <div>
-                <h3 className="font-bold text-slate-800">CGPA & SGPA Goal Planner (Semester {planningSem})</h3>
-                <p className="text-xs text-slate-400">Estimate grades for Semester {planningSem} courses to project your SGPA and overall CGPA.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Active Courses Selector */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-bold text-slate-700">Select Target Grades:</h4>
-                {activeCourses.length === 0 ? (
-                  <div className="p-6 rounded-2xl bg-slate-50 border border-dashed border-slate-300 text-center">
-                    <p className="text-sm text-slate-500 font-bold">No courses found for Semester {planningSem}.</p>
-                    <p className="text-xs text-slate-400 mt-1">Enroll in courses or contact administration to populate courses for Semester {planningSem}.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {activeCourses.map((c: any) => (
-                      <div key={c.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200">
-                        <div>
-                          <div className="font-bold text-sm text-slate-700">{c.title}</div>
-                          <div className="text-xs text-slate-400 font-medium">{c.credits} Credits</div>
-                        </div>
-                        <select
-                          value={plannerGrades[c.id] || "A"}
-                          onChange={(e) => {
-                            setPlannerGrades({ ...plannerGrades, [c.id]: e.target.value });
-                            setHasUserModified(true);
-                          }}
-                          className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-700 focus:outline-none focus:border-[#10B981]"
-                        >
-                          <option value="A+">A+ (10)</option>
-                          <option value="A">A (9)</option>
-                          <option value="B+">B+ (8)</option>
-                          <option value="B">B (7)</option>
-                          <option value="C">C (6)</option>
-                          <option value="D">D (5)</option>
-                          <option value="F">F (0)</option>
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Projected Outputs */}
-              <div className="space-y-6 lg:mt-9">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Projected SGPA</span>
-                    <span className="text-3xl font-black text-slate-900 mt-2">{projectedSgpa}</span>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
-                    <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Projected CGPA</span>
-                    <span className="text-3xl font-black text-slate-900 mt-2">{projectedCgpa}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })}
       </div>
     </div>
   );

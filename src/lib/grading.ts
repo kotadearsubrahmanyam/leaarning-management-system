@@ -5,19 +5,19 @@ export function marksToGrade(marks: number): string {
   if (marks >= 60) return "B+";
   if (marks >= 50) return "B";
   if (marks >= 45) return "C";
-  if (marks >= 40) return "P";
+  if (marks >= 40) return "D";
   return "F";
 }
 
 export function gradeToPoints(grade: string): number {
   switch (grade.toUpperCase()) {
-    case "O": return 10;
-    case "A+": return 9;
-    case "A": return 8;
-    case "B+": return 7;
-    case "B": return 6;
-    case "C": return 5;
-    case "P": return 4;
+    case "O":
+    case "A+": return 10;
+    case "A": return 9;
+    case "B+": return 8;
+    case "B": return 7;
+    case "C": return 6;
+    case "D": return 5;
     case "F": return 0;
     default: return 0;
   }
