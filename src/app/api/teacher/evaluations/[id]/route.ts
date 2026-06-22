@@ -51,14 +51,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const studentName = studentUser?.name || "N/A";
     const studentRollNumber = studentUser?.rollNumber || "N/A";
 
-    // 4. Automatically sync to Results table (Magic Sync)
-    // We map the hidden studentId to the actual results table.
-    // Blind evaluation marks are the end semester marks (total marks).
-    const totalMarks = Number(marks);
-    
-    // Convert to Grade dynamically based on total marks
-    const grade = totalMarks >= 90 ? "O" : totalMarks >= 80 ? "A+" : totalMarks >= 70 ? "A" : totalMarks >= 60 ? "B+" : totalMarks >= 50 ? "B" : totalMarks >= 45 ? "C" : totalMarks >= 40 ? "D" : "F";
-    const status = totalMarks >= 40 ? "PASS" : "FAIL";
+    // Blind evaluation marks are out of 100, which we halve to make it out of 50.
+    const scaledExternal = Math.round(Number(marks) / 2);
 
     // Check if result already exists for this student and course
     const existingResult = await db.query.results.findFirst({
@@ -68,18 +62,27 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       )
     });
 
+    const cInt = existingResult?.classInternal ?? 0;
+    const cExt = existingResult?.classExternal ?? 0;
+    const computedInternal = Math.round((cInt + cExt) / 2);
+    const totalMarks = computedInternal + scaledExternal;
+    
+    // Convert to Grade dynamically based on total marks out of 100
+    const grade = totalMarks >= 90 ? "O" : totalMarks >= 80 ? "A+" : totalMarks >= 70 ? "A" : totalMarks >= 60 ? "B+" : totalMarks >= 50 ? "B" : totalMarks >= 45 ? "C" : totalMarks >= 40 ? "D" : "F";
+    const status = totalMarks >= 40 ? "PASS" : "FAIL";
+
     if (existingResult) {
       await db.update(results)
         .set({
           studentName,
           studentRollNumber,
-          internalMarks: 0,
-          externalMarks: 0,
+          internalMarks: computedInternal,
+          externalMarks: scaledExternal,
           marks: totalMarks,
           grade,
           status,
-          published: false, // Default to draft (do not auto-publish)
-          createdAt: new Date(), // Update timestamp to trigger "Recently Updated" row highlighting
+          published: false, // Save as unpublished draft until admin declares
+          createdAt: new Date(),
         })
         .where(eq(results.id, existingResult.id));
     } else {
@@ -87,8 +90,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         userId: evaluation.studentId,
         courseId: evaluation.courseId,
         semester: evaluation.course.semester,
-        internalMarks: 0,
-        externalMarks: 0,
+        classInternal: cInt,
+        classExternal: cExt,
+        internalMarks: computedInternal,
+        externalMarks: scaledExternal,
         marks: totalMarks,
         grade,
         status,
@@ -97,15 +102,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         studentRollNumber,
         subjectCode: evaluation.course.id.substring(0, 6).toUpperCase(),
         subjectName: evaluation.course.title,
-        published: false, // Default to draft (do not auto-publish)
+        published: false, // Save as unpublished draft until admin declares
         createdAt: new Date(),
       });
     }
 
-    // 5. Automatically recalculate GPA and update summaries
-    await recalculateStudentGpas(evaluation.studentId);
+    // Do NOT call recalculateStudentGpas here since the result is unpublished and draft.
+    // Recalculation will happen when the admin publishes/declares results.
 
-    return NextResponse.json({ success: true, message: "Marks submitted securely and synced to results." });
+    return NextResponse.json({ success: true, message: "Marks submitted securely and synced to results as unpublished draft." });
   } catch (error: any) {
     console.error("Submit blind evaluation error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -110,7 +110,7 @@ export async function GET() {
           );
         stats.pendingEvaluations = pendingEvaluationsRes[0]?.count || 0;
 
-        // Fetch course-by-course overview details
+        // Fetch course-by-course overview details (deduplicated by groupBy)
         const teacherCourses = await db
           .select({
             id: courses.id,
@@ -120,7 +120,8 @@ export async function GET() {
           })
           .from(courses)
           .innerJoin(courseFaculty, eq(courseFaculty.courseId, courses.id))
-          .where(eq(courseFaculty.teacherId, id as string));
+          .where(eq(courseFaculty.teacherId, id as string))
+          .groupBy(courses.id, courses.title, courses.level, courses.semester);
 
         const coursesOverview = [];
         for (const c of teacherCourses) {

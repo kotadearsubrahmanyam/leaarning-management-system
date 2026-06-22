@@ -222,6 +222,11 @@ export const results = pgTable("Result", {
   subjectName: text("subjectName"),
   internalMarks: integer("internalMarks").default(0).notNull(),
   externalMarks: integer("externalMarks").default(0).notNull(),
+  classInternal: integer("classInternal").default(0).notNull(),
+  classExternal: integer("classExternal").default(0).notNull(),
+  mid1: integer("mid1").default(0).notNull(),
+  mid2: integer("mid2").default(0).notNull(),
+  assignmentMarks: integer("assignmentMarks").default(0).notNull(),
   marks: integer("marks").notNull(), // total marks
   credits: integer("credits").default(0).notNull(),
   grade: text("grade").notNull(),
