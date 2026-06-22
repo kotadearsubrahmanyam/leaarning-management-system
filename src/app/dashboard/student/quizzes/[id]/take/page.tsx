@@ -156,7 +156,7 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
   if (!started) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full shadow-lg border-slate-200">
+        <Card className="max-w-md w-full shadow-lg border-purple-200 rounded-xl">
           <CardContent className="p-8 space-y-6 text-center">
             <h1 className="text-2xl font-bold text-slate-800">{quiz.title}</h1>
             <div className="bg-amber-50 text-amber-800 p-4 rounded-md text-sm text-left space-y-2 border border-amber-200">
@@ -197,7 +197,7 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
     >
       <div className="max-w-4xl mx-auto space-y-6 pb-24">
         {/* Header Bar */}
-        <div className="sticky top-0 bg-white/80 backdrop-blur-md z-10 p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+        <div className="sticky top-0 bg-white/80 backdrop-blur-md z-10 p-4 rounded-xl shadow-sm border border-purple-200 flex justify-between items-center">
           <h2 className="text-lg font-bold text-slate-800 truncate">{quiz.title}</h2>
           <div className="flex items-center gap-6">
             <div className={`font-bold flex items-center ${warnings > 0 ? 'text-red-500' : 'text-slate-500'}`}>
@@ -214,7 +214,7 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
         {/* Questions */}
         <div className="space-y-6">
           {quiz.questions.map((q: any, i: number) => (
-            <Card key={q.id} className="border-slate-200 shadow-sm">
+            <Card key={q.id} className="border-purple-200 shadow-sm rounded-xl">
               <CardContent className="p-6">
                 <h3 className="text-lg font-medium text-slate-800 mb-4">
                   <span className="text-indigo-600 font-bold mr-2">{i + 1}.</span>
@@ -224,10 +224,10 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
                   {q.options.map((opt: string, optIdx: number) => (
                     <label 
                       key={optIdx} 
-                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                      className={`flex items-center p-3 rounded-lg border cursor-pointer hover:-translate-y-0.5 transition-all duration-250 ${
                         answers[q.id] === opt 
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-900' 
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                          ? 'border-purple-600 bg-purple-50/50 text-purple-900 shadow-sm' 
+                          : 'border-purple-200 hover:border-purple-400 hover:bg-purple-50/10 text-slate-700'
                       }`}
                     >
                       <input 
@@ -236,7 +236,7 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
                         value={opt}
                         checked={answers[q.id] === opt}
                         onChange={() => setAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                        className="mr-3 h-4 w-4 text-indigo-600 focus:ring-indigo-600"
+                        className="mr-3 h-4 w-4 text-purple-600 focus:ring-purple-600 border-purple-300"
                       />
                       <span className="leading-relaxed">{opt}</span>
                     </label>

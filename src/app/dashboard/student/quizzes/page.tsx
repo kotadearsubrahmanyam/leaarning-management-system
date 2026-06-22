@@ -173,14 +173,14 @@ export default function StudentQuizzesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {quizzes.length === 0 ? (
-          <div className="col-span-full p-12 text-center bg-white rounded-xl border border-dashed border-[#E5E7EB]">
+          <div className="col-span-full p-12 text-center bg-white rounded-xl border border-dashed border-purple-200">
             <h3 className="text-lg font-medium text-[#111827]">No quizzes available</h3>
             <p className="text-[#6B7280] mt-1">Your teachers haven't generated any quizzes yet.</p>
           </div>
         ) : quizzes.map(quiz => {
           const isPractice = quiz.title.includes("(Practice Retake)");
           return (
-            <Card key={quiz.id} className={`border-[#E5E7EB] bg-white shadow-sm relative overflow-hidden flex flex-col justify-between ${quiz.isCompleted ? 'bg-slate-50/50 border-slate-200' : 'hover:shadow-md transition-shadow'}`}>
+            <Card key={quiz.id} className={`border-purple-200 bg-white shadow-sm relative overflow-hidden flex flex-col justify-between hover:-translate-y-0.5 transition-all ${quiz.isCompleted ? 'bg-purple-50/10 border-purple-200/60' : 'hover:shadow-[0_8px_20px_rgba(124,58,237,0.06)] hover:border-purple-350'}`}>
               {isPractice && (
                 <div className="absolute top-0 right-0 bg-[#A855F7] text-white text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-bl-lg">
                   Practice Mode
@@ -315,7 +315,7 @@ export default function StudentQuizzesPage() {
                       return (
                         <div 
                           key={q.id} 
-                          className="bg-white border border-[#E5E7EB] rounded-2xl p-6 shadow-sm space-y-5 transition-all hover:shadow-md"
+                          className="bg-white border border-purple-200 rounded-2xl p-6 shadow-sm space-y-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(124,58,237,0.06)] hover:border-purple-350"
                         >
                           {/* Question Index & Right/Wrong Status */}
                           <div className="flex justify-between items-center">
@@ -387,7 +387,7 @@ export default function StudentQuizzesPage() {
                   </div>
 
                   {/* Redesigned Performance Summary Card */}
-                  <Card className="border-[#E5E7EB] bg-white shadow-sm overflow-hidden rounded-2xl">
+                  <Card className="border-purple-200 bg-white shadow-sm overflow-hidden rounded-2xl">
                     <div className="p-4 bg-slate-50 border-b font-bold text-slate-700 text-sm flex items-center gap-2">
                       <HelpCircle className="w-4 h-4 text-[#7C3AED]" />
                       Performance Analysis Summary

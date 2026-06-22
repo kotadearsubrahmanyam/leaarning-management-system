@@ -20,7 +20,7 @@ export function AnalyticsCard({ title, value, icon, delay = 0, className, ...pro
         transition={{ duration: 0.5, delay, ease: "easeOut" }}
         whileHover={{ scale: 1.03 }}
         className={cn(
-          "bg-white w-full p-6 rounded-2xl relative overflow-hidden border border-slate-200/85 transition-all hover:shadow-[0_20px_40px_rgba(16,185,129,0.1)]",
+          "bg-white w-full p-6 rounded-2xl relative overflow-hidden border border-purple-200/80 transition-all hover:shadow-[0_15px_30px_rgba(124,58,237,0.12)] hover:-translate-y-1",
           className
         )}
         {...props}

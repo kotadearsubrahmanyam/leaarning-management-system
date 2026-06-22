@@ -214,16 +214,16 @@ export default function StudentMentoringPage() {
                           {studySequence.map((phase, idx) => {
                             const isChecked = completedUnits.includes(phase.title);
                             return (
-                              <label key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition-colors">
+                              <label key={idx} className="flex items-start gap-3 p-3 rounded-xl border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] hover:bg-purple-50/20 cursor-pointer transition-all duration-250">
                                 <input
                                   type="checkbox"
                                   checked={isChecked}
                                   disabled={updating === path.id}
                                   onChange={(e) => handleToggleCheckbox(path.id, "completedUnits", phase.title, e.target.checked)}
-                                  className="mt-1 h-4 w-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                                  className="mt-1 h-4 w-4 rounded text-purple-600 border-purple-300 focus:ring-purple-500"
                                 />
                                 <div>
-                                  <span className={`block text-xs font-bold ${isChecked ? "text-slate-400 line-through" : "text-slate-800"}`}>
+                                  <span className={`block text-xs font-bold ${isChecked ? "text-slate-450 line-through" : "text-slate-800"}`}>
                                     {phase.title}
                                   </span>
                                   {phase.topics && (
@@ -251,15 +251,15 @@ export default function StudentMentoringPage() {
                               const itemVal = `Assignment ${num}`;
                               const isChecked = completedAssignments.includes(itemVal);
                               return (
-                                <label key={num} className="flex items-center gap-2.5 p-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700 transition-colors">
+                                <label key={num} className="flex items-center gap-2.5 p-2 px-3 rounded-lg border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] hover:bg-purple-50/20 cursor-pointer text-xs font-bold text-slate-700 transition-all duration-250">
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
                                     disabled={updating === path.id}
                                     onChange={(e) => handleToggleCheckbox(path.id, "completedAssignments", itemVal, e.target.checked)}
-                                    className="h-3.5 w-3.5 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                                    className="h-3.5 w-3.5 rounded text-purple-600 border-purple-300 focus:ring-purple-500"
                                   />
-                                  <span className={isChecked ? "text-slate-400 line-through" : ""}>Assignment {num}</span>
+                                  <span className={isChecked ? "text-slate-450 line-through" : ""}>Assignment {num}</span>
                                 </label>
                               );
                             })}
@@ -277,15 +277,15 @@ export default function StudentMentoringPage() {
                               const itemVal = `Mock Test ${num}`;
                               const isChecked = completedMockTests.includes(itemVal);
                               return (
-                                <label key={num} className="flex-1 flex items-center gap-2.5 p-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700 transition-colors">
+                                <label key={num} className="flex-1 flex items-center gap-2.5 p-2 px-3 rounded-lg border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] hover:bg-purple-50/20 cursor-pointer text-xs font-bold text-slate-700 transition-all duration-250">
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
                                     disabled={updating === path.id}
                                     onChange={(e) => handleToggleCheckbox(path.id, "completedMockTests", itemVal, e.target.checked)}
-                                    className="h-3.5 w-3.5 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                                    className="h-3.5 w-3.5 rounded text-purple-600 border-purple-300 focus:ring-purple-500"
                                   />
-                                  <span className={isChecked ? "text-slate-400 line-through" : ""}>Mock Test {num}</span>
+                                  <span className={isChecked ? "text-slate-450 line-through" : ""}>Mock Test {num}</span>
                                 </label>
                               );
                             })}
@@ -302,15 +302,15 @@ export default function StudentMentoringPage() {
                             {["Review formulas", "Attempt PYQs", "Re-read notes", "Complete mock test", "Clear doubts with mentor"].map((item, idx) => {
                               const isChecked = completedChecklist.includes(item);
                               return (
-                                <label key={idx} className="flex items-center gap-2.5 p-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700 transition-colors">
+                                <label key={idx} className="flex items-center gap-2.5 p-2 px-3 rounded-lg border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] hover:bg-purple-50/20 cursor-pointer text-xs font-bold text-slate-700 transition-all duration-250">
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
                                     disabled={updating === path.id}
                                     onChange={(e) => handleToggleCheckbox(path.id, "completedChecklist", item, e.target.checked)}
-                                    className="h-3.5 w-3.5 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
+                                    className="h-3.5 w-3.5 rounded text-purple-600 border-purple-300 focus:ring-purple-500"
                                   />
-                                  <span className={isChecked ? "text-slate-400 line-through" : ""}>{item}</span>
+                                  <span className={isChecked ? "text-slate-450 line-through" : ""}>{item}</span>
                                 </label>
                               );
                             })}
@@ -342,9 +342,9 @@ export default function StudentMentoringPage() {
                                         href={r.resourceUrl.startsWith("http") ? r.resourceUrl : "#"}
                                         target={r.resourceUrl.startsWith("http") ? "_blank" : undefined}
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-2.5 p-2 px-3 bg-white border border-slate-200 hover:border-emerald-500 rounded-xl text-xs font-semibold text-slate-750 hover:text-emerald-600 transition-all cursor-pointer truncate"
+                                        className="flex items-center gap-2.5 p-2 px-3 bg-white border border-purple-200 hover:border-purple-500 rounded-xl text-xs font-semibold text-slate-755 hover:text-purple-600 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all cursor-pointer truncate"
                                       >
-                                        <span className="shrink-0 p-1 bg-emerald-50 text-emerald-600 rounded-lg">
+                                        <span className="shrink-0 p-1 bg-purple-50 text-purple-650 rounded-lg">
                                           {r.resourceType === "VIDEO" ? <Video size={14} /> : <FileText size={14} />}
                                         </span>
                                         <span className="truncate">{r.resourceUrl}</span>
@@ -380,9 +380,9 @@ export default function StudentMentoringPage() {
                                         href={r.resourceUrl.startsWith("http") ? r.resourceUrl : "#"}
                                         target={r.resourceUrl.startsWith("http") ? "_blank" : undefined}
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-2.5 p-2 px-3 bg-white border border-slate-200 hover:border-emerald-500 rounded-xl text-xs font-semibold text-slate-750 hover:text-emerald-600 transition-all cursor-pointer truncate"
+                                        className="flex items-center gap-2.5 p-2 px-3 bg-white border border-purple-200 hover:border-purple-550 rounded-xl text-xs font-semibold text-slate-755 hover:text-purple-600 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all cursor-pointer truncate"
                                       >
-                                        <span className="shrink-0 p-1 bg-emerald-50 text-emerald-600 rounded-lg">
+                                        <span className="shrink-0 p-1 bg-purple-50 text-purple-650 rounded-lg">
                                           {r.resourceType === "PYQ" ? (
                                             <Paperclip size={14} />
                                           ) : r.resourceType === "ASSIGNMENT" ? (

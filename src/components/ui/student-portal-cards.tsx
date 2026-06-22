@@ -18,7 +18,7 @@ export function DashboardCard({ children, className, delay = 0, ...props }: Dash
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
       className={cn(
-        "bg-white p-6 rounded-3xl border border-slate-200/85 shadow-[0_8px_32px_rgba(31,38,135,0.04)] transition-all hover:shadow-[0_12px_40px_rgba(31,38,135,0.08)] hover:border-slate-200/85",
+        "bg-white p-6 rounded-3xl border border-purple-200/80 shadow-[0_8px_32px_rgba(139,92,246,0.04)] transition-all hover:shadow-[0_12px_40px_rgba(139,92,246,0.08)] hover:border-purple-300 hover:-translate-y-1",
         className
       )}
       {...props}
@@ -47,7 +47,7 @@ export function StatisticsCard({ title, value, icon, delay = 0, className, onCli
       whileHover={{ scale: 1.02, y: -2 }}
       onClick={onClick}
       className={cn(
-        "bg-white p-5 rounded-2xl border border-slate-200/85 flex items-center justify-between shadow-[0_4px_20px_rgba(31,38,135,0.02)] cursor-pointer hover:shadow-md hover:border-primary/30 hover:bg-white transition-all",
+        "bg-white p-5 rounded-2xl border border-purple-200/80 flex items-center justify-between shadow-[0_4px_20px_rgba(139,92,246,0.02)] cursor-pointer hover:shadow-md hover:border-primary/35 hover:-translate-y-1 transition-all",
         className
       )}
     >
@@ -94,7 +94,7 @@ export function StudentCourseCard({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay }}
       whileHover={{ scale: 1.02 }}
-      className="bg-white rounded-3xl border border-slate-200/85 overflow-hidden flex flex-col justify-between hover:shadow-[0_15px_30px_rgba(0,0,0,0.05)] hover:border-slate-200/85 transition-all cursor-pointer"
+      className="bg-white rounded-3xl border border-purple-200/80 overflow-hidden flex flex-col justify-between hover:shadow-[0_15px_30px_rgba(124,58,237,0.08)] hover:border-purple-300 hover:-translate-y-1 transition-all cursor-pointer"
       onClick={onViewDetails}
     >
       <div className="p-6">
@@ -171,7 +171,7 @@ export function StudentAttendanceCard({ courseName, present, total, delay = 0 }:
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
-      className="bg-white p-5 rounded-2xl border border-slate-200/85 shadow-sm"
+      className="bg-white p-5 rounded-2xl border border-purple-200/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all"
     >
       <div className="flex justify-between items-center mb-2">
         <h4 className="font-extrabold text-sm text-foreground truncate pr-4">{courseName}</h4>
@@ -292,7 +292,7 @@ export function StudentActivityCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
       whileHover={{ scale: 1.01, y: -2 }}
-      className="bg-white p-6 rounded-3xl border border-slate-200/85 relative overflow-hidden group hover:shadow-[0_15px_30px_rgba(0,0,0,0.05)] hover:border-slate-200/85 transition-all"
+      className="bg-white p-6 rounded-3xl border border-purple-200/80 relative overflow-hidden group hover:shadow-[0_15px_30px_rgba(124,58,237,0.08)] hover:border-purple-300 hover:-translate-y-1 transition-all"
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -361,7 +361,7 @@ interface ProfileFieldCardProps {
 
 export function ProfileFieldCard({ label, value }: ProfileFieldCardProps) {
   return (
-    <div className="p-4 rounded-2xl bg-white border border-slate-200/85 hover:border-slate-300/80 transition-all">
+    <div className="p-4 rounded-2xl bg-white border border-purple-200/80 hover:border-purple-300 hover:-translate-y-0.5 transition-all">
       <span className="text-[10px] font-black text-foreground/45 uppercase tracking-wider block mb-1">
         {label}
       </span>

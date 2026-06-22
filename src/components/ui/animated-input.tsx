@@ -27,7 +27,7 @@ export const AnimatedInput = forwardRef<HTMLInputElement, AnimatedInputProps>(
           <input
             type={type}
             className={cn(
-              "flex h-12 w-full rounded-2xl border border-slate-200 bg-white px-[18px] py-[12px] text-sm text-slate-800 shadow-[0_4px_15px_rgba(124,58,237,0.08)] transition-all duration-300 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50 hover:border-purple-400 hover:-translate-y-[1px] hover:shadow-[0_6px_20px_rgba(124,58,237,0.12)] focus:border-purple-600 focus:ring-4 focus:ring-purple-600/15 focus:-translate-y-[1px]",
+              "flex h-11 w-full rounded-xl border border-purple-200 bg-white px-4 py-2.5 text-sm text-slate-800 shadow-[0_4px_10px_rgba(124,58,237,0.04)] transition-all duration-250 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50 hover:border-purple-300 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(124,58,237,0.1)] focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 focus:-translate-y-0.5 focus:shadow-[0_6px_16px_rgba(124,58,237,0.1)]",
               icon && "pl-11",
               error && "border-destructive focus:border-destructive shadow-[0_0_10px_rgba(239,68,68,0.3)]",
               className
