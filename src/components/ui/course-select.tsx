@@ -95,10 +95,10 @@ export function CourseSelect({
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="w-full bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between text-left shadow-sm hover:shadow-md hover:border-emerald-500 focus:outline-none transition-all duration-300 group"
+            className="w-full bg-white border border-purple-200 rounded-xl p-4 flex items-center justify-between text-left shadow-sm hover:shadow-md hover:border-purple-400 hover:-translate-y-0.5 focus:outline-none transition-all duration-250 group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-slate-100 rounded-xl text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-colors">
+              <div className="p-2 bg-slate-100 rounded-xl text-slate-400 group-hover:bg-purple-50 group-hover:text-purple-500 transition-colors">
                 <BookOpen size={20} />
               </div>
               <div>
@@ -106,7 +106,7 @@ export function CourseSelect({
                 <p className="text-xs text-slate-400">Search and select a course</p>
               </div>
             </div>
-            <ChevronDown size={20} className={`text-slate-400 transition-transform duration-300 ${isOpen ? "rotate-180 text-emerald-500" : ""}`} />
+            <ChevronDown size={20} className={`text-slate-400 transition-transform duration-250 ${isOpen ? "rotate-180 text-purple-500" : ""}`} />
           </button>
         ) : (
           (() => {
@@ -117,7 +117,7 @@ export function CourseSelect({
                 <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="w-full bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between text-left shadow-sm hover:shadow-md hover:border-emerald-500 transition-all duration-300 relative group"
+                  className="w-full bg-white border border-purple-200 rounded-xl p-4 flex items-center justify-between text-left shadow-sm hover:shadow-md hover:border-purple-400 hover:-translate-y-0.5 transition-all duration-250 relative group"
                 >
                   <button
                     type="button"
@@ -147,7 +147,7 @@ export function CourseSelect({
                         <X size={14} />
                       </button>
                     )}
-                    <ChevronDown size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                    <ChevronDown size={18} className="text-slate-400 group-hover:text-purple-500 transition-colors" />
                   </div>
                 </motion.div>
               );
@@ -156,7 +156,7 @@ export function CourseSelect({
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full bg-white border-l-4 border-l-emerald-500 border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md transition-all duration-300"
+                className="w-full bg-white border-l-4 border-l-purple-500 border border-purple-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-250"
               >
                 <div className="flex items-center gap-4">
                   <div className={`p-3.5 bg-gradient-to-tr ${aesthetics.gradient} text-white rounded-2xl shadow-md`}>
@@ -167,7 +167,7 @@ export function CourseSelect({
                       <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
                         {getCourseCode(currentCourseDetails)}
                       </span>
-                      <span className="text-xs font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md">
                         Semester {currentCourseDetails.semester}
                       </span>
                     </div>
@@ -183,7 +183,7 @@ export function CourseSelect({
                   <button
                     type="button"
                     onClick={() => setIsOpen(true)}
-                    className="px-3.5 py-2 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-300 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
+                    className="px-3.5 py-2 text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 hover:border-purple-300 rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
                   >
                     <RotateCcw size={13} /> Change Course
                   </button>
@@ -222,7 +222,7 @@ export function CourseSelect({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.98 }}
                 transition={{ duration: 0.2 }}
-                className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+                className="absolute left-0 right-0 mt-2 bg-white border border-purple-200 rounded-xl shadow-xl z-50 overflow-hidden"
               >
                 <div className="p-3 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
                   <Search size={18} className="text-slate-400 ml-1.5" />
@@ -266,8 +266,8 @@ export function CourseSelect({
                           }}
                           className={`w-full p-3 flex items-center justify-between rounded-xl text-left transition-all duration-200 border ${
                             isSelected 
-                              ? "bg-emerald-50/70 border-emerald-300 text-emerald-800 shadow-sm" 
-                              : "bg-white border-transparent hover:bg-slate-50 hover:border-slate-200 text-slate-700"
+                              ? "bg-purple-50/70 border-purple-300 text-purple-800 shadow-sm" 
+                              : "bg-white border-transparent hover:bg-purple-50/30 hover:border-purple-200 text-slate-700"
                           } ${!isAssigned ? "opacity-50 cursor-not-allowed bg-slate-50/50" : ""}`}
                         >
                           <div className="flex items-center gap-3">
@@ -299,7 +299,7 @@ export function CourseSelect({
                             <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full flex-shrink-0">
                               {c.studentCount || 0} Enrolled
                             </span>
-                            {isSelected && <Check size={16} className="text-emerald-500 stroke-[2.5]" />}
+                            {isSelected && <Check size={16} className="text-purple-500 stroke-[2.5]" />}
                           </div>
                         </button>
                       );

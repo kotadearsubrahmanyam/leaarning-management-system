@@ -590,7 +590,7 @@ export default function DashboardPage() {
                         return (
                           <div
                             key={backlog.id || i}
-                            className="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/85 flex flex-col justify-between gap-3 hover:border-rose-300 dark:hover:border-rose-950 transition-all cursor-pointer"
+                            className="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-purple-200/80 dark:border-slate-800/85 flex flex-col justify-between gap-3 hover:border-purple-400 dark:hover:border-rose-950 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all cursor-pointer"
                             onClick={() => router.push("/dashboard/student/mentoring")}
                           >
                             <div className="flex justify-between items-start">
@@ -654,7 +654,7 @@ export default function DashboardPage() {
                       {assignedExams.map((exam: any, i: number) => (
                         <div
                           key={i}
-                          className="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/85 flex items-center justify-between hover:border-rose-300 dark:hover:border-rose-950 transition-all"
+                          className="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-purple-200/80 dark:border-slate-800/85 flex items-center justify-between hover:border-purple-400 dark:hover:border-rose-950 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all"
                         >
                           <div className="min-w-0 pr-3">
                             <h5 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 truncate">
@@ -703,7 +703,7 @@ export default function DashboardPage() {
                 
                 <div className="space-y-3">
                   {displaySchedules.map((lecture: any, i: number) => (
-                    <div key={i} className="flex gap-4 items-start p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 hover:border-slate-300 transition-colors">
+                    <div key={i} className="flex gap-4 items-start p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all duration-250">
                       <div className="text-xs font-black text-primary shrink-0 bg-primary/10 px-2.5 py-1.5 rounded-lg border border-primary/20">
                         {lecture.time.split(" - ")[0]}
                       </div>
@@ -740,7 +740,7 @@ export default function DashboardPage() {
                     return (
                       <div 
                         key={i} 
-                        className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 hover:border-primary/30 hover:border-solid hover:shadow-sm transition-all cursor-pointer" 
+                        className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all duration-250 cursor-pointer" 
                         onClick={() => router.push("/dashboard/assignments")}
                       >
                         <div className="min-w-0 pr-4">

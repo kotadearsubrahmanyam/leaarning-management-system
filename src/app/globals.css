@@ -22,8 +22,8 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 14.3% 95.9%;
-    --input: 220 14.3% 95.9%;
+    --border: 262 80% 93%; /* Premium soft-purple border */
+    --input: 262 80% 93%;
     --ring: 262.1 83.3% 57.8%;
 
     --primary: 271 91% 65%; /* Vibrant Purple */
@@ -55,8 +55,8 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 244 47% 30%;
-    --input: 244 47% 30%;
+    --border: 262 50% 35%; /* Premium soft-purple border for dark mode */
+    --input: 262 50% 35%;
     --ring: 271 91% 65%;
 
     --primary: 271 91% 65%;
@@ -79,16 +79,24 @@
   h1.text-primary, h2.text-primary, h3.text-primary, h4.text-primary, h5.text-primary, h6.text-primary {
     color: #111827 !important;
   }
-  input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="date"], textarea, select {
+  input[type="text"], 
+  input[type="number"], 
+  input[type="email"], 
+  input[type="password"], 
+  input[type="date"], 
+  input[type="search"],
+  input:not([type]),
+  textarea, 
+  select {
     background-color: #ffffff !important;
-    color: #111827 !important;
-    border: 1px solid #e5e7eb !important;
-    border-radius: 16px !important;
-    padding: 12px 18px !important;
-    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.08) !important;
-    min-height: 48px !important;
+    color: #1f2937 !important;
+    border: 1px solid #DDD6FE !important; /* Premium soft-purple border (purple-200) */
+    border-radius: 12px !important; /* 12px rounded corners */
+    padding: 10px 16px !important;
+    box-shadow: 0 4px 10px rgba(124, 58, 237, 0.04), 0 0 0 1px rgba(124, 58, 237, 0.02) !important; /* Subtle glow and shadow */
+    min-height: 46px !important;
     font-size: 0.875rem !important;
-    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1) !important; /* Smooth 0.25s transitions */
     outline: none !important;
   }
   
@@ -97,26 +105,44 @@
   input[type="email"]::placeholder, 
   input[type="password"]::placeholder, 
   input[type="date"]::placeholder,
+  input[type="search"]::placeholder,
+  input:not([type])::placeholder,
   textarea::placeholder {
     color: #9ca3af !important;
   }
 
-  input[type="text"]:hover, input[type="number"]:hover, input[type="email"]:hover, input[type="password"]:hover, input[type="date"]:hover, textarea:hover, select:hover {
-    border-color: #7c3aed !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.12) !important;
+  input[type="text"]:hover, 
+  input[type="number"]:hover, 
+  input[type="email"]:hover, 
+  input[type="password"]:hover, 
+  input[type="date"]:hover, 
+  input[type="search"]:hover,
+  input:not([type]):hover,
+  textarea:hover, 
+  select:hover {
+    border-color: #C084FC !important; /* Soft purple-400 border */
+    transform: translateY(-1.5px) !important; /* Slightly lift */
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.1), 0 0 0 1px rgba(124, 58, 237, 0.05) !important; /* Increased shadow */
   }
 
-  input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, input[type="password"]:focus, input[type="date"]:focus, textarea:focus, select:focus {
+  input[type="text"]:focus, 
+  input[type="number"]:focus, 
+  input[type="email"]:focus, 
+  input[type="password"]:focus, 
+  input[type="date"]:focus, 
+  input[type="search"]:focus,
+  input:not([type]):focus,
+  textarea:focus, 
+  select:focus {
     outline: none !important;
-    border-color: #7c3aed !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15), 0 6px 20px rgba(124, 58, 237, 0.12) !important;
+    border-color: #8B5CF6 !important; /* Stronger purple border (purple-500) */
+    transform: translateY(-1.5px) !important; /* Keep lifted */
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2), 0 6px 16px rgba(139, 92, 246, 0.12) !important; /* Focus ring & stronger glow */
   }
 
   select {
     appearance: none !important;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B5CF6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
     background-repeat: no-repeat !important;
     background-position: right 16px center !important;
     background-size: 16px !important;
@@ -125,7 +151,7 @@
 
   select option {
     background-color: #ffffff !important;
-    color: #111827 !important;
+    color: #1f2937 !important;
   }
 }
 
@@ -380,4 +406,241 @@ main.pl-20 .modal-backdrop-layout {
     padding-left: 104px;
   }
 }
+
+/* ==========================================================================
+   LMS UI Enhancement - Phase 2: Premium SaaS-style Cards, Tables, Lists
+   ========================================================================== */
+
+/* 1. Cards & Section Containers Styling */
+div.bg-white.border,
+div.bg-card.border,
+div.rounded-xl.border,
+div.rounded-2xl.border,
+div.rounded-3xl.border,
+.glass {
+  border-color: #DDD6FE !important; /* Soft purple border (purple-200) */
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.04), 0 1px 3px rgba(139, 92, 246, 0.02) !important;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Elevate on hover to feel clickable and premium */
+div.bg-white.border:hover,
+div.bg-card.border:hover,
+div.rounded-xl.border:hover,
+div.rounded-2xl.border:hover,
+div.rounded-3xl.border:hover,
+.glass:hover {
+  transform: translateY(-3.5px) !important;
+  border-color: #C084FC !important; /* Soft purple border (purple-400) */
+  box-shadow: 0 12px 28px rgba(139, 92, 246, 0.12), 0 4px 8px rgba(139, 92, 246, 0.06) !important;
+}
+
+/* Dark Mode Overrides for Cards & Containers */
+.dark div.bg-white.border,
+.dark div.bg-card.border,
+.dark div.rounded-xl.border,
+.dark div.rounded-2xl.border,
+.dark div.rounded-3xl.border,
+.dark .glass {
+  border-color: rgba(139, 92, 246, 0.25) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark div.bg-white.border:hover,
+.dark div.bg-card.border:hover,
+.dark div.rounded-xl.border:hover,
+.dark div.rounded-2xl.border:hover,
+.dark div.rounded-3xl.border:hover,
+.dark .glass:hover {
+  border-color: rgba(168, 85, 247, 0.45) !important;
+  box-shadow: 0 12px 28px rgba(139, 92, 246, 0.2) !important;
+}
+
+/* 2. Global Slate/Gray Border Class Overrides */
+.border-slate-100,
+.border-slate-200,
+.border-slate-300,
+.border-gray-150,
+.border-gray-200,
+.border-gray-300,
+.border-slate-200\/50,
+.border-slate-200\/80,
+.border-slate-200\/85,
+.border-\[\#E5E7EB\],
+.border-\[\#E5E7EB\]\/80,
+.border-\[\#E2E8F0\],
+.border-\[\#CBD5E1\],
+.border-\[\#C4B5FD\] {
+  border-color: #DDD6FE !important; /* Force soft-purple */
+}
+
+.border-t-slate-100,
+.border-t-slate-200,
+.border-t-gray-100,
+.border-t-gray-200,
+.border-t {
+  border-top-color: #EDE9FE !important; /* Divider color purple-100 */
+}
+
+.border-b-slate-100,
+.border-b-slate-200,
+.border-b-gray-100,
+.border-b-gray-200,
+.border-b {
+  border-bottom-color: #EDE9FE !important;
+}
+
+.border-l-slate-100,
+.border-l-slate-200,
+.border-l-gray-100,
+.border-l-gray-200,
+.border-l {
+  border-left-color: #EDE9FE !important;
+}
+
+.border-r-slate-100,
+.border-r-slate-200,
+.border-r-gray-100,
+.border-r-gray-200,
+.border-r {
+  border-right-color: #EDE9FE !important;
+}
+
+/* Dark mode for borders */
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: rgba(139, 92, 246, 0.25) !important;
+}
+
+/* 3. Premium Table Overrides */
+table {
+  border-collapse: separate !important;
+  border-spacing: 0 10px !important; /* Spacing between rows */
+  width: 100% !important;
+}
+
+thead tr {
+  background-color: #F3E8FF !important; /* Soft purple header background */
+}
+
+thead th {
+  padding: 14px 18px !important;
+  font-weight: 700 !important;
+  color: #6B21A8 !important; /* Deep purple text for header */
+  border-bottom: 2px solid #DDD6FE !important;
+  text-align: left !important;
+  font-size: 0.875rem !important;
+}
+
+thead th:first-child {
+  border-top-left-radius: 12px !important;
+  border-bottom-left-radius: 12px !important;
+}
+
+thead th:last-child {
+  border-top-right-radius: 12px !important;
+  border-bottom-right-radius: 12px !important;
+}
+
+tbody tr {
+  background-color: #ffffff !important;
+  border-radius: 12px !important;
+  transition: all 200ms ease-in-out !important;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.02) !important;
+}
+
+tbody tr td {
+  padding: 14px 18px !important;
+  border-top: 1px solid #DDD6FE !important;
+  border-bottom: 1px solid #DDD6FE !important;
+  color: #374151 !important;
+  font-size: 0.875rem !important;
+}
+
+tbody tr td:first-child {
+  border-left: 1px solid #DDD6FE !important;
+  border-top-left-radius: 12px !important;
+  border-bottom-left-radius: 12px !important;
+}
+
+tbody tr td:last-child {
+  border-right: 1px solid #DDD6FE !important;
+  border-top-right-radius: 12px !important;
+  border-bottom-right-radius: 12px !important;
+}
+
+/* Row Hover highligher */
+tbody tr:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.08) !important;
+  background-color: #FAF5FF !important; /* Soft warm purple bg */
+}
+
+tbody tr:hover td {
+  border-color: #C084FC !important;
+}
+
+/* Dark mode for tables */
+.dark thead tr {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+}
+
+.dark thead th {
+  color: #DDD6FE !important;
+  border-bottom-color: rgba(139, 92, 246, 0.3) !important;
+}
+
+.dark tbody tr {
+  background-color: rgba(30, 27, 75, 0.3) !important;
+}
+
+.dark tbody tr td {
+  border-top-color: rgba(139, 92, 246, 0.2) !important;
+  border-bottom-color: rgba(139, 92, 246, 0.2) !important;
+  color: #E2E8F0 !important;
+}
+
+.dark tbody tr td:first-child {
+  border-left-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+.dark tbody tr td:last-child {
+  border-right-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+.dark tbody tr:hover {
+  background-color: rgba(139, 92, 246, 0.1) !important;
+}
+
+.dark tbody tr:hover td {
+  border-color: rgba(168, 85, 247, 0.45) !important;
+}
+
+/* 4. List Items Hover Highlight & Transitions */
+.list-item-hover-trigger,
+div.flex.gap-4.items-center.p-3.rounded-2xl.bg-slate-50 {
+  transition: all 250ms ease-in-out !important;
+  border-color: #DDD6FE !important;
+}
+
+div.flex.gap-4.items-center.p-3.rounded-2xl.bg-slate-50:hover {
+  transform: translateX(4px) !important;
+  border-color: #C084FC !important;
+  background-color: #FAF5FF !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.05) !important;
+}
+
+.dark div.flex.gap-4.items-center.p-3.rounded-2xl.bg-slate-50 {
+  background-color: rgba(30, 27, 75, 0.2) !important;
+  border-color: rgba(139, 92, 246, 0.2) !important;
+}
+
+.dark div.flex.gap-4.items-center.p-3.rounded-2xl.bg-slate-50:hover {
+  background-color: rgba(139, 92, 246, 0.1) !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+}
+
 
