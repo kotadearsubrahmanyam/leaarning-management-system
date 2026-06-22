@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { systemSettings, users, courses } from "@/db/schema";
+import { systemSettings, users, courses, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -63,6 +63,22 @@ export async function GET(req: Request) {
 
     const teacherName = user.name;
     const teacherDeptId = user.departmentId;
+
+    // Fetch all course IDs taught by the logged-in teacher (either as primary or co-faculty)
+    const primaryCourses = await db
+      .select({ id: courses.id })
+      .from(courses)
+      .where(eq(courses.teacherId, payload.id as string));
+
+    const coCourses = await db
+      .select({ id: courseFaculty.courseId })
+      .from(courseFaculty)
+      .where(eq(courseFaculty.teacherId, payload.id as string));
+
+    const taughtCourseIds = new Set([
+      ...primaryCourses.map(c => c.id),
+      ...coCourses.map(c => c.id)
+    ]);
 
     // Fetch all courses in this teacher's department
     let teacherCourses: any[] = [];
@@ -141,11 +157,14 @@ export async function GET(req: Request) {
 
           let cellName = cell.name;
           let cellFaculty = cell.faculty;
+          let matchedCourseId: string | null = null;
 
           if (deptCourses.length > 0) {
             const matchedDeptCourse = deptCourses.find(dc => dc.name.toLowerCase() === cellName.toLowerCase());
             if (matchedDeptCourse) {
+              cellName = matchedDeptCourse.name;
               cellFaculty = matchedDeptCourse.faculty || "Unassigned";
+              matchedCourseId = matchedDeptCourse.id;
             } else {
               let courseIndex = courseTitles.findIndex(t => t.toLowerCase() === cellName.toLowerCase());
               if (courseIndex === -1) {
@@ -159,10 +178,11 @@ export async function GET(req: Request) {
               const mapped = deptCourses[courseIndex % deptCourses.length];
               cellName = mapped.name;
               cellFaculty = mapped.faculty || "Unassigned";
+              matchedCourseId = mapped.id;
             }
           }
 
-          if (cellFaculty === teacherName) {
+          if ((matchedCourseId && taughtCourseIds.has(matchedCourseId)) || cellFaculty === teacherName) {
             // Overwrite the slot in the teacher's timetable
             // If there's a conflict, it will just overwrite with the last found one.
             teacherTimetable[day][slotId] = {
