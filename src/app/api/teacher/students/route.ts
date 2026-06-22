@@ -48,6 +48,7 @@ export async function GET() {
       const attendancePercentage = totalAttendance === 0 ? 0 : Math.round((presentDays / totalAttendance) * 100);
       
       const enrolledCourses = student.enrollments.map(e => e.course.title);
+      const enrolledCourseIds = student.enrollments.map(e => e.course.id);
       
       return {
         id: student.id,
@@ -58,6 +59,7 @@ export async function GET() {
         attendancePercentage,
         activitiesCount: student.activities.length,
         enrolledCourses,
+        enrolledCourseIds,
       };
     });
 

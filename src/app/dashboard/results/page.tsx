@@ -79,11 +79,12 @@ const getGradePoints = (grade: string): number => {
 };
 
 const getAutoGrade = (total: number): string => {
-  if (total >= 90) return "A+";
-  if (total >= 80) return "A";
-  if (total >= 70) return "B+";
-  if (total >= 60) return "B";
-  if (total >= 50) return "C";
+  if (total >= 90) return "O";
+  if (total >= 80) return "A+";
+  if (total >= 70) return "A";
+  if (total >= 60) return "B+";
+  if (total >= 50) return "B";
+  if (total >= 45) return "C";
   if (total >= 40) return "D";
   return "F";
 };
@@ -257,6 +258,8 @@ export default function ResultsPage() {
     subjectName: "",
     internalMarks: "",
     externalMarks: "",
+    classInternal: "",
+    classExternal: "",
     credits: 3,
     grade: "",
     status: "",
@@ -607,6 +610,8 @@ export default function ResultsPage() {
       subjectName: "",
       internalMarks: "",
       externalMarks: "",
+      classInternal: "",
+      classExternal: "",
       credits: 3,
       grade: "",
       status: "",
@@ -630,6 +635,8 @@ export default function ResultsPage() {
       subjectName: sub.subjectName || "",
       internalMarks: String(sub.internalMarks || 0),
       externalMarks: String(sub.externalMarks || 0),
+      classInternal: String(sub.classInternal || 0),
+      classExternal: String(sub.classExternal || 0),
       credits: sub.credits || 3,
       grade: sub.grade || "",
       status: sub.status || "",
@@ -2715,29 +2722,53 @@ export default function ResultsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        Internal Marks
+                        Class Internal (Max 50)
                       </label>
                       <input
                         type="number"
-                        min="0"
-                        max="100"
-                        required
-                        placeholder="Max 30 usually"
-                        value={subjectFormData.internalMarks}
-                        onChange={(e) => setSubjectFormData({ ...subjectFormData, internalMarks: e.target.value })}
-                        className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all"
+                        disabled
+                        placeholder="Managed by Teacher"
+                        value={subjectFormData.classInternal}
+                        className="w-full bg-slate-50 border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-400 focus:outline-none text-sm transition-all cursor-not-allowed"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
-                        External Marks
+                        Class External (Max 50)
+                      </label>
+                      <input
+                        type="number"
+                        disabled
+                        placeholder="Managed by Teacher"
+                        value={subjectFormData.classExternal}
+                        className="w-full bg-slate-50 border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-400 focus:outline-none text-sm transition-all cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                        Internal Marks (Averaged)
+                      </label>
+                      <input
+                        type="number"
+                        disabled
+                        placeholder="Averaged out of 50"
+                        value={subjectFormData.internalMarks}
+                        className="w-full bg-slate-100 border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none text-sm transition-all cursor-not-allowed font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">
+                        External Marks (Max 50)
                       </label>
                       <input
                         type="number"
                         min="0"
-                        max="100"
+                        max="50"
                         required
-                        placeholder="Max 70 usually"
+                        placeholder="Max 50"
                         value={subjectFormData.externalMarks}
                         onChange={(e) => setSubjectFormData({ ...subjectFormData, externalMarks: e.target.value })}
                         className="w-full bg-white border border-[#E2E8F0] rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all"
