@@ -1,0 +1,392 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 678
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 22 Tf
+25.2999999999999972 TL
+0 g
+56.6929133858267775 728.5041732283464171 Td
+(CONFIDENTIAL EVALUATION) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 671.8112598425196893 Td
+(Page 1: Student Identity Sheet & Admission Record) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 643.4648031496062686 Td
+(This page is automatically protected under blind evaluation regulations.) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 615.1183464566928478 Td
+(Student ID: [REDACTED]) Tj
+ET
+BT
+/F1 12 Tf
+13.7999999999999989 TL
+0 g
+56.6929133858267775 586.7718897637794271 Td
+(Roll Number: [REDACTED]) Tj
+ET
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 2505
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 20 Tf
+23. TL
+0 g
+56.6929133858267775 756.8506299212598378 Td
+(SECTION B: ANSWER SCRIPT) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+56.6929133858267775 700.15771653543311 Td
+(Q1. Explain the differences between Agile and Waterfall methodologies.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 671.8112598425196893 Td
+(Agile methodology is iterative and incremental, focusing on collaboration and flexibility.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 649.1340944881889072 Td
+(Waterfall is linear and sequential, moving through fixed phases \(Requirements, Design, Code, Test, Deploy\).) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+56.6929133858267775 600.9451181102361943 Td
+(Q2. Detail the 5 phases of software design life cycle \(SDLC\).) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 572.5986614173227736 Td
+(1. Planning and Requirement Analysis: Gathering client inputs and defining milestones.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 549.9214960629921052 Td
+(2. Defining Requirements: Writing Software Requirement Specifications \(SRS\) document.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 527.2443307086614368 Td
+(3. Designing: Architects design database schemas, network topography, and module design.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 504.5671653543306547 Td
+(4. Implementation or Coding: Developers write code matching design blueprints.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 481.8899999999999295 Td
+(5. Testing: QA testers verify the product against original specifications.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+56.6929133858267775 439.3703149606298552 Td
+(Q3. Write short notes on database normalization.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 411.0238582677164914 Td
+(Normalization is the process of organizing data in a database to reduce redundancy and improve integrity.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 388.3466929133857661 Td
+(First Normal Form \(1NF\) requires atomic values and unique records.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 365.6695275590550409 Td
+(Second Normal Form \(2NF\) removes partial dependencies.) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0 g
+70.8661417322834666 342.9923622047243725 Td
+(Third Normal Form \(3NF\) removes transitive dependencies.) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R ]
+/Count 2
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 7 0 R
+/F2 8 0 R
+/F3 9 0 R
+/F4 10 0 R
+/F5 11 0 R
+/F6 12 0 R
+/F7 13 0 R
+/F8 14 0 R
+/F9 15 0 R
+/F10 16 0 R
+/F11 17 0 R
+/F12 18 0 R
+/F13 19 0 R
+/F14 20 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+21 0 obj
+<<
+/Producer (jsPDF 4.2.1)
+/CreationDate (D:20260622211228+05'30')
+>>
+endobj
+22 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 23
+0000000000 65535 f 
+0000003575 00000 n 
+0000005400 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000000881 00000 n 
+0000001018 00000 n 
+0000003638 00000 n 
+0000003763 00000 n 
+0000003893 00000 n 
+0000004026 00000 n 
+0000004164 00000 n 
+0000004288 00000 n 
+0000004417 00000 n 
+0000004549 00000 n 
+0000004685 00000 n 
+0000004813 00000 n 
+0000004940 00000 n 
+0000005069 00000 n 
+0000005202 00000 n 
+0000005304 00000 n 
+0000005650 00000 n 
+0000005736 00000 n 
+trailer
+<<
+/Size 23
+/Root 22 0 R
+/Info 21 0 R
+/ID [ <9C441DAE903D5638078E9FB92CFC5F02> <9C441DAE903D5638078E9FB92CFC5F02> ]
+>>
+startxref
+5840
+%%EOF
