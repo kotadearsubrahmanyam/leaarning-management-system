@@ -103,8 +103,10 @@ export async function GET(req: Request) {
               continue;
             }
 
-            const isDept = deptCourses.some(dc => dc.name.toLowerCase() === slot.name.toLowerCase());
-            if (!isDept) {
+            const matchedDeptCourse = deptCourses.find(dc => dc.name.toLowerCase() === slot.name.toLowerCase());
+            if (matchedDeptCourse) {
+              slot.faculty = matchedDeptCourse.faculty || "Unassigned";
+            } else {
               let courseIndex = courseTitles.findIndex(t => t.toLowerCase() === slot.name.toLowerCase());
               if (courseIndex === -1) {
                 let hash = 0;

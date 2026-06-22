@@ -79,13 +79,31 @@ export async function GET(req: Request) {
         .where(eq(courses.categoryId, teacherDeptId));
     }
 
+    // Fetch all student semesters to dynamically determine if the current term is Odd or Even
+    const activeStudents = await db
+      .select({ semester: users.semester })
+      .from(users)
+      .where(eq(users.role, "STUDENT"));
+    
+    const oddCount = activeStudents.filter(s => s.semester && s.semester % 2 !== 0).length;
+    const evenCount = activeStudents.filter(s => s.semester && s.semester % 2 === 0).length;
+    const isOddTerm = oddCount >= evenCount;
+
     // Fetch all timetables
     const allSettings = await db.select().from(systemSettings).where(like(systemSettings.key, "WEEKLY_TIMETABLE_%"));
+
+    // Filter settings by odd/even semester based on the current active term
+    const filteredSettings = allSettings.filter(setting => {
+      const semesterMatch = setting.key.match(/\d+/);
+      if (!semesterMatch) return false;
+      const sem = parseInt(semesterMatch[0]);
+      return isOddTerm ? sem % 2 !== 0 : sem % 2 === 0;
+    });
 
     // Deep clone the default timetable
     const teacherTimetable: any = JSON.parse(JSON.stringify(DEFAULT_TIMETABLE));
 
-    for (const setting of allSettings) {
+    for (const setting of filteredSettings) {
       let data;
       try {
         data = JSON.parse(setting.value || "{}");
@@ -125,8 +143,10 @@ export async function GET(req: Request) {
           let cellFaculty = cell.faculty;
 
           if (deptCourses.length > 0) {
-            const isDept = deptCourses.some(dc => dc.name.toLowerCase() === cellName.toLowerCase());
-            if (!isDept) {
+            const matchedDeptCourse = deptCourses.find(dc => dc.name.toLowerCase() === cellName.toLowerCase());
+            if (matchedDeptCourse) {
+              cellFaculty = matchedDeptCourse.faculty || "Unassigned";
+            } else {
               let courseIndex = courseTitles.findIndex(t => t.toLowerCase() === cellName.toLowerCase());
               if (courseIndex === -1) {
                 let hash = 0;
