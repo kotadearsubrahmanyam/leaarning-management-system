@@ -172,8 +172,11 @@ const mapDeptName = (name: string) => {
 
 const isRecentlyUpdated = (dateString: string | Date | null): boolean => {
   if (!dateString) return false;
-  const diffMs = new Date().getTime() - new Date(dateString).getTime();
-  return diffMs > 0 && diffMs < 24 * 60 * 60 * 1000; // 24 hours
+  const time = dateString instanceof Date ? dateString.getTime() : new Date(dateString).getTime();
+  if (isNaN(time)) return false;
+  const diffMs = new Date().getTime() - time;
+  // Allow negative diffMs (up to 1 hour in the future) to account for clock drift
+  return diffMs > -60 * 60 * 1000 && diffMs < 24 * 60 * 60 * 1000;
 };
 
 const getTimeAgo = (dateString: string | Date | null): string => {
@@ -303,7 +306,7 @@ export default function ResultsPage() {
       return res.json();
     },
     enabled: !!role,
-    refetchInterval: role === "STUDENT" ? 3000 : undefined,
+    refetchInterval: (role === "STUDENT" || role === "ADMIN") ? 3000 : undefined,
   });
 
   // Fetch users for admin autocomplete/dropdown
@@ -326,6 +329,7 @@ export default function ResultsPage() {
       return res.json();
     },
     enabled: role === "ADMIN",
+    refetchInterval: role === "ADMIN" ? 3000 : undefined,
   });
 
   // Fetch enrolled courses for student calculator
@@ -352,6 +356,7 @@ export default function ResultsPage() {
       return res.json();
     },
     enabled: role === "ADMIN",
+    refetchInterval: role === "ADMIN" ? 3000 : undefined,
   });
   const allEvaluations = evaluationsRes?.data || [];
 
@@ -2530,24 +2535,26 @@ export default function ResultsPage() {
                   <tr className="bg-[#5B21B6] text-white font-bold text-xs uppercase tracking-wider border-b border-[#E2E8F0]">
                     <th className="p-4 pl-6">Faculty Name</th>
                     <th className="p-4">Subject</th>
-                    <th className="p-4">Department</th>
+                    <th className="p-4">Student Roll Number</th>
+                    <th className="p-4">Script ID</th>
                     <th className="p-4 text-center">Semester</th>
-                    <th className="p-4 text-center">Student Marks</th>
+                    <th className="p-4 text-center">Marks Awarded</th>
                     <th className="p-4 text-center">Evaluation Date/Time</th>
                     <th className="p-4 pr-6 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E2E8F0] text-sm text-slate-700">
                   {allEvaluations.map((ev: any) => {
-                    const deptName = departments.find((d: any) => d.id === ev.course?.categoryId)?.name || "N/A";
                     const isEvalRecent = isRecentlyUpdated(ev.updatedAt);
                     const rowBg = isEvalRecent ? "bg-emerald-50/60" : "bg-white";
+                    const scriptId = `BLD-${new Date(ev.createdAt).getFullYear()}-${ev.id.substring(0, 4).toUpperCase()}`;
                     
                     return (
                       <tr key={ev.id} className={`${rowBg} hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]`}>
                         <td className="p-4 pl-6 font-bold text-slate-800">{ev.faculty?.name || "N/A"}</td>
                         <td className="p-4 font-semibold text-slate-700">{ev.course?.title || "N/A"}</td>
-                        <td className="p-4 font-mono text-xs">{mapDeptName(deptName)}</td>
+                        <td className="p-4 font-semibold text-slate-700">{ev.student?.rollNumber || "N/A"}</td>
+                        <td className="p-4 font-mono text-xs text-slate-500 font-bold">{scriptId}</td>
                         <td className="p-4 text-center font-extrabold text-slate-500">Semester {ev.course?.semester || "N/A"}</td>
                         <td className="p-4 text-center font-bold text-slate-800">
                           {ev.status === "EVALUATED" ? `${ev.marks} / 100` : "-"}
@@ -2569,7 +2576,7 @@ export default function ResultsPage() {
                   })}
                   {allEvaluations.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">No blind evaluations records found.</td>
+                      <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">No blind evaluations records found.</td>
                     </tr>
                   )}
                 </tbody>
