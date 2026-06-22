@@ -1044,16 +1044,36 @@ Thank you for your payment. Keep this copy for records.`;
   }
 
 // --- STUDENT RENDER ---
-  const pendingSemesterFee = totalSemesterFee - paidSemesterFee;
-
   return (
     <div className="max-w-6xl mx-auto pb-12 relative z-10">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-3xl font-black text-[#111827] mb-2 flex items-center gap-3">
-          <CreditCard className="text-[#7C3AED]" size={32} /> Fees & Payments Portal
+        <h1 className="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+          <CreditCard className="text-[#10B981]" size={32} /> Fees & Payments Portal
         </h1>
-        <p className="text-[#6B7280] font-semibold text-sm">Verify your itemized semester billing, view overdue alerts, and download official receipts.</p>
+        <p className="text-slate-500 font-medium">Verify your itemized semester billing, view overdue alerts, and download official receipts.</p>
       </motion.div>
+
+      {/* Semester Specific Overview Stats Card */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <AnalyticsCard 
+          title={`Semester ${selectedSemester} Total Fees`} 
+          value={`₹${totalSemesterFee.toLocaleString()}`} 
+          icon={<DollarSign size={24} className="text-[#10B981]" />} 
+          delay={0.1} 
+        />
+        <AnalyticsCard 
+          title={`Semester ${selectedSemester} Paid Balance`} 
+          value={`₹${paidSemesterFee.toLocaleString()}`} 
+          icon={<CheckCircle size={24} className="text-green-500" />} 
+          delay={0.2} 
+        />
+        <AnalyticsCard 
+          title={`Semester ${selectedSemester} Pending Due`} 
+          value={`₹${(totalSemesterFee - paidSemesterFee).toLocaleString()}`} 
+          icon={<Clock size={24} className={(totalSemesterFee - paidSemesterFee) > 0 ? "text-red-500" : "text-green-500"} />} 
+          delay={0.3} 
+        />
+      </div>
 
       {/* Semester Selection Bar */}
       <div className="flex gap-2.5 overflow-x-auto pb-3 mb-6 scrollbar-thin select-none">
@@ -1064,294 +1084,29 @@ Thank you for your payment. Keep this copy for records.`;
             <button
               key={sem}
               onClick={() => setSelectedSemester(sem)}
-              className={`relative px-6 py-2.5 rounded-full font-black transition-all whitespace-nowrap text-sm flex items-center gap-2 border ${
+              className={`relative px-6 py-3 rounded-full font-extrabold transition-all whitespace-nowrap text-sm flex items-center gap-2 border ${
                 selectedSemester === sem
-                  ? "bg-[#7C3AED] text-white shadow-[0_4px_15px_rgba(124,58,237,0.35)] scale-[1.02] border-transparent"
-                  : "bg-white text-slate-600 border-[#E5E7EB] hover:bg-slate-50"
+                  ? "bg-[#10B981] text-white shadow-[0_4px_15px_rgba(16,185,129,0.35)] scale-[1.03] border-transparent"
+                  : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
               }`}
             >
               Semester {sem}
               {hasOverdue && (
-                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" title="Has Overdue Fees!" />
+                <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" title="Has Overdue Fees!" />
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Centerpiece Large University Fee Summary Card */}
-      <div className="bg-white border border-[#E5E7EB] rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden mb-8">
-        {/* Top Accent Gradient Line */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#7C3AED] via-[#A855F7] to-indigo-600" />
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-6">
-          <div>
-            <h3 className="text-xl font-black text-[#111827] flex items-center gap-2.5">
-              <Building className="text-[#7C3AED]" size={24} />
-              Excelsior University Fee Summary
-            </h3>
-            <p className="text-xs text-[#6B7280] font-medium mt-1">
-              Overall semester billing status for Semester {selectedSemester}
-            </p>
-          </div>
-          <span className={`px-4 py-1.5 rounded-full text-xs font-black border uppercase tracking-wider ${
-            pendingSemesterFee === 0 
-              ? "bg-[#ECFDF5] text-[#10B981] border-[#10B981]/25" 
-              : "bg-[#FEF2F2] text-[#EF4444] border-[#EF4444]/25 animate-pulse"
-          }`}>
-            {pendingSemesterFee === 0 ? "All Fees Paid" : "Dues Pending"}
-          </span>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 items-start">
+        {/* LEFT COLUMN: Breakdown & alerts (2 cols) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Alerts Banner Container */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Part: Detailed Breakdown list (7 cols) */}
-          <div className="lg:col-span-7 space-y-3.5 border-slate-100 lg:border-r lg:pr-8">
-            <h4 className="text-xs font-black text-[#6B7280] uppercase tracking-wider mb-2">Itemized Semester Fees</h4>
-            
-            {/* Tuition Fee Row */}
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                <span className="text-purple-500">🎓</span> Tuition Fee
-              </span>
-              <span className="border-b border-dotted border-slate-200 flex-grow mx-3 h-4" />
-              <span className="text-sm font-extrabold text-[#111827]">₹{tuitionAmount.toLocaleString()}</span>
-            </div>
-
-            {/* Exam Fee Row */}
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                <span className="text-purple-500">📚</span> Exam Fee
-              </span>
-              <span className="border-b border-dotted border-slate-200 flex-grow mx-3 h-4" />
-              <span className="text-sm font-extrabold text-[#111827]">₹{examAmount.toLocaleString()}</span>
-            </div>
-
-            {/* Bus Fee Row */}
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                <span className="text-purple-500">🚌</span> Bus/Transport Fee
-              </span>
-              <span className="border-b border-dotted border-slate-200 flex-grow mx-3 h-4" />
-              <span className="text-sm font-extrabold text-[#111827]">
-                {busAmount > 0 ? `₹${busAmount.toLocaleString()}` : "N/A (Not Opted)"}
-              </span>
-            </div>
-
-            {/* Hostel Fee Row */}
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                <span className="text-purple-500">🏠</span> Hostel Fee
-              </span>
-              <span className="border-b border-dotted border-slate-200 flex-grow mx-3 h-4" />
-              <span className="text-sm font-extrabold text-[#111827]">
-                {hostelAmount > 0 ? `₹${hostelAmount.toLocaleString()}` : "N/A (Not Opted)"}
-              </span>
-            </div>
-
-            {/* Other Fees Row */}
-            {otherChargesAmount > 0 && (
-              <div className="flex items-center justify-between py-1">
-                <span className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                  <span className="text-purple-500">⚙️</span> Other Charges
-                </span>
-                <span className="border-b border-dotted border-slate-200 flex-grow mx-3 h-4" />
-                <span className="text-sm font-extrabold text-[#111827]">₹{otherChargesAmount.toLocaleString()}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Right Part: Totals and Progress (5 cols) */}
-          <div className="lg:col-span-5 space-y-5">
-            <div className="space-y-3">
-              {/* Total Row */}
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-black text-[#6B7280] uppercase tracking-wider">Total Semester Fee</span>
-                <span className="text-xl font-black text-[#111827]">₹{totalSemesterFee.toLocaleString()}</span>
-              </div>
-              
-              {/* Paid Row */}
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-black text-[#10B981] uppercase tracking-wider">Amount Paid</span>
-                <span className="text-xl font-black text-[#10B981]">₹{paidSemesterFee.toLocaleString()}</span>
-              </div>
-
-              {/* Pending Row */}
-              <div className="flex justify-between items-center border-t border-slate-100 pt-2">
-                <span className="text-xs font-black text-[#EF4444] uppercase tracking-wider">Pending Balance</span>
-                <span className="text-xl font-black text-[#EF4444]">₹{pendingSemesterFee.toLocaleString()}</span>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="space-y-2 pt-2">
-              <div className="flex justify-between items-center text-xs font-bold text-[#6B7280]">
-                <span>Payment Progress</span>
-                <span>{paymentProgress}% Paid</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-100">
-                <div 
-                  className="bg-gradient-to-r from-[#7C3AED] to-[#A855F7] h-full rounded-full transition-all duration-500" 
-                  style={{ width: `${paymentProgress}%` }} 
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Category Breakdown Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Tuition Card */}
-        {(() => {
-          const tuitionItem = currentSemesterFees.find((f: any) => f.feeType === "TUITION");
-          const pending = tuitionItem ? tuitionItem.amount - tuitionItem.paidAmount : 0;
-          return (
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-all duration-300">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-black text-[#6B7280] uppercase tracking-wider">Tuition Fee</span>
-                  {tuitionItem ? (
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                      tuitionItem.status === "PAID" 
-                        ? "bg-green-50 text-green-600 border-green-200" 
-                        : "bg-red-50 text-red-600 border-red-200"
-                    }`}>{tuitionItem.status === "PAID" ? "Paid" : "Pending"}</span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200">N/A</span>
-                  )}
-                </div>
-                <p className="text-xl font-black text-[#111827] mt-3">₹{(tuitionItem?.amount || 0).toLocaleString()}</p>
-              </div>
-              
-              <div className="text-xs text-[#6B7280] border-t border-slate-100 pt-3 flex justify-between items-center font-bold">
-                <div>
-                  <span className="block text-[9px] text-slate-400 uppercase font-black">Paid</span>
-                  <span className="font-extrabold text-[#111827]">₹{(tuitionItem?.paidAmount || 0).toLocaleString()}</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-[9px] text-slate-400 uppercase font-black">Pending</span>
-                  <span className={`font-extrabold ${pending > 0 ? "text-red-500" : "text-[#111827]"}`}>₹{pending.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Exam Card */}
-        {(() => {
-          const examItem = currentSemesterFees.find((f: any) => f.feeType === "EXAM");
-          const pending = examItem ? examItem.amount - examItem.paidAmount : 0;
-          return (
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-all duration-300">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-black text-[#6B7280] uppercase tracking-wider">Exam Fee</span>
-                  {examItem ? (
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                      examItem.status === "PAID" 
-                        ? "bg-green-50 text-green-600 border-green-200" 
-                        : "bg-red-50 text-red-600 border-red-200"
-                    }`}>{examItem.status === "PAID" ? "Paid" : "Pending"}</span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200">N/A</span>
-                  )}
-                </div>
-                <p className="text-xl font-black text-[#111827] mt-3">₹{(examItem?.amount || 0).toLocaleString()}</p>
-              </div>
-              
-              <div className="text-xs text-[#6B7280] border-t border-slate-100 pt-3 flex justify-between items-center font-bold">
-                <div>
-                  <span className="block text-[9px] text-slate-400 uppercase font-black">Paid</span>
-                  <span className="font-extrabold text-[#111827]">₹{(examItem?.paidAmount || 0).toLocaleString()}</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-[9px] text-slate-400 uppercase font-black">Pending</span>
-                  <span className={`font-extrabold ${pending > 0 ? "text-red-500" : "text-[#111827]"}`}>₹{pending.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Bus Card */}
-        {(() => {
-          const busItem = currentSemesterFees.find((f: any) => f.feeType === "BUS");
-          const pending = busItem ? busItem.amount - busItem.paidAmount : 0;
-          return (
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-all duration-300">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-black text-[#6B7280] uppercase tracking-wider">Bus Fee</span>
-                  {busItem ? (
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                      busItem.status === "PAID" 
-                        ? "bg-green-50 text-green-600 border-green-200" 
-                        : "bg-red-50 text-red-600 border-red-200"
-                    }`}>{busItem.status === "PAID" ? "Paid" : "Pending"}</span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200">Not Opted</span>
-                  )}
-                </div>
-                <p className="text-xl font-black text-[#111827] mt-3">₹{(busItem?.amount || 0).toLocaleString()}</p>
-              </div>
-              
-              <div className="text-xs text-[#6B7280] border-t border-slate-100 pt-3 flex justify-between items-center font-bold">
-                <div>
-                  <span className="block text-[9px] text-slate-400 uppercase font-black">Paid</span>
-                  <span className="font-extrabold text-[#111827]">₹{(busItem?.paidAmount || 0).toLocaleString()}</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-[9px] text-slate-400 uppercase font-black">Pending</span>
-                  <span className={`font-extrabold ${pending > 0 ? "text-red-500" : "text-[#111827]"}`}>₹{pending.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Hostel Card */}
-        {(() => {
-          const hostelItem = currentSemesterFees.find((f: any) => f.feeType === "HOSTEL");
-          const pending = hostelItem ? hostelItem.amount - hostelItem.paidAmount : 0;
-          return (
-            <div className="bg-white border border-[#E5E7EB] rounded-2xl p-5 shadow-sm flex flex-col justify-between h-44 hover:shadow-md transition-all duration-300">
-              <div>
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-black text-[#6B7280] uppercase tracking-wider">Hostel Fee</span>
-                  {hostelItem ? (
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                      hostelItem.status === "PAID" 
-                        ? "bg-green-50 text-green-600 border-green-200" 
-                        : "bg-red-50 text-red-600 border-red-200"
-                    }`}>{hostelItem.status === "PAID" ? "Paid" : "Pending"}</span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-slate-50 text-slate-400 border-slate-200">Not Opted</span>
-                  )}
-                </div>
-                <p className="text-xl font-black text-[#111827] mt-3">₹{(hostelItem?.amount || 0).toLocaleString()}</p>
-              </div>
-              
-              <div className="text-xs text-[#6B7280] border-t border-slate-100 pt-3 flex justify-between items-center font-bold">
-                <div>
-                  <span className="block text-[9px] text-slate-400 uppercase font-black">Paid</span>
-                  <span className="font-extrabold text-[#111827]">₹{(hostelItem?.paidAmount || 0).toLocaleString()}</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-[9px] text-slate-400 uppercase font-black">Pending</span>
-                  <span className={`font-extrabold ${pending > 0 ? "text-red-500" : "text-[#111827]"}`}>₹{pending.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8 items-start">
-        {/* LEFT COLUMN: Outstanding Dues & Fee List (7 cols) */}
-        <div className="lg:col-span-8 space-y-6">
-          {selectedSemester <= activeStudentSemester && currentSemesterFees.length > 0 && pendingSemesterFee === 0 && (
+          {selectedSemester <= activeStudentSemester && currentSemesterFees.length > 0 && overdueFeesList.length === 0 && upcomingFeesList.length === 0 && (
             <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-2xl flex items-center gap-3 shadow-sm">
-              <CheckCircle className="text-[#10B981] shrink-0" size={20} />
+              <CheckCircle className="text-green-500 shrink-0" size={20} />
               <div className="text-sm font-bold">
                 Excellent! All fees for Semester {selectedSemester} have been successfully cleared.
               </div>
@@ -1359,23 +1114,79 @@ Thank you for your payment. Keep this copy for records.`;
           )}
 
           {selectedSemester > activeStudentSemester && (
-            <div className="bg-purple-50 border border-purple-200 text-purple-700 p-4 rounded-2xl flex items-center gap-3 shadow-sm text-sm font-semibold">
-              <Clock className="text-[#7C3AED] shrink-0" size={20} />
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-2xl flex items-center gap-3 shadow-sm text-sm font-semibold">
+              <Clock className="text-blue-500 shrink-0" size={20} />
               Semester {selectedSemester} fees are shown for informational and planning purposes only.
             </div>
           )}
 
+          {/* Progress Visualization */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-wider">Semester Payment Progress</span>
+              <span className="text-sm font-black text-slate-950">{paymentProgress}% Paid</span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${paymentProgress}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="bg-[#10B981] h-full rounded-full shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+              />
+            </div>
+            <div className="flex justify-between text-sm text-slate-700 mt-2.5 font-bold">
+              <span>Paid: <span className="text-green-600 font-extrabold">₹{paidSemesterFee.toLocaleString()}</span></span>
+              <span>Total: <span className="text-slate-950 font-extrabold">₹{totalSemesterFee.toLocaleString()}</span></span>
+            </div>
+          </div>
+
+          {/* Fee Status Indicators Grid */}
+          {currentSemesterFees.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider">Fee Status Indicators</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {currentSemesterFees.map((f: any) => {
+                  const pending = f.amount - f.paidAmount;
+                  return (
+                    <div key={f.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3 hover:shadow-md transition-shadow">
+                      <div>
+                        <div className="text-xs font-black text-slate-800 uppercase tracking-wider">{FEE_TYPE_LABELS[f.feeType] || f.feeType}</div>
+                        <div className="text-lg font-black text-slate-950 mt-1">₹{f.amount.toLocaleString()}</div>
+                      </div>
+                      <div className="text-xs space-y-1.5 text-slate-800 font-bold border-t border-slate-100 pt-2">
+                        <div>Paid: <span className="text-green-600 font-extrabold">₹{f.paidAmount.toLocaleString()}</span></div>
+                        <div>Pending: <span className={pending > 0 ? "text-red-500 font-extrabold" : "text-slate-900 font-extrabold"}>₹{pending.toLocaleString()}</span></div>
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <span className="text-slate-600 font-bold">Status:</span>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                            f.status === "PAID"
+                              ? "bg-green-50 text-green-600 border-green-200"
+                              : f.status === "OVERDUE"
+                              ? "bg-red-50 text-red-600 border-red-200"
+                              : "bg-amber-50 text-amber-600 border-amber-200"
+                          }`}>
+                            {f.status === "PAID" ? "Paid" : f.status === "OVERDUE" ? "Overdue" : "Pending"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Itemized Fee Breakdown Table */}
-          <div className="bg-white rounded-3xl border border-[#E5E7EB] overflow-hidden shadow-sm">
-            <div className="p-5 border-b border-slate-100 bg-slate-50/50 font-black text-sm text-[#111827]">
-              Semester Fee Schedule & Dues
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-5 border-b border-slate-100 bg-slate-50 font-extrabold text-slate-900">
+              Breakdown Details Table
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[650px]">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-800 font-black text-[11px] uppercase tracking-wider border-b border-slate-200">
+                  <tr className="bg-slate-50 text-slate-800 font-black text-[11px] uppercase tracking-wider border-b border-slate-300">
                     <th className="p-4 pl-6">Fee Category</th>
-                    <th className="p-4 text-center">Billed Amount</th>
+                    <th className="p-4 text-center">Allocated Amount</th>
                     <th className="p-4 text-center">Paid Amount</th>
                     <th className="p-4 text-center">Pending Amount</th>
                     <th className="p-4 text-center">Due Date</th>
@@ -1386,14 +1197,14 @@ Thank you for your payment. Keep this copy for records.`;
                 <tbody className="divide-y divide-slate-100 text-sm text-slate-800">
                   {currentSemesterFees.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-500 font-bold">
+                      <td colSpan={7} className="p-8 text-center text-slate-600 font-bold">
                         No billing parameters assigned for Semester {selectedSemester}.
                       </td>
                     </tr>
                   ) : (
                     currentSemesterFees.map((f: any) => (
-                      <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 pl-6 font-extrabold text-[#111827]">{FEE_TYPE_LABELS[f.feeType] || f.feeType}</td>
+                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-4 pl-6 font-extrabold text-slate-950">{FEE_TYPE_LABELS[f.feeType] || f.feeType}</td>
                         <td className="p-4 text-center font-extrabold text-slate-900">₹{f.amount.toLocaleString()}</td>
                         <td className="p-4 text-center text-green-700 font-extrabold">₹{f.paidAmount.toLocaleString()}</td>
                         <td className="p-4 text-center text-slate-950 font-extrabold">₹{(f.amount - f.paidAmount).toLocaleString()}</td>
@@ -1401,11 +1212,11 @@ Thank you for your payment. Keep this copy for records.`;
                           {new Date(f.dueDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-')}
                         </td>
                         <td className="p-4 text-center">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
                             f.status === "PAID"
                               ? "bg-green-50 text-green-600 border-green-200"
                               : f.status === "OVERDUE"
-                              ? "bg-red-50 text-red-600 border-red-200 animate-pulse"
+                              ? "bg-red-50 text-red-600 border-red-200"
                               : "bg-amber-50 text-amber-600 border-amber-200"
                           }`}>
                             {f.status === "PAID" ? "Paid" : f.status === "OVERDUE" ? "Overdue" : "Pending"}
@@ -1415,7 +1226,7 @@ Thank you for your payment. Keep this copy for records.`;
                           {f.status !== "PAID" ? (
                             <button
                               onClick={() => openPayModal(f)}
-                              className="px-4 py-1.5 bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white text-xs font-bold rounded-lg shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
+                              className="px-4 py-1.5 bg-gradient-to-r from-[#10B981] to-[#059669] text-white text-xs font-bold rounded-lg shadow-sm hover:scale-[1.02] active:scale-[0.98] transition-all"
                             >
                               Pay Now
                             </button>
@@ -1434,14 +1245,96 @@ Thank you for your payment. Keep this copy for records.`;
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Transaction History Ledger (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
+        {/* RIGHT COLUMN: Fee Categories breakdown card & receipts */}
+        <div className="space-y-6">
+          {/* Detailed Fee Structure Card */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+            <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2">
+              <FileText className="text-[#10B981]" size={18} />
+              Semester {selectedSemester} Fee Structure
+            </h3>
+
+            <div className="space-y-3 font-sans text-sm text-slate-800">
+              <div className="flex items-center justify-between">
+                <span className="whitespace-nowrap font-medium text-slate-700">Tuition Fee</span>
+                <span className="border-b border-dotted border-slate-300 flex-grow mx-2 h-4" />
+                <span className="font-extrabold text-slate-950 whitespace-nowrap">₹{tuitionAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="whitespace-nowrap font-medium text-slate-700">Bus Fee</span>
+                <span className="border-b border-dotted border-slate-300 flex-grow mx-2 h-4" />
+                <span className="font-extrabold text-slate-950 whitespace-nowrap">₹{busAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="whitespace-nowrap font-medium text-slate-700">Hostel Fee</span>
+                <span className="border-b border-dotted border-slate-300 flex-grow mx-2 h-4" />
+                <span className="font-extrabold text-slate-950 whitespace-nowrap">₹{hostelAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="whitespace-nowrap font-medium text-slate-700">Exam Fee</span>
+                <span className="border-b border-dotted border-slate-300 flex-grow mx-2 h-4" />
+                <span className="font-extrabold text-slate-950 whitespace-nowrap">₹{examAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="whitespace-nowrap font-medium text-slate-700">Placement Fee</span>
+                <span className="border-b border-dotted border-slate-300 flex-grow mx-2 h-4" />
+                <span className="font-extrabold text-slate-950 whitespace-nowrap">₹{placementAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="whitespace-nowrap font-medium text-slate-700">Other Charges</span>
+                <span className="border-b border-dotted border-slate-300 flex-grow mx-2 h-4" />
+                <span className="font-extrabold text-slate-950 whitespace-nowrap">₹{otherChargesAmount.toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-base font-sans font-bold text-slate-950">
+                <span className="whitespace-nowrap">Total Fee</span>
+                <span className="border-b border-dotted border-slate-300 flex-grow mx-2 h-4" />
+                <span className="text-[#10B981] font-black whitespace-nowrap text-lg">₹{totalSemesterFee.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Pending Payments Breakdown Section */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+              <AlertTriangle className="text-amber-500" size={18} /> Pending Payments
+            </h3>
+            <div className="space-y-4">
+              {currentSemesterFees.filter((f: any) => f.amount > f.paidAmount).length === 0 ? (
+                <p className="text-slate-400 text-xs py-4 text-center">✓ All fees cleared for this semester.</p>
+              ) : (
+                currentSemesterFees.filter((f: any) => f.amount > f.paidAmount).map((f: any) => {
+                  let emoji = "💳";
+                  if (f.feeType === "TUITION") emoji = "🎓";
+                  if (f.feeType === "BUS") emoji = "🚌";
+                  if (f.feeType === "HOSTEL") emoji = "🏠";
+                  if (f.feeType === "EXAM") emoji = "📚";
+                  if (f.feeType === "PLACEMENT") emoji = "💼";
+                  
+                  return (
+                    <div key={f.id} className="p-3 bg-amber-50 border border-amber-100 rounded-xl space-y-1">
+                      <div className="font-extrabold text-slate-950 text-sm flex items-center gap-1.5">
+                        <span>{emoji}</span> {FEE_TYPE_LABELS[f.feeType] || f.feeType}
+                      </div>
+                      <div className="text-xs text-slate-800 font-bold">
+                        Amount Pending: <span className="font-black text-red-600">₹{(f.amount - f.paidAmount).toLocaleString()}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-600 font-extrabold">
+                        Due Date: {new Date(f.dueDate).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-')}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
           {/* Payment History ledger */}
-          <div className="bg-white p-5 rounded-3xl border border-[#E5E7EB] shadow-sm">
-            <h3 className="font-black text-sm text-[#111827] mb-4">Transaction Receipt Ledger</h3>
-            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 className="font-bold text-slate-800 text-sm mb-4">Paid Transaction Ledger</h3>
+            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
               {payments.filter((p: any) => p.status === "PAID" || p.status === "VERIFIED" || p.status === "COMPLETED").length === 0 ? (
-                <p className="text-slate-400 text-xs py-10 text-center font-bold">No successful payments made.</p>
+                <p className="text-slate-400 text-xs py-4 text-center">No successful payments made.</p>
               ) : (
                 payments.filter((p: any) => p.status === "PAID" || p.status === "VERIFIED" || p.status === "COMPLETED").map((p: any, i: number) => (
                   <motion.div
@@ -1449,21 +1342,21 @@ Thank you for your payment. Keep this copy for records.`;
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between text-xs"
+                    className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs"
                   >
                     <div>
-                      <div className="font-extrabold text-[#111827] text-sm">₹{p.amount.toLocaleString()}</div>
-                      <div className="text-slate-500 font-bold text-[10px] mt-0.5">
+                      <div className="font-bold text-slate-800">₹{p.amount.toLocaleString()}</div>
+                      <div className="text-slate-400 font-medium text-[10px] mt-0.5">
                         {FEE_TYPE_LABELS[p.feeType] || p.feeType}
                       </div>
-                      <div className="text-slate-400 text-[9px] font-mono font-semibold mt-0.5">{new Date(p.date).toLocaleDateString()}</div>
+                      <div className="text-slate-300 text-[9px] font-mono mt-0.5">{new Date(p.date).toLocaleDateString()}</div>
                     </div>
                     <button
                       onClick={() => {
                         setSelectedPaymentForReceipt(p);
                         setIsReceiptModalOpen(true);
                       }}
-                      className="px-2.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 font-bold rounded-lg transition-colors flex items-center gap-1 text-[10px] shadow-sm"
+                      className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 font-bold rounded-lg transition-colors flex items-center gap-1 text-[10px] shadow-sm"
                     >
                       <Printer size={10} /> Invoice
                     </button>
@@ -1483,10 +1376,10 @@ Thank you for your payment. Keep this copy for records.`;
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl border border-[#E5E7EB] w-full max-w-sm overflow-hidden shadow-2xl"
+              className="bg-white rounded-3xl border border-slate-300 w-full max-w-sm overflow-hidden shadow-2xl"
             >
               <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="font-black text-lg text-[#111827]">
+                <h3 className="font-bold text-lg text-slate-800">
                   Confirm Fee Payment
                 </h3>
                 <button onClick={() => setIsPayModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -1495,26 +1388,26 @@ Thank you for your payment. Keep this copy for records.`;
               </div>
               <form onSubmit={handleProcessPayment} className="p-6 space-y-4">
                 <div className="text-xs space-y-1.5">
-                  <div className="text-slate-400 font-bold">Payment Category:</div>
-                  <div className="font-extrabold text-[#111827] text-sm">
+                  <div className="text-slate-400">Payment Category:</div>
+                  <div className="font-bold text-slate-800 text-sm">
                     {FEE_TYPE_LABELS[selectedFeeToPay.feeType] || selectedFeeToPay.feeType}
                   </div>
-                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-100 text-slate-500 font-bold">
+                  <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-100 text-slate-500">
                     <span>Total Category Due:</span>
-                    <span className="font-black text-[#111827]">₹{selectedFeeToPay.amount.toLocaleString()}</span>
+                    <span className="font-bold text-slate-800">₹{selectedFeeToPay.amount.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between items-center text-slate-500 font-bold">
+                  <div className="flex justify-between items-center text-slate-500">
                     <span>Amount Already Paid:</span>
-                    <span className="font-black text-green-600">₹{selectedFeeToPay.paidAmount.toLocaleString()}</span>
+                    <span className="font-bold text-green-600">₹{selectedFeeToPay.paidAmount.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between items-center font-black text-slate-700">
+                  <div className="flex justify-between items-center font-bold text-slate-700">
                     <span>Remaining Balance:</span>
                     <span>₹{(selectedFeeToPay.amount - selectedFeeToPay.paidAmount).toLocaleString()}</span>
                   </div>
                 </div>
 
                 <div className="pt-2">
-                  <label className="block text-xs font-black text-[#6B7280] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                     Amount to Pay (₹)
                   </label>
                   <input
@@ -1524,7 +1417,7 @@ Thank you for your payment. Keep this copy for records.`;
                     max={selectedFeeToPay.amount - selectedFeeToPay.paidAmount}
                     value={payAmountInput}
                     onChange={(e) => setPayAmountInput(e.target.value)}
-                    className="w-full bg-white border border-[#E5E7EB] rounded-xl px-4 py-2.5 text-[#111827] focus:outline-none focus:border-[#7C3AED] text-sm font-black"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 focus:outline-none focus:border-[#10B981] text-sm font-bold"
                   />
                 </div>
 
@@ -1532,14 +1425,14 @@ Thank you for your payment. Keep this copy for records.`;
                   <button
                     type="button"
                     onClick={() => setIsPayModalOpen(false)}
-                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-sm transition-colors"
+                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={payMutation.isPending}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white font-black rounded-xl text-sm shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center"
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-[#10B981] to-[#059669] text-white font-bold rounded-xl text-sm shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center"
                   >
                     {payMutation.isPending ? "Paying..." : "Confirm Pay"}
                   </button>
@@ -1558,11 +1451,11 @@ Thank you for your payment. Keep this copy for records.`;
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl border border-[#E5E7EB] w-full max-w-md overflow-hidden shadow-2xl"
+              className="bg-white rounded-3xl border border-slate-300 w-full max-w-md overflow-hidden shadow-2xl"
             >
               <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="font-black text-[#111827] flex items-center gap-1.5">
-                  <FileText className="text-[#7C3AED]" size={20} />
+                <h3 className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <FileText className="text-[#10B981]" size={20} />
                   Fee Invoice Receipt
                 </h3>
                 <button onClick={() => setIsReceiptModalOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -1572,13 +1465,13 @@ Thank you for your payment. Keep this copy for records.`;
               
               <div className="p-6 space-y-6">
                 {/* Official Bill Invoice Header */}
-                <div className="text-center pb-4 border-b border-dashed border-slate-250">
-                  <h4 className="font-black text-[#7C3AED] text-lg tracking-wider">EXCELSIOR UNIVERSITY</h4>
-                  <p className="text-[10px] text-slate-400 font-black uppercase mt-0.5">Official Student Billing Document</p>
+                <div className="text-center pb-4 border-b border-dashed border-slate-200">
+                  <h4 className="font-black text-[#10B981] text-lg tracking-wider">EXCELSIOR UNIVERSITY</h4>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Official Student Billing Document</p>
                 </div>
 
                 {/* Receipt Details Block */}
-                <div className="space-y-3.5 text-xs font-medium">
+                <div className="space-y-3.5 text-xs">
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400 font-bold">Receipt Date</span>
                     <span className="text-slate-700 font-semibold">{new Date(selectedPaymentForReceipt.date).toLocaleDateString()}</span>
@@ -1601,11 +1494,11 @@ Thank you for your payment. Keep this copy for records.`;
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400 font-bold">Payment Method</span>
-                    <span className="text-slate-700 font-semibold font-bold">Online Credit/Debit</span>
+                    <span className="text-slate-700 font-semibold">Online Credit/Debit</span>
                   </div>
-                  <div className="flex justify-between items-center border-t border-slate-100 pt-3.5 font-black">
+                  <div className="flex justify-between items-center border-t border-slate-100 pt-3.5 font-bold">
                     <span className="text-slate-500 text-sm">Amount Cleared</span>
-                    <span className="text-[#7C3AED] text-base font-black">₹{selectedPaymentForReceipt.amount.toLocaleString()}</span>
+                    <span className="text-[#10B981] text-base font-black">₹{selectedPaymentForReceipt.amount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-slate-400 font-bold">Verification Status</span>
@@ -1623,13 +1516,13 @@ Thank you for your payment. Keep this copy for records.`;
                 <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
                   <button
                     onClick={() => handlePrintReceipt(selectedPaymentForReceipt)}
-                    className="flex items-center justify-center gap-1.5 px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-750 font-black rounded-xl text-xs transition-colors"
+                    className="flex items-center justify-center gap-1.5 px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-colors"
                   >
                     <Printer size={14} /> Print Receipt
                   </button>
                   <button
                     onClick={() => handleDownloadReceipt(selectedPaymentForReceipt)}
-                    className="flex items-center justify-center gap-1.5 px-4 py-3 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-black rounded-xl text-xs shadow-md transition-all hover:scale-[1.01]"
+                    className="flex items-center justify-center gap-1.5 px-4 py-3 bg-[#10B981] hover:bg-[#059669] text-white font-bold rounded-xl text-xs shadow-md transition-all hover:scale-[1.01]"
                   >
                     <Download size={14} /> Download TXT
                   </button>

@@ -494,10 +494,8 @@ export default function ResultsPage() {
     ? currentStudentSemester + 1
     : (currentStudentSemester || 1);
 
-  const tabsList = [...publishedSemesters];
-  if (planningSem && !tabsList.includes(planningSem)) {
-    tabsList.push(planningSem);
-  }
+  const maxSem = Math.max(planningSem || 1, currentStudentSemester || 1, ...(publishedSemesters || []));
+  const tabsList = Array.from({ length: maxSem }, (_, i) => i + 1);
 
   // Fetch department/curriculum courses for planning semester
   const { data: departmentCoursesRes } = useQuery({
@@ -3106,7 +3104,7 @@ export default function ResultsPage() {
         cgpa: projectedCgpa,
         totalCredits: currentCredits,
         passedCount: activeCourses.filter((c: any) => (plannerGrades[c.id] || "A") !== "F").length,
-        status: "ESTIMATED",
+        status: "PROJECTED",
       }
     : (selectedSemester ? studentSummaries[selectedSemester] : null);
 
@@ -3149,7 +3147,7 @@ export default function ResultsPage() {
 
           <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Current Status</span>
-            <span className="text-sm font-extrabold mt-2.5 px-3 py-1 bg-green-50 text-green-600 border border-green-205 rounded-full inline-block text-center">
+            <span className="text-sm font-extrabold mt-2.5 px-3 py-1 bg-green-50 text-green-600 border border-green-200 rounded-full inline-block text-center">
               ACTIVE / PASS
             </span>
           </div>
@@ -3165,7 +3163,7 @@ export default function ResultsPage() {
 
       {/* Semester Sections Stack */}
       <div className="space-y-8">
-        {[1, 2, 3].map((sem) => {
+        {tabsList.map((sem) => {
           const isPublished = publishedSemesters.includes(sem);
           const semSummary = studentSummaries[sem];
           
@@ -3219,7 +3217,9 @@ export default function ResultsPage() {
                   </div>
                   <div className="bg-slate-50/40 p-3 rounded-xl border border-slate-100 flex flex-col justify-center">
                     <span className="text-slate-400 text-[9px] uppercase tracking-wider block">Pass Status</span>
-                    <span className="text-sm font-black text-green-600 mt-0.5">{semSummary.status}</span>
+                    <span className={`text-sm font-bold mt-0.5 ${
+                      semSummary.status === "PASS" ? "text-green-600" : "text-red-500"
+                    }`}>{semSummary.status}</span>
                   </div>
                 </div>
               )}
@@ -3267,7 +3267,7 @@ export default function ResultsPage() {
                                 ? "text-[#10B981]"
                                 : sub.status === "-"
                                 ? "text-slate-400"
-                                : "text-red-505"
+                                : "text-red-500"
                             }`}>
                               {sub.status}
                             </span>
@@ -3287,78 +3287,80 @@ export default function ResultsPage() {
                     </div>
                     <h4 className="text-sm font-black text-slate-800 mb-1">Results Not Published Yet</h4>
                     <p className="text-xs text-slate-500 leading-relaxed max-w-md">
-                      Grades for Semester {sem} have not been officially published. You can use the Goal Planner widget below to estimate your performance and project your CGPA.
+                      Grades for Semester {sem} have not been officially published. {sem === planningSem && "You can use the Goal Planner widget below to estimate your performance and project your CGPA."}
                     </p>
                   </div>
 
                   {/* Goal Planner Widget */}
-                  <div className="bg-[#FAF9F6]/50 rounded-2xl border border-slate-200 p-5 space-y-4">
-                    <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
-                      <Sliders className="text-[#10B981]" size={18} />
-                      <div>
-                        <h4 className="font-bold text-slate-800 text-sm">CGPA & SGPA Goal Planner (Semester {sem})</h4>
-                        <p className="text-[11px] text-slate-400">Select your target grades for Semester {sem} courses to preview your SGPA and projected CGPA.</p>
+                  {sem === planningSem && (
+                    <div className="bg-[#FAF9F6]/50 rounded-2xl border border-slate-200 p-5 space-y-4">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+                        <Sliders className="text-[#10B981]" size={18} />
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-sm">CGPA & SGPA Goal Planner (Semester {sem})</h4>
+                          <p className="text-[11px] text-slate-400">Select your target grades for Semester {sem} courses to preview your SGPA and projected CGPA.</p>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Active Courses Target Grades Selector */}
-                      <div className="space-y-3">
-                        <h5 className="text-xs font-bold text-slate-600">Active Courses:</h5>
-                        {activeCourses.length === 0 ? (
-                          <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-250 text-center text-xs text-slate-400 font-medium">
-                            No active courses found for Semester {sem}.
-                          </div>
-                        ) : (
-                          <div className="space-y-2.5">
-                            {activeCourses.map((c: any) => (
-                              <div key={c.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-150">
-                                <div>
-                                  <div className="font-bold text-xs text-slate-700">{c.title}</div>
-                                  <div className="text-[10px] text-slate-450 font-semibold">{c.credits} Credits</div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Active Courses Target Grades Selector */}
+                        <div className="space-y-3">
+                          <h5 className="text-xs font-bold text-slate-650">Active Courses:</h5>
+                          {activeCourses.length === 0 ? (
+                            <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-250 text-center text-xs text-slate-400 font-medium">
+                              No active courses found for Semester {sem}.
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              {activeCourses.map((c: any) => (
+                                <div key={c.id} className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-150">
+                                  <div>
+                                    <div className="font-bold text-xs text-slate-700">{c.title}</div>
+                                    <div className="text-[10px] text-slate-450 font-semibold">{c.credits} Credits</div>
+                                  </div>
+                                  <select
+                                    value={plannerGrades[c.id] || "A"}
+                                    onChange={(e) => {
+                                      setPlannerGrades({ ...plannerGrades, [c.id]: e.target.value });
+                                      setHasUserModified(true);
+                                    }}
+                                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#10B981]"
+                                  >
+                                    <option value="A+">A+ (10)</option>
+                                    <option value="A">A (9)</option>
+                                    <option value="B+">B+ (8)</option>
+                                    <option value="B">B (7)</option>
+                                    <option value="C">C (6)</option>
+                                    <option value="D">D (5)</option>
+                                    <option value="F">F (0)</option>
+                                  </select>
                                 </div>
-                                <select
-                                  value={plannerGrades[c.id] || "A"}
-                                  onChange={(e) => {
-                                    setPlannerGrades({ ...plannerGrades, [c.id]: e.target.value });
-                                    setHasUserModified(true);
-                                  }}
-                                  className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 focus:outline-none focus:border-[#10B981]"
-                                >
-                                  <option value="A+">A+ (10)</option>
-                                  <option value="A">A (9)</option>
-                                  <option value="B+">B+ (8)</option>
-                                  <option value="B">B (7)</option>
-                                  <option value="C">C (6)</option>
-                                  <option value="D">D (5)</option>
-                                  <option value="F">F (0)</option>
-                                </select>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Expected Outputs Dashboard */}
-                      <div className="flex flex-col justify-center space-y-4">
-                        <h5 className="text-xs font-bold text-slate-650">Expected Outputs:</h5>
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col justify-center shadow-xs">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Current CGPA</span>
-                            <span className="text-lg font-black text-slate-700 mt-1">{officialCgpa.toFixed(2)}</span>
-                          </div>
-                          <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col justify-center shadow-xs">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Projected SGPA</span>
-                            <span className="text-lg font-black text-slate-800 mt-1">{projectedSgpa}</span>
-                          </div>
-                          <div className="p-3 rounded-xl bg-white border border-[#10B981]/30 bg-[#10B981]/5 flex flex-col justify-center shadow-xs">
-                            <span className="text-[9px] font-black text-[#10B981] uppercase tracking-wider">Projected CGPA</span>
-                            <span className="text-lg font-black text-[#10B981] mt-1">{projectedCgpa}</span>
+                        {/* Expected Outputs Dashboard */}
+                        <div className="flex flex-col justify-center space-y-4">
+                          <h5 className="text-xs font-bold text-slate-650">Expected Outputs:</h5>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col justify-center shadow-xs">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Current CGPA</span>
+                              <span className="text-lg font-black text-slate-700 mt-1">{officialCgpa.toFixed(2)}</span>
+                            </div>
+                            <div className="p-3 rounded-xl bg-white border border-slate-200 flex flex-col justify-center shadow-xs">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Projected SGPA</span>
+                              <span className="text-lg font-black text-slate-800 mt-1">{projectedSgpa}</span>
+                            </div>
+                            <div className="p-3 rounded-xl bg-white border border-[#10B981]/30 bg-[#10B981]/5 flex flex-col justify-center shadow-xs">
+                              <span className="text-[9px] font-black text-[#10B981] uppercase tracking-wider">Projected CGPA</span>
+                              <span className="text-lg font-black text-[#10B981] mt-1">{projectedCgpa}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </motion.div>

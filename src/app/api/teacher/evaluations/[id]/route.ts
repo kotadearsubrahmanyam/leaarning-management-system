@@ -53,11 +53,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     // 4. Automatically sync to Results table (Magic Sync)
     // We map the hidden studentId to the actual results table.
-    const internalMarks = 0; // Or fetch existing internal marks
-    const totalMarks = Number(marks) + internalMarks;
+    // Blind evaluation marks are the end semester marks (total marks).
+    const totalMarks = Number(marks);
     
-    // Convert to Grade dynamically
-    const grade = totalMarks >= 90 ? "O" : totalMarks >= 80 ? "A+" : totalMarks >= 70 ? "A" : totalMarks >= 60 ? "B+" : totalMarks >= 50 ? "B" : totalMarks >= 45 ? "C" : totalMarks >= 40 ? "P" : "F";
+    // Convert to Grade dynamically based on total marks
+    const grade = totalMarks >= 90 ? "O" : totalMarks >= 80 ? "A+" : totalMarks >= 70 ? "A" : totalMarks >= 60 ? "B+" : totalMarks >= 50 ? "B" : totalMarks >= 45 ? "C" : totalMarks >= 40 ? "D" : "F";
     const status = totalMarks >= 40 ? "PASS" : "FAIL";
 
     // Check if result already exists for this student and course
@@ -73,7 +73,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         .set({
           studentName,
           studentRollNumber,
-          externalMarks: Number(marks),
+          internalMarks: 0,
+          externalMarks: 0,
           marks: totalMarks,
           grade,
           status,
@@ -86,7 +87,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         userId: evaluation.studentId,
         courseId: evaluation.courseId,
         semester: evaluation.course.semester,
-        externalMarks: Number(marks),
+        internalMarks: 0,
+        externalMarks: 0,
         marks: totalMarks,
         grade,
         status,

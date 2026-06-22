@@ -94,18 +94,22 @@ export async function POST(req: Request) {
       SET 
           published = true,
           "graceMarksAdded" = CASE 
+            WHEN "subjectCode" = 'EVAL' THEN 0
             WHEN "internalMarks" >= 14 AND "externalMarks" >= 24 AND "externalMarks" < 26 THEN 26 - "externalMarks"
             ELSE 0
           END,
           "marks" = CASE 
+            WHEN "subjectCode" = 'EVAL' THEN "marks"
             WHEN "internalMarks" >= 14 AND "externalMarks" >= 24 AND "externalMarks" < 26 THEN "internalMarks" + 26
             ELSE "marks"
           END,
           "externalMarks" = CASE 
+            WHEN "subjectCode" = 'EVAL' THEN "externalMarks"
             WHEN "internalMarks" >= 14 AND "externalMarks" >= 24 AND "externalMarks" < 26 THEN 26
             ELSE "externalMarks"
           END,
           status = CASE 
+            WHEN "subjectCode" = 'EVAL' THEN status
             WHEN "internalMarks" >= 14 AND "externalMarks" >= 24 THEN 'PASS' 
             ELSE 'FAIL' 
           END

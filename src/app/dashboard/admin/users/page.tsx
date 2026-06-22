@@ -234,19 +234,15 @@ export default function AdminUsersPage() {
     let sampleData: any[] = [];
     
     if (role === "STUDENT") {
-      headers = ["Name", "Roll Number", "Email", "Department", "Semester"];
+      headers = ["Name", "Department", "Semester"];
       sampleData = [
         {
           "Name": "John Doe",
-          "Roll Number": "24B11CS001",
-          "Email": "24B11CS001@university.in",
           "Department": "CSE",
           "Semester": 3
         },
         {
           "Name": "Priya",
-          "Roll Number": "24B11CS002",
-          "Email": "24B11CS002@university.in",
           "Department": "CSE",
           "Semester": 3
         }
@@ -274,7 +270,7 @@ export default function AdminUsersPage() {
     const data = credentials.map(c => ({
       "Roll Number": c.rollNumber,
       "Username": c.username,
-      "Password": "LMS@123"
+      "Password": "123456"
     }));
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();

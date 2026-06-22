@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const uploaderName = adminUser ? `${adminUser.name} (${adminUser.email})` : payload.email;
 
     // Hashing password takes ~100ms. Hashing it once and reusing the hash is a massive performance optimization!
-    const defaultPassword = "LMS@123";
+    const defaultPassword = "123456";
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
     let createdCount = 0;

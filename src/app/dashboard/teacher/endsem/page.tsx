@@ -40,11 +40,11 @@ const loadPdfJS = () => {
     }
 
     const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    script.src = "/pdf.min.js";
     script.onload = () => {
       const pdfjsLib = (window as any).pdfjsLib;
       if (pdfjsLib) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
         resolve(pdfjsLib);
       } else {
         reject(new Error("pdfjsLib not found on window"));
