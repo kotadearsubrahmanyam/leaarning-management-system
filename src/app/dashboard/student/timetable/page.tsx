@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { Clock, RefreshCw, AlertCircle, Utensils, User } from "lucide-react";
 
 const TIME_SLOTS = [
   { id: "slot1", time: "09:30 AM - 10:30 AM" },
@@ -44,10 +44,10 @@ export default function TimetablePage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">
+        <h1 className="text-2xl font-black text-slate-900 mb-1 tracking-tight">
           Weekly Timetable
         </h1>
-        <p className="text-slate-600 text-sm">
+        <p className="text-slate-500 text-sm font-medium">
           Semester {timetableData?.data?.semester || 1} - Computer Science and Engineering
         </p>
       </div>
@@ -62,87 +62,131 @@ export default function TimetablePage() {
         </div>
       )}
 
-      <div className="border border-slate-300 bg-white overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      {/* Modern Refined Timetable Table */}
+      <div className="border-2 border-slate-200 bg-slate-50/50 p-3 rounded-2xl shadow-xl shadow-slate-200/40">
+        <div className="overflow-x-auto rounded-xl">
+          <table className="w-full text-left border-separate border-spacing-2">
             <thead>
               <tr>
-                <th className="p-2 border-b border-r border-slate-300 bg-slate-100 text-slate-800 font-semibold text-[11px] text-center w-24">
+                <th className="p-3 bg-slate-200 text-slate-700 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase w-32 border border-slate-300">
                   Time / Day
                 </th>
                 {WEEK_DAYS.map(day => (
-                  <th key={day} className="p-2 border-b border-r border-slate-300 bg-slate-100 text-slate-800 font-semibold text-[11px] text-center">
+                  <th key={day} className="p-3 bg-[#7C3AED] text-white font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase border border-purple-700">
                     {day}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TIME_SLOTS.map((slot) => (
-                <tr key={slot.id}>
-                  <td className="p-2 border-b border-r border-slate-300 text-center bg-slate-50 text-[10px] font-medium text-slate-700 whitespace-nowrap">
-                    {slot.time}
-                  </td>
-                  {WEEK_DAYS.map(day => {
-                    const classData = activeTimetable[day]?.[slot.id];
-                    
-                    if (slot.isBreak) {
+              {TIME_SLOTS.map((slot) => {
+                if (slot.isBreak) {
+                  return (
+                    <tr key={slot.id}>
+                      <td className="p-2 border border-slate-300/80 bg-slate-100 rounded-xl text-center align-middle">
+                        <div className="flex flex-col items-center justify-center gap-1.5 py-1">
+                          <Clock size={15} className="text-[#7C3AED]" />
+                          <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap leading-tight">
+                            {slot.time}
+                          </span>
+                        </div>
+                      </td>
+                      <td colSpan={5} className="p-2 border border-dashed border-slate-300 bg-slate-50 text-center align-middle hover:bg-slate-100/50 transition-colors rounded-xl">
+                        <div className="flex items-center justify-center gap-2 py-3">
+                          <Utensils size={14} className="text-slate-500" />
+                          <span className="text-xs font-bold text-slate-500 tracking-widest uppercase">
+                            Lunch Break
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                return (
+                  <tr key={slot.id}>
+                    <td className="p-2 border border-slate-300/80 bg-slate-100 rounded-xl text-center align-middle">
+                      <div className="flex flex-col items-center justify-center gap-1.5 py-2">
+                        <Clock size={15} className="text-[#7C3AED]" />
+                        <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap leading-tight">
+                          {slot.time}
+                        </span>
+                      </div>
+                    </td>
+                    {WEEK_DAYS.map(day => {
+                      const classData = activeTimetable[day]?.[slot.id];
+                      const isFree = !classData || classData.name === "Free Period" || classData.name === "-";
+
+                      if (isFree) {
+                        return (
+                          <td key={day} className="p-2 border border-dashed border-slate-300/80 rounded-xl align-middle bg-slate-100/30 text-center transition-all hover:bg-slate-100/50">
+                            <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Free Period</span>
+                          </td>
+                        );
+                      }
+
                       return (
-                        <td key={day} className="p-2 border-b border-r border-slate-300 text-center bg-slate-100/50">
-                          <span className="text-[11px] font-medium text-slate-500 tracking-widest uppercase">Lunch</span>
+                        <td 
+                          key={day} 
+                          className="p-0 border border-slate-300/80 rounded-xl align-top bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:bg-purple-50/30 border-l-4 border-l-[#7C3AED]"
+                        >
+                          <div className="p-3 text-left h-full flex flex-col justify-between min-h-[68px]">
+                            <span className="text-[11px] text-slate-800 font-bold block leading-tight tracking-tight">
+                              {classData.name}
+                            </span>
+                            {classData.faculty && classData.faculty !== "-" && (
+                              <span className="text-[9px] text-slate-500 mt-2 block font-semibold">
+                                {classData.faculty}
+                              </span>
+                            )}
+                          </div>
                         </td>
                       );
-                    }
-
-                    return (
-                      <td key={day} className="p-2 border-b border-r border-slate-300 text-center hover:bg-slate-50 transition-colors align-top">
-                        <span className="text-[11px] text-slate-800 font-medium block leading-tight">{classData?.name || "Free Period"}</span>
-                        {classData?.faculty && classData.faculty !== "-" && (
-                          <span className="text-[9px] text-slate-500 mt-1 block">{classData.faculty}</span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Faculty Details Table */}
+      {/* Modernized Faculty Details cards */}
       <div className="pt-4">
-        <h2 className="text-xl font-bold text-slate-900 mb-4">
-          Faculty Details
-        </h2>
-        <div className="border border-slate-300 bg-white overflow-hidden max-w-3xl">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr>
-                <th className="p-3 border-b border-r border-slate-300 bg-slate-100 text-slate-800 font-semibold text-sm w-16 text-center">S.No</th>
-                <th className="p-3 border-b border-r border-slate-300 bg-slate-100 text-slate-800 font-semibold text-sm">Course Name</th>
-                <th className="p-3 border-b border-slate-300 bg-slate-100 text-slate-800 font-semibold text-sm">Faculty Assigned</th>
-              </tr>
-            </thead>
-            <tbody>
-              {courses.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="p-3 text-center text-slate-500 text-sm">
-                    No courses enrolled for this semester
-                  </td>
-                </tr>
-              ) : (
-                courses.map((course: any, index: number) => (
-                  <tr key={course.name || index}>
-                    <td className="p-3 border-b border-r border-slate-300 text-slate-700 text-sm text-center">{index + 1}</td>
-                    <td className="p-3 border-b border-r border-slate-300 text-slate-800 text-sm">{course.name}</td>
-                    <td className="p-3 border-b border-slate-300 text-slate-800 text-sm">{course.faculty || "Unassigned"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="w-1.5 h-6 bg-[#7C3AED] rounded-full"></div>
+          <h2 className="text-xl font-bold text-slate-900">
+            Faculty Details
+          </h2>
         </div>
+        
+        {courses.length === 0 ? (
+          <div className="p-6 text-center text-slate-500 bg-white border-2 border-slate-200 rounded-2xl shadow-sm">
+            No courses enrolled for this semester
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {courses.map((course: any, index: number) => (
+              <div 
+                key={course.name || index} 
+                className="bg-white border-2 border-slate-200 hover:border-purple-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-[#7C3AED]"
+              >
+                <div className="flex justify-between items-start mb-2.5">
+                  <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-100 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                    Course {index + 1}
+                  </span>
+                </div>
+                <h3 className="text-xs font-bold text-slate-800 mb-4 leading-tight min-h-[32px] line-clamp-2">
+                  {course.name}
+                </h3>
+                <div className="flex items-center gap-2 text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <User size={13} className="text-[#7C3AED] shrink-0" />
+                  <span className="font-semibold truncate">{course.faculty || "Unassigned"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
