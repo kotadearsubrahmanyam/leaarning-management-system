@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { systemSettings, users } from "@/db/schema";
+import { systemSettings, users, courses } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -62,6 +62,22 @@ export async function GET(req: Request) {
     if (!user) return errorResponse("User not found", 404);
 
     const teacherName = user.name;
+    const teacherDeptId = user.departmentId;
+
+    // Fetch all courses in this teacher's department
+    let teacherCourses: any[] = [];
+    if (teacherDeptId) {
+      teacherCourses = await db
+        .select({
+          id: courses.id,
+          name: courses.title,
+          semester: courses.semester,
+          faculty: users.name,
+        })
+        .from(courses)
+        .leftJoin(users, eq(courses.teacherId, users.id))
+        .where(eq(courses.categoryId, teacherDeptId));
+    }
 
     // Fetch all timetables
     const allSettings = await db.select().from(systemSettings).where(like(systemSettings.key, "WEEKLY_TIMETABLE_%"));
@@ -79,7 +95,20 @@ export async function GET(req: Request) {
       
       const grid = data.timetable || data;
       const semesterMatch = setting.key.match(/\d+/);
-      const semester = semesterMatch ? semesterMatch[0] : "?";
+      const semesterVal = semesterMatch ? parseInt(semesterMatch[0]) : null;
+      if (semesterVal === null) continue;
+
+      const deptCourses = teacherCourses.filter(c => c.semester === semesterVal);
+
+      // Fetch all courses in this semester across all departments for mapping pool
+      const allSemesterCourses = await db
+        .select({
+          title: courses.title,
+        })
+        .from(courses)
+        .where(eq(courses.semester, semesterVal));
+
+      const courseTitles = Array.from(new Set(allSemesterCourses.map(c => c.title))).sort();
 
       for (const day of Object.keys(grid)) {
         if (!teacherTimetable[day]) continue;
@@ -88,11 +117,36 @@ export async function GET(req: Request) {
           if (slotId === "lunch") continue;
 
           const cell = grid[day][slotId];
-          if (cell && cell.faculty === teacherName) {
+          if (!cell || cell.name === "Lunch Break" || cell.name === "Free Period" || cell.isCustom || cell.faculty === "Custom") {
+            continue;
+          }
+
+          let cellName = cell.name;
+          let cellFaculty = cell.faculty;
+
+          if (deptCourses.length > 0) {
+            const isDept = deptCourses.some(dc => dc.name.toLowerCase() === cellName.toLowerCase());
+            if (!isDept) {
+              let courseIndex = courseTitles.findIndex(t => t.toLowerCase() === cellName.toLowerCase());
+              if (courseIndex === -1) {
+                let hash = 0;
+                for (let i = 0; i < cellName.length; i++) {
+                  hash = cellName.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                courseIndex = Math.abs(hash);
+              }
+
+              const mapped = deptCourses[courseIndex % deptCourses.length];
+              cellName = mapped.name;
+              cellFaculty = mapped.faculty || "Unassigned";
+            }
+          }
+
+          if (cellFaculty === teacherName) {
             // Overwrite the slot in the teacher's timetable
             // If there's a conflict, it will just overwrite with the last found one.
             teacherTimetable[day][slotId] = {
-              name: `${cell.name} (Sem ${semester})`,
+              name: `${cellName} (Sem ${semesterVal})`,
               faculty: teacherName,
               isCustom: false
             };
@@ -107,3 +161,4 @@ export async function GET(req: Request) {
     return errorResponse("Internal error", 500);
   }
 }
+

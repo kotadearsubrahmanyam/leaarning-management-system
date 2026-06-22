@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { classSessions, courses, courseFaculty, systemSettings } from "@/db/schema";
+import { classSessions, courses, courseFaculty, systemSettings, users } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -63,6 +63,64 @@ export async function GET(req: Request) {
         const parsed = JSON.parse(settings[0].value || "{}");
         timetable = parsed.timetable || parsed;
       } catch(e) {}
+    }
+
+    if (timetable && course.categoryId) {
+      // Fetch department courses for mapping
+      const deptCourses = await db
+        .select({
+          id: courses.id,
+          name: courses.title,
+          credits: courses.credits,
+          faculty: users.name,
+        })
+        .from(courses)
+        .leftJoin(users, eq(courses.teacherId, users.id))
+        .where(
+          and(
+            eq(courses.semester, course.semester),
+            eq(courses.categoryId, course.categoryId)
+          )
+        );
+
+      if (deptCourses.length > 0) {
+        // Fetch all courses in this semester for mapping pool
+        const allSemesterCourses = await db
+          .select({
+            title: courses.title,
+          })
+          .from(courses)
+          .where(eq(courses.semester, course.semester));
+
+        const courseTitles = Array.from(new Set(allSemesterCourses.map(c => c.title))).sort();
+
+        // Apply mapping
+        for (const day of Object.keys(timetable)) {
+          if (!timetable[day]) continue;
+          for (const slotId of Object.keys(timetable[day])) {
+            const slot = timetable[day][slotId];
+            if (!slot || slot.name === "Lunch Break" || slot.name === "Free Period" || slot.isCustom || slot.faculty === "Custom") {
+              continue;
+            }
+
+            const isDept = deptCourses.some(dc => dc.name.toLowerCase() === slot.name.toLowerCase());
+            if (!isDept) {
+              let courseIndex = courseTitles.findIndex(t => t.toLowerCase() === slot.name.toLowerCase());
+              if (courseIndex === -1) {
+                let hash = 0;
+                for (let i = 0; i < slot.name.length; i++) {
+                  hash = slot.name.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                courseIndex = Math.abs(hash);
+              }
+
+              const mapped = deptCourses[courseIndex % deptCourses.length];
+              slot.name = mapped.name;
+              slot.faculty = mapped.faculty || "Unassigned";
+            }
+          }
+        }
+      }
     }
 
     const TIME_SLOTS: Record<string, { start: string, end: string }> = {
