@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, RefreshCw, Calendar as CalendarIcon } from "lucide-react";
+import { Clock, RefreshCw, Calendar as CalendarIcon, Utensils } from "lucide-react";
 
 const TIME_SLOTS = [
   { id: "slot1", time: "09:30 AM - 10:30 AM" },
@@ -39,7 +39,7 @@ export default function TeacherTimetablePage() {
   if (isLoading) {
     return (
       <div className="p-12 flex flex-col items-center justify-center space-y-4">
-        <RefreshCw className="animate-spin text-emerald-500" size={32} />
+        <RefreshCw className="animate-spin text-[#7C3AED]" size={32} />
         <p className="text-slate-500 font-medium">Loading your personalized schedule...</p>
       </div>
     );
@@ -48,8 +48,8 @@ export default function TeacherTimetablePage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
       <div className="flex items-center gap-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-          <CalendarIcon className="text-emerald-600" size={24} />
+        <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+          <CalendarIcon className="text-[#7C3AED]" size={24} />
         </div>
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -61,62 +61,88 @@ export default function TeacherTimetablePage() {
         </div>
       </div>
 
-      <div className="border border-slate-300 bg-white rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      {/* Modern Refined Timetable Table */}
+      <div className="border-2 border-slate-200 bg-slate-50/50 p-3 rounded-2xl shadow-xl shadow-slate-200/40">
+        <div className="overflow-x-auto rounded-xl">
+          <table className="w-full text-left border-separate border-spacing-2">
             <thead>
               <tr>
-                <th className="p-4 border-b border-r border-slate-200 bg-slate-50 text-slate-600 font-bold text-xs text-center w-32 uppercase tracking-wider">
+                <th className="p-3 bg-slate-200 text-slate-700 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase w-32 border border-slate-300">
                   Time / Day
                 </th>
                 {WEEK_DAYS.map(day => (
-                  <th key={day} className="p-4 border-b border-r border-slate-200 bg-slate-50 text-slate-600 font-bold text-xs text-center uppercase tracking-wider">
+                  <th key={day} className="p-3 bg-[#7C3AED] text-white font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase border border-purple-700">
                     {day}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TIME_SLOTS.map((slot, index) => (
-                <tr key={slot.id} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                  <td className="p-3 border-b border-r border-slate-200 text-center bg-slate-50/80 text-xs font-semibold text-slate-700 whitespace-nowrap">
-                    {slot.time}
-                  </td>
-                  {WEEK_DAYS.map(day => {
-                    const classData = activeTimetable[day]?.[slot.id];
-                    const isLunch = slot.isBreak;
-                    const isClass = classData && classData.name !== "Free Period" && !isLunch;
-                    
-                    if (isLunch) {
+              {TIME_SLOTS.map((slot) => {
+                if (slot.isBreak) {
+                  return (
+                    <tr key={slot.id}>
+                      <td className="p-2 border border-slate-300/80 bg-slate-100 rounded-xl text-center align-middle">
+                        <div className="flex flex-col items-center justify-center gap-1.5 py-1">
+                          <Clock size={15} className="text-[#7C3AED]" />
+                          <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap leading-tight">
+                            {slot.time}
+                          </span>
+                        </div>
+                      </td>
+                      <td colSpan={5} className="p-2 border border-dashed border-slate-300 bg-slate-50 text-center align-middle hover:bg-slate-100/50 transition-colors rounded-xl">
+                        <div className="flex items-center justify-center gap-2 py-3">
+                          <Utensils size={14} className="text-slate-500" />
+                          <span className="text-xs font-bold text-slate-500 tracking-widest uppercase">
+                            Lunch Break
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                return (
+                  <tr key={slot.id}>
+                    <td className="p-2 border border-slate-300/80 bg-slate-100 rounded-xl text-center align-middle">
+                      <div className="flex flex-col items-center justify-center gap-1.5 py-2">
+                        <Clock size={15} className="text-[#7C3AED]" />
+                        <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap leading-tight">
+                          {slot.time}
+                        </span>
+                      </div>
+                    </td>
+                    {WEEK_DAYS.map(day => {
+                      const classData = activeTimetable[day]?.[slot.id];
+                      const isFree = !classData || classData.name === "Free Period" || classData.name === "-";
+
+                      if (isFree) {
+                        return (
+                          <td key={day} className="p-2 border border-dashed border-slate-300/80 rounded-xl align-middle bg-slate-100/30 text-center transition-all hover:bg-slate-100/50">
+                            <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Free Period</span>
+                          </td>
+                        );
+                      }
+
                       return (
-                        <td key={day} className="p-3 border-b border-r border-slate-200 text-center bg-slate-100">
-                          <span className="text-xs font-bold text-slate-400 tracking-widest uppercase">Lunch Break</span>
+                        <td 
+                          key={day} 
+                          className="p-0 border border-slate-300/80 rounded-xl align-top bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:bg-purple-50/30 border-l-4 border-l-[#7C3AED]"
+                        >
+                          <div className="p-3 text-left h-full flex flex-col justify-between min-h-[68px]">
+                            <span className="text-[11px] text-slate-800 font-bold block leading-tight tracking-tight">
+                              {classData.name}
+                            </span>
+                            <span className="inline-flex items-center gap-1 mt-2.5 px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-md text-[9px] font-bold uppercase tracking-wider w-fit">
+                              Scheduled Class
+                            </span>
+                          </div>
                         </td>
                       );
-                    }
-
-                    return (
-                      <td 
-                        key={day} 
-                        className={`p-3 border-b border-r border-slate-200 text-center align-middle transition-colors ${
-                          isClass ? 'bg-emerald-50/50 hover:bg-emerald-50' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className={`text-xs block leading-snug ${
-                          isClass ? 'text-emerald-800 font-bold' : 'text-slate-400 font-medium'
-                        }`}>
-                          {classData?.name || "Free Period"}
-                        </span>
-                        {isClass && (
-                          <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                            Scheduled Class
-                          </span>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
