@@ -384,7 +384,31 @@ export default function AdminUsersPage() {
     XLSX.writeFile(workbook, "validation_errors_report.xlsx");
   };
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [deptFilter, setDeptFilter] = useState("ALL");
+  const [semFilter, setSemFilter] = useState("ALL");
+
   const usersList = usersData?.data?.users || [];
+  
+  const filteredUsers = React.useMemo(() => {
+    return usersList.filter((user: any) => {
+      if (searchTerm.trim() !== "") {
+        const query = searchTerm.toLowerCase();
+        const nameMatch = user.name?.toLowerCase().includes(query);
+        const emailMatch = user.email?.toLowerCase().includes(query);
+        const rollMatch = user.rollNumber?.toLowerCase().includes(query);
+        if (!nameMatch && !emailMatch && !rollMatch) return false;
+      }
+      if (roleFilter !== "ALL" && user.role !== roleFilter) return false;
+      if (deptFilter !== "ALL" && user.departmentId !== deptFilter) return false;
+      if (semFilter !== "ALL") {
+        if (user.role !== "STUDENT" || String(user.semester) !== semFilter) return false;
+      }
+      return true;
+    });
+  }, [usersList, searchTerm, roleFilter, deptFilter, semFilter]);
+
   const historyList = historyData?.data?.history || [];
   const stats = historyData?.data?.stats || {
     totalStudentsImported: 0,
@@ -447,7 +471,7 @@ export default function AdminUsersPage() {
             className="space-y-6"
           >
             <div className="flex justify-between items-center bg-white/5 p-4 border border-white/10 rounded-2xl">
-              <span className="text-sm font-semibold text-foreground/80">Active Accounts: {usersList.length}</span>
+              <span className="text-sm font-semibold text-foreground/80">Active Accounts: {filteredUsers.length} / {usersList.length}</span>
               <div className="flex gap-4">
                 {selectedStudents.length > 0 && (
                   <AnimatedButton 
@@ -478,6 +502,89 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
+            {/* Filters Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl">
+              {/* Search */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search name, email, roll no..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-slate-450 focus:outline-none focus:border-primary transition-all"
+                />
+              </div>
+
+              {/* Role */}
+              <div>
+                <select
+                  value={roleFilter}
+                  onChange={(e) => {
+                    setRoleFilter(e.target.value);
+                    if (e.target.value !== "STUDENT" && e.target.value !== "ALL") {
+                      setSemFilter("ALL");
+                    }
+                  }}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-all appearance-none"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B5CF6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '12px',
+                    paddingRight: '32px'
+                  }}
+                >
+                  <option value="ALL">All Roles</option>
+                  <option value="STUDENT">Students</option>
+                  <option value="TEACHER">Teachers</option>
+                  <option value="ADMIN">Admins</option>
+                </select>
+              </div>
+
+              {/* Department */}
+              <div>
+                <select
+                  value={deptFilter}
+                  onChange={(e) => setDeptFilter(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-all appearance-none"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B5CF6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '12px',
+                    paddingRight: '32px'
+                  }}
+                >
+                  <option value="ALL">All Departments</option>
+                  {departments.map((dept: any) => (
+                    <option key={dept.id} value={dept.id}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Semester */}
+              <div>
+                <select
+                  value={semFilter}
+                  onChange={(e) => setSemFilter(e.target.value)}
+                  disabled={roleFilter !== "ALL" && roleFilter !== "STUDENT"}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary transition-all appearance-none disabled:opacity-50"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B5CF6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 12px center',
+                    backgroundSize: '12px',
+                    paddingRight: '32px'
+                  }}
+                >
+                  <option value="ALL">All Semesters</option>
+                  {Array.from({ length: 8 }, (_, i) => i + 1).map((sem) => (
+                    <option key={sem} value={String(sem)}>Semester {sem}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="glass rounded-3xl border border-white/10 overflow-hidden shadow-xl">
               <div className="grid grid-cols-12 bg-white/5 p-4 font-semibold text-foreground/80 border-b border-white/10 text-sm">
                 <div className="col-span-1 text-center">Select</div>
@@ -491,11 +598,11 @@ export default function AdminUsersPage() {
                 <div className="p-4 space-y-4">
                   {[1, 2, 3, 4].map(i => <div key={i} className="h-12 bg-white/5 animate-pulse rounded-xl" />)}
                 </div>
-              ) : usersList.length === 0 ? (
-                <div className="p-12 text-center text-foreground/50">No users found. Create manually or use Excel import.</div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="p-12 text-center text-foreground/50">No users found matching the active filters.</div>
               ) : (
                 <div className="divide-y divide-white/5 max-h-[60vh] overflow-y-auto">
-                  {usersList.map((user: any, i: number) => (
+                  {filteredUsers.map((user: any, i: number) => (
                     <motion.div 
                       initial={{ opacity: 0 }} 
                       animate={{ opacity: 1 }} 
