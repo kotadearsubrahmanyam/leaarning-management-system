@@ -387,9 +387,9 @@ export default function AdminEvaluationsPage() {
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-3">
-            <EyeOff size={32} /> Bulk Blind Evaluations
+            <EyeOff size={32} /> END SEM EVALUATION
           </h1>
-          <p className="text-foreground/70">Securely assign massive batches of anonymous answer sheets to faculties.</p>
+          <p className="text-foreground/70 text-sm">assign sem end papers to faculty</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}

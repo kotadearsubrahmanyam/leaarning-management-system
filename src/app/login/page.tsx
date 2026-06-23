@@ -227,12 +227,7 @@ export default function LoginPage() {
       return result;
     },
     onSuccess: (data) => {
-      const userRole = data.data?.user?.role || selectedRole;
-      if (userRole === "ADMIN") {
-        router.push("/dashboard/admin");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push("/dashboard");
     },
     onError: (error: any) => {
       setError("root", { message: error.message });

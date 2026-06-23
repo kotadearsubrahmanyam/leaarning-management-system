@@ -2529,6 +2529,7 @@ export default function ResultsPage() {
                 <thead>
                   <tr className="bg-[#5B21B6] text-white font-bold text-xs uppercase tracking-wider border-b border-[#E2E8F0]">
                     <th className="p-4 pl-6">Faculty Name</th>
+                    <th className="p-4">Student Roll Number</th>
                     <th className="p-4">Subject</th>
                     <th className="p-4">Department</th>
                     <th className="p-4 text-center">Semester</th>
@@ -2546,6 +2547,7 @@ export default function ResultsPage() {
                     return (
                       <tr key={ev.id} className={`${rowBg} hover:bg-[#F3E8FF] transition-all border-b border-[#E2E8F0]`}>
                         <td className="p-4 pl-6 font-bold text-slate-800">{ev.faculty?.name || "N/A"}</td>
+                        <td className="p-4 font-mono text-sm font-semibold text-slate-700">{ev.student?.rollNumber || "N/A"}</td>
                         <td className="p-4 font-semibold text-slate-700">{ev.course?.title || "N/A"}</td>
                         <td className="p-4 font-mono text-xs">{mapDeptName(deptName)}</td>
                         <td className="p-4 text-center font-extrabold text-slate-500">Semester {ev.course?.semester || "N/A"}</td>
@@ -2569,7 +2571,7 @@ export default function ResultsPage() {
                   })}
                   {allEvaluations.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-slate-400 font-medium">No blind evaluations records found.</td>
+                      <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">No blind evaluations records found.</td>
                     </tr>
                   )}
                 </tbody>

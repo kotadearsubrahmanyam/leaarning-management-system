@@ -50,7 +50,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: SidebarProps) {
         { href: "/dashboard/admin/users", icon: Users, label: "Users" },
         { href: "/dashboard/admin/courses", icon: BookOpen, label: "Courses" },
         { href: "/dashboard/admin/departments", icon: Layers, label: "Departments" },
-        { href: "/dashboard/admin/evaluations", icon: FileCheck, label: "Blind Evaluations" },
+        { href: "/dashboard/admin/evaluations", icon: FileCheck, label: "END SEM EVALUATION" },
         { href: "/dashboard/payments", icon: CreditCard, label: "Payments" },
         { href: "/dashboard/results", icon: Award, label: "Results" },
         { href: "/dashboard/community", icon: Users, label: "Community" },
