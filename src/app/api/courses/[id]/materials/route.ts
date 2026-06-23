@@ -162,3 +162,54 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return errorResponse("Internal server error", 500);
   }
 }
+
+// DELETE a material
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get("token")?.value;
+
+    if (!token) return errorResponse("Unauthorized", 401);
+    const payload = await verifyJwt(token);
+    if (!payload) return errorResponse("Invalid token", 401);
+
+    if (payload.role !== "TEACHER" && payload.role !== "ADMIN") {
+      return errorResponse("Forbidden", 403);
+    }
+
+    const courseId = params.id;
+    const userId = payload.id as string;
+
+    // Verify ownership/course existence
+    const [course] = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
+    if (!course) return errorResponse("Course not found", 404);
+    if (payload.role === "TEACHER" && course.teacherId !== userId) {
+      return errorResponse("Forbidden. You do not own this course.", 403);
+    }
+
+    const { searchParams } = new URL(req.url);
+    const materialId = searchParams.get("materialId");
+
+    if (!materialId) {
+      return errorResponse("materialId is required", 400);
+    }
+
+    // Verify the material belongs to this course
+    const [material] = await db
+      .select()
+      .from(materials)
+      .where(and(eq(materials.id, materialId), eq(materials.courseId, courseId)))
+      .limit(1);
+
+    if (!material) {
+      return errorResponse("Material not found in this course", 404);
+    }
+
+    await db.delete(materials).where(eq(materials.id, materialId));
+
+    return successResponse({ deletedId: materialId }, "Material deleted successfully", 200);
+  } catch (error) {
+    console.error("Delete material error:", error);
+    return errorResponse("Internal server error", 500);
+  }
+}

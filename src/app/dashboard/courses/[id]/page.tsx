@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   ChevronLeft, FileText, Sliders, Plus, X, Search, BookOpen, 
   Download, ExternalLink, Eye, Folder, FolderOpen, ArrowRight, BookMarked,
-  HelpCircle, Award
+  HelpCircle, Award, Trash2
 } from "lucide-react";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,6 +22,7 @@ interface Material {
   size: string;
   category: string;
   createdAt: string;
+  uploadedBy?: string;
 }
 
 interface MockResource {
@@ -31,6 +32,8 @@ interface MockResource {
   isLink?: boolean;
   categoryKey: string;
   subfolderName?: string;
+  id?: string;
+  uploadedBy?: string;
 }
 
 const getCleanCourseCode = (title: string, sem: number) => {
@@ -574,39 +577,57 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const mockRepo = MOCK_REPOSITORIES[mockKey];
 
   const getSubfolderFileCount = (category: string, subfolder: string) => {
-    let count = 0;
-    
-    if (category === "UNIT_NOTES") {
-      count += mockRepo.unitNotes[subfolder]?.length || 0;
-    } else if (category === "IMPORTANT_QUESTIONS") {
-      count += mockRepo.importantQuestions[subfolder]?.length || 0;
-    } else if (category === "QUESTION_PAPERS") {
-      count += mockRepo.questionPapers.filter(f => f.subfolderName === subfolder).length;
-    } else if (category === "REFERENCE_MATERIALS") {
-      count += mockRepo.referenceMaterials[subfolder]?.length || 0;
-    }
-
-    dbMaterials.forEach(m => {
+    const matchedDbCount = dbMaterials.filter(m => {
       if (category === "QUESTION_PAPERS" && /(mid\s*[1-2]|internal)/i.test(m.title)) {
-        return;
+        return false;
       }
-      
       let isCategoryMatch = m.category === category;
       if (m.category === "EXAM_PREP_KIT" && category === "REFERENCE_MATERIALS") {
         isCategoryMatch = true;
       }
+      return isCategoryMatch && matchDbFileToSubfolder(m.title, category, subfolder);
+    }).length;
 
-      if (isCategoryMatch) {
-        if (matchDbFileToSubfolder(m.title, category, subfolder)) {
-          count++;
-        }
+    if (matchedDbCount > 0) {
+      return matchedDbCount;
+    }
+
+    if (category === "UNIT_NOTES") {
+      return mockRepo.unitNotes[subfolder]?.length || 0;
+    } else if (category === "IMPORTANT_QUESTIONS") {
+      return mockRepo.importantQuestions[subfolder]?.length || 0;
+    } else if (category === "QUESTION_PAPERS") {
+      return mockRepo.questionPapers.filter(f => f.subfolderName === subfolder).length;
+    } else if (category === "REFERENCE_MATERIALS") {
+      return mockRepo.referenceMaterials[subfolder]?.length || 0;
+    }
+    return 0;
+  };
+
+  const handleDeleteMaterial = async (materialId: string) => {
+    if (!window.confirm("Are you sure you want to delete this file? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/courses/${courseId}/materials?materialId=${materialId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.message || "Failed to delete file");
+        return;
       }
-    });
-
-    return count;
+      alert("File deleted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["materials", courseId] });
+    } catch (e) {
+      console.error(e);
+      alert("An error occurred while deleting the file.");
+    }
   };
 
   const renderFileRowButtons = (file: MockResource) => {
+    const isDeletable = (role === "TEACHER" || role === "ADMIN") && file.id;
+
     return (
       <div className="flex gap-2 shrink-0 items-center">
         {file.isLink ? (
@@ -638,6 +659,15 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
               <Download size={13} />
             </a>
           </>
+        )}
+        {isDeletable && (
+          <button 
+            onClick={() => handleDeleteMaterial(file.id!)}
+            className="w-7 h-7 bg-rose-50 border border-rose-200 hover:bg-rose-100 hover:text-rose-700 rounded-full text-rose-500 transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm hover:scale-105"
+            title="Delete File"
+          >
+            <Trash2 size={13} />
+          </button>
         )}
       </div>
     );
@@ -731,13 +761,17 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
           size: match.size || "Unknown Size",
           isLink: !match.fileUrl.endsWith(".pdf") && !match.fileType?.includes("pdf"),
           categoryKey: category,
-          subfolderName: subfolder || undefined
+          subfolderName: subfolder || undefined,
+          id: match.id,
+          uploadedBy: match.uploadedBy
         };
       }
       return {
         ...seed,
         categoryKey: category,
-        subfolderName: subfolder || undefined
+        subfolderName: subfolder || undefined,
+        id: undefined,
+        uploadedBy: undefined
       };
     });
 
@@ -750,7 +784,9 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
           size: m.size || "Unknown Size",
           isLink: !m.fileUrl.endsWith(".pdf") && !m.fileType?.includes("pdf"),
           categoryKey: category,
-          subfolderName: subfolder || undefined
+          subfolderName: subfolder || undefined,
+          id: m.id,
+          uploadedBy: m.uploadedBy
         });
       }
     });
@@ -914,7 +950,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
   const getCategorySubtext = (key: string, repo: any, dbFiles: Material[]) => {
     let count = 0;
     if (key === "SYLLABUS") {
-      count = (repo?.syllabus?.length || 0) + dbFiles.filter(f => f.category === "SYLLABUS").length;
+      const dbCount = dbFiles.filter(f => f.category === "SYLLABUS").length;
+      count = dbCount > 0 ? dbCount : (repo?.syllabus?.length || 0);
       return `${count} syllabus file${count !== 1 ? 's' : ''}`;
     }
     if (key === "UNIT_NOTES") {
@@ -938,7 +975,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
     let gradient = "";
     
     if (key === "SYLLABUS") {
-      const count = (repo?.syllabus?.length || 0) + dbFiles.filter(f => f.category === "SYLLABUS").length;
+      const dbCount = dbFiles.filter(f => f.category === "SYLLABUS").length;
+      const count = dbCount > 0 ? dbCount : (repo?.syllabus?.length || 0);
       title = "Syllabus Core";
       value = `${count} File${count !== 1 ? 's' : ''}`;
       gradient = "from-orange-500 to-amber-400";
