@@ -220,6 +220,26 @@ export default function PaymentsPage() {
     },
   });
 
+  // Verify all pending payments mutation for admin
+  const verifyAllMutation = useMutation({
+    mutationFn: async (paymentIds: string[]) => {
+      const res = await fetch("/api/admin/payments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentIds, status: "VERIFIED" }),
+      });
+      if (!res.ok) throw new Error("Failed to verify all payments");
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["payments", role] });
+      alert(data.message || "All pending payment receipts verified successfully!");
+    },
+    onError: (err: any) => {
+      alert(err.message || "Failed to verify payments.");
+    }
+  });
+
   // Admin Fee CRUD actions
   const saveFeeMutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -436,6 +456,9 @@ Thank you for your payment. Keep this copy for records.`;
     const verifiedPayments = payments.filter((p: any) => p.status === "VERIFIED" || p.status === "COMPLETED" || p.status === "PAID");
     const totalRevenue = verifiedPayments.reduce((sum: number, p: any) => sum + p.amount, 0);
     const pendingVerificationCount = payments.filter((p: any) => p.status === "PAID" || p.status === "COMPLETED").length;
+    const pendingPaymentIds = payments
+      .filter((p: any) => p.status === "PAID" || p.status === "COMPLETED")
+      .map((p: any) => p.id);
     const totalOutstanding = 1240000;
     const collectionRate = 78.4;
 
@@ -515,6 +538,10 @@ Thank you for your payment. Keep this copy for records.`;
       return matchesSearch && matchesFeeType && matchesStatus;
     });
 
+    const filteredPendingIds = filteredPayments
+      .filter((p: any) => p.status === "PAID" || p.status === "COMPLETED")
+      .map((p: any) => p.id);
+
     return (
       <div className="max-w-6xl mx-auto pb-12 relative z-10 text-slate-800">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -537,14 +564,39 @@ Thank you for your payment. Keep this copy for records.`;
               <DollarSign size={24} />
             </div>
           </div>
-          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-            <div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending Verification</span>
-              <span className="text-2xl font-black text-slate-800 mt-1 block">{pendingVerificationCount} Requests</span>
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between w-full">
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending Verification</span>
+                <span className="text-2xl font-black text-slate-800 mt-1 block">{pendingVerificationCount} Requests</span>
+              </div>
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
+                <Clock size={24} />
+              </div>
             </div>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl border border-amber-100">
-              <Clock size={24} />
-            </div>
+            {pendingVerificationCount > 0 && (
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    if (confirm(`Are you sure you want to verify all ${pendingVerificationCount} pending receipts?`)) {
+                      verifyAllMutation.mutate(pendingPaymentIds);
+                    }
+                  }}
+                  disabled={verifyAllMutation.isPending}
+                  className="w-full py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:bg-[#7C3AED]/50 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5"
+                >
+                  {verifyAllMutation.isPending ? (
+                    <>
+                      <RefreshCw className="animate-spin" size={14} /> Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={14} /> Verify All Receipts
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div>
@@ -966,16 +1018,39 @@ Thank you for your payment. Keep this copy for records.`;
               <h3 className="font-extrabold text-slate-800 text-lg flex items-center gap-2">
                 <Search size={18} className="text-[#7C3AED]" /> Smart Financial Search Ledger
               </h3>
-              <button
-                onClick={() => {
-                  setTransactionSearchTerm("");
-                  setFilterFeeType("ALL");
-                  setFilterStatus("ALL");
-                }}
-                className="text-xs text-[#7C3AED] font-bold hover:underline"
-              >
-                Clear Search Filter
-              </button>
+              <div className="flex items-center gap-3">
+                {filteredPendingIds.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (confirm(`Are you sure you want to verify all ${filteredPendingIds.length} filtered pending receipts?`)) {
+                        verifyAllMutation.mutate(filteredPendingIds);
+                      }
+                    }}
+                    disabled={verifyAllMutation.isPending}
+                    className="px-3.5 py-1.5 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:bg-[#7C3AED]/50 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  >
+                    {verifyAllMutation.isPending ? (
+                      <>
+                        <RefreshCw className="animate-spin" size={12} /> Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={12} /> Verify All Filtered ({filteredPendingIds.length})
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setTransactionSearchTerm("");
+                    setFilterFeeType("ALL");
+                    setFilterStatus("ALL");
+                  }}
+                  className="text-xs text-[#7C3AED] font-bold hover:underline"
+                >
+                  Clear Search Filter
+                </button>
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden shadow-sm">

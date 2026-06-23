@@ -4,7 +4,7 @@ import { payments, users, feeStructure } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -60,9 +60,20 @@ export async function PUT(req: Request) {
     if (!payload || payload.role !== "ADMIN") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { paymentId, status, receiptUrl } = body;
+    const { paymentId, paymentIds, status, receiptUrl } = body;
 
-    if (!paymentId) return errorResponse("Payment ID is required", 400);
+    if (!paymentId && (!paymentIds || !Array.isArray(paymentIds) || paymentIds.length === 0)) {
+      return errorResponse("Payment ID or Payment IDs are required", 400);
+    }
+
+    if (paymentIds && Array.isArray(paymentIds)) {
+      const updatedPayments = await db.update(payments)
+        .set({ status: status || "VERIFIED", receiptUrl: receiptUrl || null })
+        .where(inArray(payments.id, paymentIds))
+        .returning();
+
+      return successResponse({ payments: updatedPayments }, `${updatedPayments.length} payments verified successfully`);
+    }
 
     const [updatedPayment] = await db.update(payments)
       .set({ status: status || "VERIFIED", receiptUrl: receiptUrl || null })
