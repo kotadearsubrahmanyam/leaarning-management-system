@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { results, studentSemesterSummary, users, systemSettings, learningPaths, studentLearningPaths, notifications } from "@/db/schema";
+import { results, studentSemesterSummary, users, systemSettings, learningPaths, studentLearningPaths, notifications, courses } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export const getGradePoints = (grade: string): number => {
@@ -157,12 +157,56 @@ export async function recalculateStudentGpas(studentId: string) {
 
 export async function assignLearningPathOnFail(studentId: string, courseId: string) {
   try {
-    const path = await db.query.learningPaths.findFirst({
+    let path = await db.query.learningPaths.findFirst({
       where: eq(learningPaths.courseId, courseId),
     });
     if (!path) {
-      console.log(`No recovery learning path configured for course ${courseId}`);
-      return;
+      console.log(`No recovery learning path configured for course ${courseId}. Creating default learning path...`);
+      // Fetch course details
+      const course = await db.query.courses.findFirst({
+        where: eq(courses.id, courseId),
+      });
+      if (!course) {
+        console.log(`Course ${courseId} not found in database.`);
+        return;
+      }
+      
+      const defaultSequence = [
+        {
+          title: "Week 1: Review of Fundamentals",
+          description: `Focus on revisiting the basics of ${course.title}.`,
+          topics: "Fundamentals, Core terms and definitions"
+        },
+        {
+          title: "Week 2: Mid-level Concepts",
+          description: "Study key techniques and methodologies.",
+          topics: "Core methodologies, processes, and standard implementations"
+        },
+        {
+          title: "Week 3: Advanced Scenarios & Calculations",
+          description: "Practice application and calculations.",
+          topics: "Estimation, planning, optimization and standard problem-solving"
+        },
+        {
+          title: "Week 4: Implementation and scaling",
+          description: "Review real-world applications and scaling frameworks.",
+          topics: "Deployment, scaling, continuous integration and best practices"
+        }
+      ];
+
+      const defaultResources = "Syllabus & Course Map\nUnit 1-4 Complete Notes\nImportant Practice Questions";
+      const defaultMockTests = "Mid-Term Assessment (15 questions)\nEnd-Term Recovery Test (30 questions)";
+
+      const inserted = await db.insert(learningPaths).values({
+        courseId,
+        title: `${course.title} Recovery Plan`,
+        description: `Backlog recovery plan for ${course.title}.`,
+        studySequence: JSON.stringify(defaultSequence),
+        resources: defaultResources,
+        mockTests: defaultMockTests,
+      }).returning();
+
+      path = inserted[0];
     }
 
     const existing = await db.query.studentLearningPaths.findFirst({

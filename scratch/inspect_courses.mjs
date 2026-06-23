@@ -12,17 +12,8 @@ async function main() {
   try {
     const client = await pool.connect();
     
-    // Fetch all courses for department a45b116c-fc0e-4f1b-931b-d1e0a19fd852 and sem 1
-    const coursesRes = await client.query(`
-      SELECT id, title, semester, "categoryId", "teacherId"
-      FROM "Course"
-      WHERE "categoryId" = 'a45b116c-fc0e-4f1b-931b-d1e0a19fd852';
-    `);
-    
-    console.log('Courses count for department:', coursesRes.rows.length);
-    coursesRes.rows.forEach(c => {
-      console.log(`ID: ${c.id}, Title: ${c.title}, Sem: ${c.semester}, Category: ${c.categoryId}, Teacher: ${c.teacherId}`);
-    });
+    const coursesRes = await client.query('SELECT id, title, semester FROM "Course" WHERE title ILIKE \'%Database%\' OR title ILIKE \'%Theory of Computation%\' OR title ILIKE \'%Agile%\' OR title ILIKE \'%Operating System%\';');
+    console.log(JSON.stringify(coursesRes.rows, null, 2));
     
     client.release();
   } catch (error) {

@@ -767,52 +767,21 @@ export default function CourseAttendanceAnalyticsPage() {
                       </div>
                     </div>
 
-                    {/* KPI Section */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Attendance Records</span>
-                        <div className="flex items-baseline gap-2 mt-2">
-                          <span className="text-2xl font-black text-slate-800">
-                            {studentDetails.attendance?.length || 0}
-                          </span>
-                          <span className="text-xs text-slate-400 font-bold">Sessions Logged</span>
-                        </div>
-                      </div>
-                      <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Co-Curricular Activities</span>
-                        <div className="flex items-baseline gap-2 mt-2">
-                          <span className="text-2xl font-black text-slate-800">
-                            {studentDetails.activities?.length || 0}
-                          </span>
-                          <span className="text-xs text-slate-400 font-bold">Events Approved</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Enrolled Courses */}
+                    {/* Academic Result for Selected Course */}
                     <div className="space-y-3">
-                      <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Registered Courses</h5>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {studentDetails.enrollments?.map((e: any) => (
-                          <div key={e.id} className="p-3.5 bg-white border border-slate-100 rounded-xl shadow-sm flex items-center justify-between">
-                            <span className="font-bold text-slate-700 text-xs truncate max-w-[200px]">{e.course.title}</span>
-                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                              Sem {e.course.semester}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Academic Results & Path Generation */}
-                    <div className="space-y-3">
-                      <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Course Results & Mentoring</h5>
-                      <div className="border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-100 bg-white">
-                        {studentDetails.results?.length === 0 ? (
-                          <div className="p-6 text-center text-xs text-slate-400 font-semibold">No exam results declared.</div>
-                        ) : (
-                          studentDetails.results.map((r: any) => (
-                            <div key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subject Performance & Mentoring</h5>
+                      <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white">
+                        {(() => {
+                          const r = studentDetails.results?.find((res: any) => res.courseId === selectedCourse);
+                          if (!r) {
+                            return (
+                              <div className="p-6 text-center text-xs text-slate-400 font-semibold">
+                                No result record found for the selected subject.
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-slate-800 text-xs">{r.subjectName || r.course?.title || "Unknown Subject"}</span>
@@ -832,41 +801,15 @@ export default function CourseAttendanceAnalyticsPage() {
                                 <button
                                   onClick={() => handleGeneratePathway(r.courseId)}
                                   disabled={isGeneratingPath === r.courseId}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                                 >
                                   <Sparkles size={11} className={isGeneratingPath === r.courseId ? "animate-spin" : ""} />
                                   {isGeneratingPath === r.courseId ? "Generating Pathway..." : "Generate Pathway"}
                                 </button>
                               )}
                             </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Co-curricular Activities */}
-                    <div className="space-y-3">
-                      <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Approved Activities & Achievements</h5>
-                      <div className="border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-100 bg-white">
-                        {studentDetails.activities?.length === 0 ? (
-                          <div className="p-6 text-center text-xs text-slate-400 font-semibold">No activities recorded.</div>
-                        ) : (
-                          studentDetails.activities.map((act: any) => (
-                            <div key={act.id} className="p-4 flex justify-between items-center">
-                              <div>
-                                <span className="font-bold text-slate-700 text-xs">{act.title}</span>
-                                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold mt-1">
-                                  <span>Type: {act.type}</span>
-                                  <span>•</span>
-                                  <span>Date: {new Date(act.date).toLocaleDateString()}</span>
-                                </div>
-                              </div>
-                              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase tracking-wide">
-                                {act.status}
-                              </span>
-                            </div>
-                          ))
-                        )}
+                          );
+                        })()}
                       </div>
                     </div>
                   </>
