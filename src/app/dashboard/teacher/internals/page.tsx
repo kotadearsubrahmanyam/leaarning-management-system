@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   ClipboardList, 
   Check, 
@@ -19,9 +19,19 @@ export default function TeacherInternalsPage() {
   const { toast } = useToast();
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showSavedNotification, setShowSavedNotification] = useState(false);
+  const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Local Marks Ledger State
   const [localMarks, setLocalMarks] = useState<Record<string, { mid1: string; mid2: string; assignmentMarks: string; classExternal: string }>>({});
+
+  useEffect(() => {
+    return () => {
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const { data: coursesData } = useQuery({
     queryKey: ["teacherCourses"],
@@ -86,6 +96,13 @@ export default function TeacherInternalsPage() {
         title: "Internal Marks Saved",
         description: "Draft internal marks have been saved successfully.",
       });
+      setShowSavedNotification(true);
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
+      notificationTimeoutRef.current = setTimeout(() => {
+        setShowSavedNotification(false);
+      }, 4000);
     },
     onError: (error: any) => {
       toast({
@@ -302,6 +319,26 @@ export default function TeacherInternalsPage() {
           </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {showSavedNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9, x: 0 }}
+            animate={{ opacity: 1, y: 0, scale: 1, x: 0 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95, transition: { duration: 0.2 } }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-4 bg-slate-900/95 backdrop-blur-md border border-emerald-500/30 text-white px-5 py-4 rounded-2xl shadow-2xl shadow-emerald-950/20 max-w-sm"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 shadow-inner">
+              <Check className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm text-slate-100">Draft Ledger Saved</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Your internal marks drafts have been saved successfully.</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

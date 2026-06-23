@@ -101,9 +101,9 @@ export default function AcademicOverviewPage() {
               placeholder="Search by title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors placeholder:text-foreground/45 text-sm"
+              className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors placeholder:text-foreground/45 text-sm"
             />
-            <Search className="absolute left-3 top-3.5 text-foreground/40 h-4 w-4" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40 h-5 w-5" />
           </div>
         </div>
       </div>

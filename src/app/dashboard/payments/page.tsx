@@ -634,13 +634,13 @@ Thank you for your payment. Keep this copy for records.`;
         <div className="bg-white border border-[#E2E8F0] p-5 rounded-2xl shadow-sm mb-6 flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-3.5 h-4.5 w-4.5 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search transactions by student name or roll..."
                 value={transactionSearchTerm}
                 onChange={(e) => setTransactionSearchTerm(e.target.value)}
-                className="pl-10 w-full border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all bg-slate-50/50"
+                className="pl-12 pr-4 w-full border border-[#E2E8F0] rounded-xl py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all bg-slate-50/50"
               />
             </div>
             <div>

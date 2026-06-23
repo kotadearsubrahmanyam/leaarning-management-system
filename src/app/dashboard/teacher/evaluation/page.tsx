@@ -15,11 +15,13 @@ import {
   Split, 
   Archive, 
   ExternalLink,
-  Save
+  Save,
+  ArrowLeft
 } from "lucide-react";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import { CourseSelect } from "@/components/ui/course-select";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 export default function TeacherEvaluationPage() {
   const queryClient = useQueryClient();
@@ -230,7 +232,14 @@ export default function TeacherEvaluationPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 relative z-10">
+    <div className="max-w-6xl mx-auto pb-12 relative z-10 space-y-6">
+      {/* Back Button */}
+      <Link href="/dashboard/teacher/assignments">
+        <button className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary mb-2 transition-colors bg-white hover:bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl">
+          <ArrowLeft size={16} /> Back to Assignments
+        </button>
+      </Link>
+
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-3xl font-bold text-primary mb-2 flex items-center gap-3">
           <CheckSquare size={32} /> Assignment Grading

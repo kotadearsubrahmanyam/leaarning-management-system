@@ -109,7 +109,10 @@ export async function GET() {
     for (const sem of uniqueSemesters) {
       // Find all results for this semester (only count published ones in the official summaries)
       const semResults = dbResults.filter(r => r.semester === sem && r.published);
-      const totalCredits = semResults.reduce((sum, r) => sum + (r.credits || 0), 0);
+      const totalCredits = semResults.reduce((sum, r) => {
+        const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits as any) || 0;
+        return sum + creditsVal;
+      }, 0);
       const passedCount = semResults.filter(r => r.status === "PASS").length;
       const failedCount = semResults.filter(r => r.status === "FAIL").length;
 

@@ -427,9 +427,15 @@ export default function ResultsPage() {
       const subjectCount = studentResults.length;
       
       let calculatedSgpa = "0.00";
-      const totalCredits = studentResults.reduce((sum: number, r: any) => sum + (r.credits || 0), 0);
+      const totalCredits = studentResults.reduce((sum: number, r: any) => {
+        const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+        return sum + creditsVal;
+      }, 0);
       if (totalCredits > 0) {
-        const totalPoints = studentResults.reduce((sum: number, r: any) => sum + (getGradePoints(r.grade) * (r.credits || 0)), 0);
+        const totalPoints = studentResults.reduce((sum: number, r: any) => {
+          const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+          return sum + (getGradePoints(r.grade) * creditsVal);
+        }, 0);
         calculatedSgpa = (totalPoints / totalCredits).toFixed(2);
       }
 
@@ -530,7 +536,10 @@ export default function ResultsPage() {
 
   const publishedCredits = React.useMemo(() => {
     return Object.entries(studentSummaries)
-      .reduce((sum, [_, val]: [string, any]) => sum + (val.totalCredits || 0), 0);
+      .reduce((sum, [_, val]: [string, any]) => {
+        const creditsVal = typeof val.totalCredits === 'number' ? val.totalCredits : parseFloat(val.totalCredits) || 0;
+        return sum + creditsVal;
+      }, 0);
   }, [studentSummaries]);
 
   // Set default selected semester for student to the latest tab
@@ -825,9 +834,15 @@ export default function ResultsPage() {
       const [userId, semesterStr] = key.split("-");
       const semester = parseInt(semesterStr);
       const semResults = adminResults.filter((r: any) => r.userId === userId && r.semester === semester);
-      const totalCredits = semResults.reduce((sum: number, r: any) => sum + (r.credits || 0), 0);
+      const totalCredits = semResults.reduce((sum: number, r: any) => {
+        const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+        return sum + creditsVal;
+      }, 0);
       if (totalCredits > 0) {
-        const totalPoints = semResults.reduce((sum: number, r: any) => sum + (getGradePoints(r.grade) * (r.credits || 0)), 0);
+        const totalPoints = semResults.reduce((sum: number, r: any) => {
+          const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+          return sum + (getGradePoints(r.grade) * creditsVal);
+        }, 0);
         groups[key].calculatedSgpa = (totalPoints / totalCredits).toFixed(2);
       }
     });
@@ -1260,9 +1275,15 @@ export default function ResultsPage() {
 
       Object.keys(groups).forEach(key => {
         const group = groups[key];
-        const totalCredits = group.results.reduce((sum, r) => sum + (r.credits || 0), 0);
+        const totalCredits = group.results.reduce((sum, r) => {
+          const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+          return sum + creditsVal;
+        }, 0);
         if (totalCredits > 0) {
-          const totalPoints = group.results.reduce((sum, r) => sum + (getGradePoints(r.grade) * (r.credits || 0)), 0);
+          const totalPoints = group.results.reduce((sum, r) => {
+            const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+            return sum + (getGradePoints(r.grade) * creditsVal);
+          }, 0);
           group.calculatedSgpa = (totalPoints / totalCredits).toFixed(2);
         }
         const hasFail = group.results.some(r => r.status === "FAIL");
@@ -1654,13 +1675,13 @@ export default function ResultsPage() {
         <div className="bg-white border border-[#E2E8F0] p-5 rounded-2xl shadow-sm mb-6 flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-3.5 h-4.5 w-4.5 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search by student name, roll number, or subjects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full border border-[#E2E8F0] rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all bg-slate-50/50"
+                className="pl-12 pr-4 w-full border border-[#E2E8F0] rounded-xl py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent text-sm transition-all bg-slate-50/50"
               />
             </div>
             <div>
@@ -2207,11 +2228,17 @@ export default function ResultsPage() {
                                 const subjectCount = studentResults.length;
                                 
                                 let calculatedSgpa = "0.00";
-                                const totalCredits = studentResults.reduce((sum: number, r: any) => sum + (r.credits || 0), 0);
-                                if (totalCredits > 0) {
-                                  const totalPoints = studentResults.reduce((sum: number, r: any) => sum + (getGradePoints(r.grade) * (r.credits || 0)), 0);
-                                  calculatedSgpa = (totalPoints / totalCredits).toFixed(2);
-                                }
+                                const totalCredits = studentResults.reduce((sum: number, r: any) => {
+                                   const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+                                   return sum + creditsVal;
+                                 }, 0);
+                                 if (totalCredits > 0) {
+                                   const totalPoints = studentResults.reduce((sum: number, r: any) => {
+                                     const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+                                     return sum + (getGradePoints(r.grade) * creditsVal);
+                                   }, 0);
+                                   calculatedSgpa = (totalPoints / totalCredits).toFixed(2);
+                                 }
 
                                 const summary = dbSummaries.find((s: any) => s.userId === student.id && s.semester === expandedSemester);
                                 const isPublished = summary ? summary.published : false;
@@ -3090,16 +3117,19 @@ export default function ResultsPage() {
   // --- STUDENT RENDER ---
 
 
-  // --- STUDENT RENDER ---
   // Let's compute projected SGPA and CGPA for the active courses calculator
-  const currentCredits = activeCourses.reduce((sum: number, c: any) => sum + (c.credits || 3), 0);
+  const currentCredits = activeCourses.reduce((sum: number, c: any) => {
+    const creditsVal = typeof c.credits === 'number' ? c.credits : parseFloat(c.credits) || 3;
+    return sum + creditsVal;
+  }, 0);
   
 
   const projectedSgpa = (() => {
     if (currentCredits === 0) return "0.00";
     const totalPoints = activeCourses.reduce((sum: number, c: any) => {
       const grade = plannerGrades[c.id] || "A";
-      return sum + getGradePoints(grade) * (c.credits || 3);
+      const creditsVal = typeof c.credits === 'number' ? c.credits : parseFloat(c.credits) || 3;
+      return sum + getGradePoints(grade) * creditsVal;
     }, 0);
     return (totalPoints / currentCredits).toFixed(2);
   })();

@@ -37,9 +37,10 @@ export function calculateSGPA(results: ResultRecord[]) {
   let failedCount = 0;
 
   for (const r of results) {
-    totalCredits += r.credits;
+    const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits as any) || 0;
+    totalCredits += creditsVal;
     const points = gradeToPoints(r.grade);
-    earnedPoints += (r.credits * points);
+    earnedPoints += (creditsVal * points);
 
     if (r.status === "PASS" || points > 0) {
       passedCount++;
@@ -65,9 +66,10 @@ export function calculateCGPA(sgpaRecords: { sgpa: string, totalCredits: number 
   let totalCredits = 0;
 
   for (const record of sgpaRecords) {
-    if (record.totalCredits > 0) {
-      totalSum += parseFloat(record.sgpa) * record.totalCredits;
-      totalCredits += record.totalCredits;
+    const creditsVal = typeof record.totalCredits === 'number' ? record.totalCredits : parseFloat(record.totalCredits as any) || 0;
+    if (creditsVal > 0) {
+      totalSum += parseFloat(record.sgpa) * creditsVal;
+      totalCredits += creditsVal;
     }
   }
 

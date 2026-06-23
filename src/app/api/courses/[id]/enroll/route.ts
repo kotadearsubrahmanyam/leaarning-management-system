@@ -84,8 +84,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     .innerJoin(courses, eq(enrollments.courseId, courses.id))
     .where(eq(enrollments.studentId, studentId));
     
-    const totalCredits = currentEnrollments.reduce((sum, e) => sum + (e.credits || 0), 0);
-    if (totalCredits + (course.credits || 0) > 24) {
+    const totalCredits = currentEnrollments.reduce((sum, e) => {
+      const creditsVal = typeof e.credits === 'number' ? e.credits : parseFloat(e.credits as any) || 0;
+      return sum + creditsVal;
+    }, 0);
+    const courseCredits = typeof course.credits === 'number' ? course.credits : parseFloat(course.credits as any) || 0;
+    if (totalCredits + courseCredits > 24) {
       return errorResponse(`Enrolling in this course exceeds the 24 credit limit per semester. You currently have ${totalCredits} credits.`, 403);
     }
 

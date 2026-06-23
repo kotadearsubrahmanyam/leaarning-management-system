@@ -481,13 +481,13 @@ export default function CommunityHub() {
       <div className="bg-white p-5 rounded-3xl border border-slate-300 shadow-sm mb-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <input
               type="text"
               placeholder="Search posts, topics, categories, hashtags, or users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-11 pr-10 w-full bg-slate-50 border border-slate-300 rounded-xl py-2.5 text-slate-700 focus:outline-none focus:border-[#10B981] focus:bg-white text-sm transition-all"
+              className="pl-12 pr-10 w-full bg-slate-50 border border-slate-300 rounded-xl py-2.5 text-slate-700 focus:outline-none focus:border-[#10B981] focus:bg-white text-sm transition-all"
             />
             {searchTerm && (
               <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">

@@ -61,46 +61,43 @@ export default function TeacherTimetablePage() {
         </div>
       </div>
 
-      {/* Modern Refined Timetable Table */}
-      <div className="border border-slate-200 bg-slate-50/50 p-2 rounded-2xl shadow-lg shadow-slate-200/20">
-        <div className="overflow-x-auto rounded-xl">
-          <table className="w-full text-left border-separate border-spacing-1.5 table-fixed min-w-[900px]">
+      {/* Tabular Timetable Grid */}
+      <div className="border border-slate-200 bg-white rounded-3xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
             <thead>
-              <tr>
-                <th className="p-2.5 bg-slate-200 !text-slate-900 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase w-32 border border-slate-300">
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="p-3.5 border-r border-slate-200 text-slate-700 font-bold text-xs text-center w-32">
                   Day / Time
                 </th>
                 {TIME_SLOTS.map(slot => (
                   <th 
                     key={slot.id} 
-                    className={`p-2.5 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase border ${
-                      slot.isBreak 
-                        ? "bg-amber-50 border-amber-200 !text-amber-800" 
-                        : "bg-[#7C3AED] border-purple-700 !text-white"
+                    className={`p-3.5 border-r border-slate-200 text-slate-700 font-bold text-xs text-center last:border-r-0 ${
+                      slot.isBreak ? "bg-amber-50/50" : ""
                     }`}
-                    style={{ color: slot.isBreak ? "#92400E" : "white" }}
                   >
                     <div className="flex flex-col items-center justify-center">
-                      <span className="font-black text-[10px]">{slot.isBreak ? "LUNCH BREAK" : `PERIOD ${slot.id.replace("slot", "")}`}</span>
-                      <span className="text-[9px] font-bold opacity-90 mt-0.5">{slot.time}</span>
+                      <span className="font-extrabold text-[10px] text-slate-800">{slot.isBreak ? "LUNCH BREAK" : `PERIOD ${slot.id.replace("slot", "")}`}</span>
+                      <span className="text-[9px] text-slate-500 font-semibold mt-0.5">{slot.time}</span>
                     </div>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-200">
               {WEEK_DAYS.map(day => (
-                <tr key={day}>
-                  <td className="p-2.5 border border-slate-300/80 bg-[#7C3AED] !text-white font-bold text-sm text-center rounded-xl shadow-sm tracking-wider uppercase" style={{ color: "white" }}>
+                <tr key={day} className="hover:bg-slate-50/20 transition-colors">
+                  <td className="p-3.5 border-r border-slate-200 bg-slate-50 text-slate-700 font-bold text-xs text-center uppercase tracking-wider">
                     {day}
                   </td>
                   {TIME_SLOTS.map(slot => {
                     if (slot.isBreak) {
                       return (
-                        <td key={slot.id} className="p-2 border border-dashed border-slate-300 bg-slate-50 text-center align-middle hover:bg-slate-100/50 transition-colors rounded-xl">
+                        <td key={slot.id} className="p-3 border-r border-slate-200 bg-amber-50/35 text-center align-middle last:border-r-0">
                           <div className="flex items-center justify-center gap-1.5">
-                            <Utensils size={12} className="text-slate-400" />
-                            <span className="text-[10px] font-bold text-slate-450 tracking-wider uppercase">
+                            <Utensils size={12} className="text-amber-600/70" />
+                            <span className="text-[10px] font-bold text-amber-800/80 tracking-wider uppercase">
                               Lunch
                             </span>
                           </div>
@@ -113,7 +110,7 @@ export default function TeacherTimetablePage() {
 
                     if (isFree) {
                       return (
-                        <td key={slot.id} className="p-1.5 border border-dashed border-slate-300/80 rounded-xl align-middle bg-slate-100/30 text-center transition-all hover:bg-slate-100/50">
+                        <td key={slot.id} className="p-3 border-r border-slate-200 bg-slate-50/30 text-center align-middle last:border-r-0">
                           <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Free</span>
                         </td>
                       );
@@ -122,10 +119,10 @@ export default function TeacherTimetablePage() {
                     return (
                       <td 
                         key={slot.id} 
-                        className="p-0 border border-slate-300/80 rounded-xl align-top bg-white transition-all duration-200 hover:shadow-md hover:bg-purple-50/20 border-l-4 border-l-[#7C3AED]"
+                        className="p-3 border-r border-slate-200 align-top bg-white last:border-r-0"
                       >
-                        <div className="p-2 text-left h-full flex flex-col justify-between min-h-[64px]">
-                          <span className="text-xs text-slate-900 font-black leading-tight tracking-tight line-clamp-2">
+                        <div className="text-left flex flex-col justify-between min-h-[52px]">
+                          <span className="text-xs text-slate-900 font-bold leading-tight tracking-tight line-clamp-2">
                             {classData.name}
                           </span>
                           <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-md text-[9px] font-bold uppercase tracking-wider w-fit">

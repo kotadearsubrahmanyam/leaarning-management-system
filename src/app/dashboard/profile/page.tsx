@@ -350,7 +350,10 @@ export default function ProfilePage() {
 
     // Calculate credits
     const passedResults = results.filter((r: any) => r.status === "PASS");
-    const creditsEarned = passedResults.reduce((sum: number, r: any) => sum + (r.credits || 0), 0);
+    const creditsEarned = passedResults.reduce((sum: number, r: any) => {
+      const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits) || 0;
+      return sum + creditsVal;
+    }, 0);
     const creditsRemaining = Math.max(0, 180 - creditsEarned);
 
     const backlogs = results.filter((r: any) => r.status === "FAIL").length;

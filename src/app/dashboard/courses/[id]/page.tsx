@@ -1041,13 +1041,13 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
 
       {/* Global In-Course Search */}
       <div className="relative max-w-sm mb-6 shadow-sm rounded-xl">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={15} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
         <input
           type="text"
           placeholder="Search files in this course..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/15 transition-all"
+          className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-12 pr-4 text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/15 transition-all"
         />
         {searchQuery && (
           <button 

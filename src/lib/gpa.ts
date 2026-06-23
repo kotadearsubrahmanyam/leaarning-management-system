@@ -96,14 +96,26 @@ export async function recalculateStudentGpas(studentId: string) {
         continue; // Skip if no results recorded for this semester yet
       }
 
-      const semCredits = semResults.reduce((sum, r) => sum + (r.credits || 3), 0);
-      const semPoints = semResults.reduce((sum, r) => sum + (getPoints(r) * (r.credits || 3)), 0);
+      const semCredits = semResults.reduce((sum, r) => {
+        const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits as any) || 3;
+        return sum + creditsVal;
+      }, 0);
+      const semPoints = semResults.reduce((sum, r) => {
+        const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits as any) || 3;
+        return sum + (getPoints(r) * creditsVal);
+      }, 0);
       const sgpa = semCredits > 0 ? (semPoints / semCredits).toFixed(2) : "0.00";
 
       // Calculate CGPA cumulatively (all results for semesters <= sem)
       const cumulativeResults = allResults.filter(r => r.semester <= sem);
-      const totalCredits = cumulativeResults.reduce((sum, r) => sum + (r.credits || 3), 0);
-      const totalPoints = cumulativeResults.reduce((sum, r) => sum + (getPoints(r) * (r.credits || 3)), 0);
+      const totalCredits = cumulativeResults.reduce((sum, r) => {
+        const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits as any) || 3;
+        return sum + creditsVal;
+      }, 0);
+      const totalPoints = cumulativeResults.reduce((sum, r) => {
+        const creditsVal = typeof r.credits === 'number' ? r.credits : parseFloat(r.credits as any) || 3;
+        return sum + (getPoints(r) * creditsVal);
+      }, 0);
       const cgpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
 
       // Backlog count is the count of currently failing subjects in this semester
