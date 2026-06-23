@@ -1,5 +1,6 @@
 {
   "python.analysis.extraPaths": [
     "./ai-service/.venv/Lib/site-packages"
-  ]
+  ],
+  "java.compile.nullAnalysis.mode": "automatic"
 }

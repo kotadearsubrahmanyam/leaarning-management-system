@@ -298,17 +298,17 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
       </motion.div>
 
       {/* Attachments Card (Reference Materials & Attachments) */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="glass p-6 rounded-3xl border border-slate-300"
-      >
-        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Paperclip size={18} className="text-primary" /> Reference Materials & Attachments
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {a.attachmentUrl ? (
+      {a.attachmentUrl && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="glass p-6 rounded-3xl border border-slate-300"
+        >
+          <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <Paperclip size={18} className="text-primary" /> Reference Materials & Attachments
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a 
               href={a.attachmentUrl} 
               target="_blank" 
@@ -323,30 +323,9 @@ export default function AssignmentDetailsPage({ params }: { params: { id: string
                 <p className="text-[10px] text-slate-400 font-semibold">Attached Reference Material</p>
               </div>
             </a>
-          ) : (
-            <>
-              <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 cursor-pointer transition-colors">
-                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                  <FileText size={16} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-700 truncate">Course Syllabus Guide.pdf</p>
-                  <p className="text-[10px] text-slate-400 font-semibold">1.4 MB • PDF Document</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 cursor-pointer transition-colors">
-                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                  <BookOpen size={16} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-slate-700 truncate">Core Reference Textbook.epub</p>
-                  <p className="text-[10px] text-slate-400 font-semibold">12.8 MB • EPUB Book</p>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </motion.div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Submission Card (Submission Content / Form Area) */}
       {(isSubmitted || isGraded) ? (
