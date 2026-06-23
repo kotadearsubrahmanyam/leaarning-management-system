@@ -40,12 +40,14 @@ export default function TeacherStudentsPage() {
       <div className="flex-1 flex gap-6 min-h-0">
         {/* Left Panel: Student List */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="w-1/3 flex flex-col min-h-0 glass rounded-3xl border border-white/10 overflow-hidden">
-          <div className="p-6 border-b border-white/10 shrink-0">
+          <div className="p-6 border-b border-white/10 shrink-0 flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-purple-200 text-slate-400 shadow-[0_4px_10px_rgba(124,58,237,0.04)]">
+              <Search size={18} />
+            </div>
             <AnimatedInput
               placeholder="Search by name or roll number..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              icon={<Search size={18} />}
             />
           </div>
           

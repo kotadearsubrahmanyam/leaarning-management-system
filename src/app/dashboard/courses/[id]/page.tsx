@@ -755,6 +755,9 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
       }
     });
 
+    if (dbMaterials.length > 0) {
+      return files.filter(f => f.fileUrl !== "#");
+    }
     return files;
   }, [navPath, mockRepo, dbMaterials]);
 
@@ -851,6 +854,9 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
       }
     });
 
+    if (dbMaterials.length > 0) {
+      return mergedFiles.filter(f => f.fileUrl !== "#").filter(f => f.title.toLowerCase().includes(q));
+    }
     return mergedFiles.filter(f => f.title.toLowerCase().includes(q));
   }, [searchQuery, mockRepo, dbMaterials]);
 
@@ -1040,23 +1046,27 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
       )}
 
       {/* Global In-Course Search */}
-      <div className="relative max-w-sm mb-6 shadow-sm rounded-xl">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search files in this course..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-12 pr-4 text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/15 transition-all"
-        />
-        {searchQuery && (
-          <button 
-            onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
-          >
-            <X size={14} />
-          </button>
-        )}
+      <div className="flex items-center gap-3 max-w-sm mb-6">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 shadow-sm">
+          <Search className="h-5 w-5" />
+        </div>
+        <div className="relative flex-1 shadow-sm rounded-xl">
+          <input
+            type="text"
+            placeholder="Search files in this course..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-xs font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/15 transition-all"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* NAVIGATION TREE / FILE LIST VIEW */}

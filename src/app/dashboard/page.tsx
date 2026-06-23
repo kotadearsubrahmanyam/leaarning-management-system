@@ -122,11 +122,11 @@ export default function DashboardPage() {
     enabled: !!authData && authData.data.user.role === "STUDENT",
   });
 
-  const { data: schedulesData } = useQuery({
-    queryKey: ["studentSchedules"],
+  const { data: timetableData } = useQuery({
+    queryKey: ["studentTimetable"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/schedules");
-      if (!res.ok) throw new Error("Failed to fetch schedules");
+      const res = await fetch("/api/timetable");
+      if (!res.ok) throw new Error("Failed to fetch timetable");
       return res.json();
     },
     enabled: !!authData && authData.data.user.role === "STUDENT",
@@ -203,11 +203,35 @@ export default function DashboardPage() {
   // Fallback empty array if no data exists
   const emptyData: any[] = [];
 
-  // Find schedules for today or default to empty array
-  const todayStr = new Date().toLocaleDateString();
-  const todaySchedules = (schedulesData?.data?.schedules || []).filter((s: any) => {
-    return new Date(s.date).toLocaleDateString() === todayStr;
-  });
+  // Find schedules for today from weekly student timetable
+  const activeTimetable = timetableData?.data?.timetable;
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const currentDayName = days[new Date().getDay()];
+
+  const TIME_SLOTS = [
+    { id: "slot1", time: "09:30 AM - 10:30 AM" },
+    { id: "slot2", time: "10:30 AM - 11:30 AM" },
+    { id: "slot3", time: "11:30 AM - 12:30 PM" },
+    { id: "lunch", time: "12:30 PM - 01:30 PM", isBreak: true },
+    { id: "slot4", time: "01:30 PM - 02:30 PM" },
+    { id: "slot5", time: "02:30 PM - 03:30 PM" },
+  ];
+
+  const todaySchedules: any[] = [];
+  if (activeTimetable && activeTimetable[currentDayName]) {
+    const daySlots = activeTimetable[currentDayName];
+    TIME_SLOTS.forEach(slot => {
+      if (slot.isBreak) return;
+      const classData = daySlots[slot.id];
+      if (classData && classData.name && classData.name !== "Free Period" && classData.name !== "-") {
+        todaySchedules.push({
+          time: slot.time,
+          courseName: classData.name,
+          teacherName: classData.faculty && classData.faculty !== "-" ? classData.faculty : "Unassigned"
+        });
+      }
+    });
+  }
 
   const displaySchedules = todaySchedules.map((s: any) => ({
     time: s.time,

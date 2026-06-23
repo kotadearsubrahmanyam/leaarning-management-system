@@ -79,14 +79,16 @@ export default function TeacherActivityEvaluationPage() {
       </motion.div>
 
       <div className="glass p-6 rounded-2xl mb-8">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/50" />
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 border border-slate-300 text-foreground/50">
+            <Search className="w-5 h-5" />
+          </div>
           <input
             type="text"
             placeholder="Search by student name, roll number, or activity title..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-800"
+            className="flex-1 bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-800"
           />
         </div>
       </div>

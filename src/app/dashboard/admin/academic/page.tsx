@@ -95,15 +95,17 @@ export default function AcademicOverviewPage() {
         </div>
         <div>
           <label className="block text-sm font-medium text-foreground/70 mb-2">Search Courses</label>
-          <div className="relative">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black/40 border border-white/10 text-foreground/50">
+              <Search className="h-5 w-5" />
+            </div>
             <input
               type="text"
               placeholder="Search by title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors placeholder:text-foreground/45 text-sm"
+              className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors placeholder:text-foreground/45 text-sm"
             />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40 h-5 w-5" />
           </div>
         </div>
       </div>

@@ -188,14 +188,16 @@ export default function CoursesPage() {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="flex flex-col md:flex-row gap-4 mb-8 items-center bg-white/95 backdrop-blur-md p-4 rounded-3xl border border-slate-200/85"
       >
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+        <div className="flex items-center gap-3 w-full md:w-[420px]">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white border border-slate-200 text-slate-400 shadow-sm">
+            <Search className="h-5 w-5" />
+          </div>
           <input
             type="text"
             placeholder="Search by course name, code, or faculty..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 font-semibold transition-all shadow-sm"
+            className="w-full bg-white border border-slate-200 rounded-2xl py-3 px-4 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 font-semibold transition-all shadow-sm"
           />
         </div>
       </motion.div>

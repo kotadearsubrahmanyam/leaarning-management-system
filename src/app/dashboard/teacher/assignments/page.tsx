@@ -299,14 +299,16 @@ export default function TeacherAssignmentsPage() {
         </div>
 
         {/* Search */}
-        <div className="relative flex-1 w-full max-w-md">
-          <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+        <div className="flex items-center gap-3 flex-1 w-full max-w-md">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-50 border border-slate-200 text-slate-400">
+            <Search className="w-5 h-5" />
+          </div>
           <input
             type="text"
             placeholder="Search assignments by title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl py-3 px-4 text-sm font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all"
           />
         </div>
 

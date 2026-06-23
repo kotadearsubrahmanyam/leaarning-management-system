@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { courseId, count = 10, timeLimit = 15 } = body;
+    const { courseId, prompt = "", count = 10, difficulty = "Medium", questionType = "MCQ", timeLimit = 15 } = body;
 
     if (!courseId) return errorResponse("courseId is required", 400);
 
@@ -44,8 +44,23 @@ export async function POST(req: Request) {
       return errorResponse("AI is not configured on the server", 500);
     }
 
+    // Attempt to extract question count from user prompt (e.g. "15 questions")
+    let finalCount = count;
+    if (prompt) {
+      const match = prompt.match(/(\d+)\s*(questions?|qns?)/i);
+      if (match) {
+        const parsed = parseInt(match[1]);
+        if (parsed >= 1 && parsed <= 50) {
+          finalCount = parsed;
+        }
+      }
+    }
+
     const systemInstruction = `You are an expert professor. The course topic is "${course.title}".
-Generate exactly ${count} multiple-choice questions for a quiz.
+Generate exactly ${finalCount} multiple-choice questions for a quiz.
+${prompt ? `Focus the quiz specifically on this topic/prompt: "${prompt}".` : ""}
+Difficulty level: ${difficulty}.
+Question format: ${questionType === "MCQ" ? "Multiple-Choice Questions with 4 options" : questionType === "True/False" ? "True/False Questions" : "Mixed format (both MCQs and True/False questions)"}.
     
 You must output ONLY valid JSON in the exact following format:
 {
@@ -59,7 +74,7 @@ You must output ONLY valid JSON in the exact following format:
   ]
 }
 Requirements:
-1. "options" must be an array of exactly 4 strings, or exactly ["True", "False"] for True/False questions.
+1. "options" must be an array of exactly 4 strings for MCQs, or exactly ["True", "False"] for True/False questions.
 2. "correctAnswer" must be identical to one of the options.
 3. "explanation" must be a beginner-friendly explanation of 2-4 lines.
 4. Make the questions challenging and relevant to university-level ${course.title}.`;
@@ -87,27 +102,9 @@ Requirements:
       throw new Error("AI returned an invalid format");
     }
 
-    // Save Quiz to DB
-    const [newQuiz] = await db.insert(quizzes).values({
-      courseId,
-      teacherId: payload.id as string,
-      title: `${course.title} - AI Generated Quiz`,
-      timeLimit
-    }).returning();
-
-    // Save Questions to DB
-    const questionsToInsert = aiMessage.questions.map((q: any) => ({
-      quizId: newQuiz.id,
-      question: q.question,
-      options: JSON.stringify(q.options),
-      correctAnswer: q.correctAnswer,
-      points: 1,
-      explanation: q.explanation || `The correct answer is "${q.correctAnswer}".`
-    }));
-
-    await db.insert(quizQuestions).values(questionsToInsert);
-
-    return successResponse({ quizId: newQuiz.id }, "AI Quiz Generated successfully", 200);
+    // Do NOT save the quiz or questions to the DB at this preview generation step.
+    // The frontend expects successResponse with questions data to preview it.
+    return successResponse({ questions: aiMessage.questions }, "AI Quiz generated successfully", 200);
 
   } catch (error: any) {
     console.error("AI Quiz error:", error);
