@@ -46,7 +46,7 @@ export default function TeacherTimetablePage() {
   }
   
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="max-w-[96%] mx-auto space-y-8 pb-12">
       <div className="flex items-center gap-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
           <CalendarIcon className="text-[#7C3AED]" size={24} />
@@ -62,87 +62,81 @@ export default function TeacherTimetablePage() {
       </div>
 
       {/* Modern Refined Timetable Table */}
-      <div className="border-2 border-slate-200 bg-slate-50/50 p-3 rounded-2xl shadow-xl shadow-slate-200/40">
+      <div className="border border-slate-200 bg-slate-50/50 p-2 rounded-2xl shadow-lg shadow-slate-200/20">
         <div className="overflow-x-auto rounded-xl">
-          <table className="w-full text-left border-separate border-spacing-2">
+          <table className="w-full text-left border-separate border-spacing-1.5 table-fixed min-w-[900px]">
             <thead>
               <tr>
-                <th className="p-3 bg-slate-200 !text-slate-900 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase w-32 border border-slate-300">
-                  Time / Day
+                <th className="p-2.5 bg-slate-200 !text-slate-900 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase w-32 border border-slate-300">
+                  Day / Time
                 </th>
-                {WEEK_DAYS.map(day => (
-                  <th key={day} className="p-3 bg-[#7C3AED] !text-white font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase border border-purple-700" style={{ color: "white" }}>
-                    {day}
+                {TIME_SLOTS.map(slot => (
+                  <th 
+                    key={slot.id} 
+                    className={`p-2.5 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase border ${
+                      slot.isBreak 
+                        ? "bg-amber-50 border-amber-200 !text-amber-800" 
+                        : "bg-[#7C3AED] border-purple-700 !text-white"
+                    }`}
+                    style={{ color: slot.isBreak ? "#92400E" : "white" }}
+                  >
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="font-black text-[10px]">{slot.isBreak ? "LUNCH BREAK" : `PERIOD ${slot.id.replace("slot", "")}`}</span>
+                      <span className="text-[9px] font-bold opacity-90 mt-0.5">{slot.time}</span>
+                    </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TIME_SLOTS.map((slot) => {
-                if (slot.isBreak) {
-                  return (
-                    <tr key={slot.id}>
-                      <td className="p-2 border border-slate-300/80 bg-slate-100 rounded-xl text-center align-middle">
-                        <div className="flex flex-col items-center justify-center gap-1.5 py-1">
-                          <Clock size={15} className="text-[#7C3AED]" />
-                          <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap leading-tight">
-                            {slot.time}
-                          </span>
-                        </div>
-                      </td>
-                      <td colSpan={5} className="p-2 border border-dashed border-slate-300 bg-slate-50 text-center align-middle hover:bg-slate-100/50 transition-colors rounded-xl">
-                        <div className="flex items-center justify-center gap-2 py-3">
-                          <Utensils size={14} className="text-slate-500" />
-                          <span className="text-xs font-bold text-slate-500 tracking-widest uppercase">
-                            Lunch Break
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }
-
-                return (
-                  <tr key={slot.id}>
-                    <td className="p-2 border border-slate-300/80 bg-slate-100 rounded-xl text-center align-middle">
-                      <div className="flex flex-col items-center justify-center gap-1.5 py-2">
-                        <Clock size={15} className="text-[#7C3AED]" />
-                        <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap leading-tight">
-                          {slot.time}
-                        </span>
-                      </div>
-                    </td>
-                    {WEEK_DAYS.map(day => {
-                      const classData = activeTimetable[day]?.[slot.id];
-                      const isFree = !classData || classData.name === "Free Period" || classData.name === "-";
-
-                      if (isFree) {
-                        return (
-                          <td key={day} className="p-2 border border-dashed border-slate-300/80 rounded-xl align-middle bg-slate-100/30 text-center transition-all hover:bg-slate-100/50">
-                            <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Free Period</span>
-                          </td>
-                        );
-                      }
-
+              {WEEK_DAYS.map(day => (
+                <tr key={day}>
+                  <td className="p-2.5 border border-slate-300/80 bg-[#7C3AED] !text-white font-bold text-sm text-center rounded-xl shadow-sm tracking-wider uppercase" style={{ color: "white" }}>
+                    {day}
+                  </td>
+                  {TIME_SLOTS.map(slot => {
+                    if (slot.isBreak) {
                       return (
-                        <td 
-                          key={day} 
-                          className="p-0 border border-slate-300/80 rounded-xl align-top bg-white transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:bg-purple-50/30 border-l-4 border-l-[#7C3AED]"
-                        >
-                          <div className="p-3 text-left h-full flex flex-col justify-between min-h-[68px]">
-                            <span className="text-[11px] text-slate-800 font-bold block leading-tight tracking-tight">
-                              {classData.name}
-                            </span>
-                            <span className="inline-flex items-center gap-1 mt-2.5 px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-md text-[9px] font-bold uppercase tracking-wider w-fit">
-                              Scheduled Class
+                        <td key={slot.id} className="p-2 border border-dashed border-slate-300 bg-slate-50 text-center align-middle hover:bg-slate-100/50 transition-colors rounded-xl">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <Utensils size={12} className="text-slate-400" />
+                            <span className="text-[10px] font-bold text-slate-450 tracking-wider uppercase">
+                              Lunch
                             </span>
                           </div>
                         </td>
                       );
-                    })}
-                  </tr>
-                );
-              })}
+                    }
+
+                    const classData = activeTimetable[day]?.[slot.id];
+                    const isFree = !classData || classData.name === "Free Period" || classData.name === "-";
+
+                    if (isFree) {
+                      return (
+                        <td key={slot.id} className="p-1.5 border border-dashed border-slate-300/80 rounded-xl align-middle bg-slate-100/30 text-center transition-all hover:bg-slate-100/50">
+                          <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Free</span>
+                        </td>
+                      );
+                    }
+
+                    return (
+                      <td 
+                        key={slot.id} 
+                        className="p-0 border border-slate-300/80 rounded-xl align-top bg-white transition-all duration-200 hover:shadow-md hover:bg-purple-50/20 border-l-4 border-l-[#7C3AED]"
+                      >
+                        <div className="p-2 text-left h-full flex flex-col justify-between min-h-[64px]">
+                          <span className="text-xs text-slate-900 font-black leading-tight tracking-tight line-clamp-2">
+                            {classData.name}
+                          </span>
+                          <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-md text-[9px] font-bold uppercase tracking-wider w-fit">
+                            Scheduled
+                          </span>
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

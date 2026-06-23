@@ -139,7 +139,7 @@ export default function AdminTimetablePage() {
   const isTempActive = timetableData?.data?.isTemporary;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-[96%] mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Timetable Editor</h1>
@@ -201,48 +201,51 @@ export default function AdminTimetablePage() {
 
       <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[900px] table-fixed">
             <thead>
               <tr>
-                <th className="p-2 border-b border-r border-slate-200 bg-slate-50 text-slate-700 font-bold text-[11px] text-center w-24">
-                  Time / Day
+                <th className="p-2.5 border-b border-r border-slate-200 bg-slate-50 text-slate-700 font-bold text-xs text-center w-28">
+                  Day / Time
                 </th>
-                {WEEK_DAYS.map(day => (
-                  <th key={day} className="p-2 border-b border-r border-slate-200 bg-slate-50 text-slate-700 font-bold text-[11px] text-center">
-                    {day}
+                {TIME_SLOTS.map(slot => (
+                  <th key={slot.id} className="p-2.5 border-b border-r border-slate-200 bg-slate-50 text-slate-700 font-bold text-xs text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="font-extrabold text-[10px]">{slot.isBreak ? "LUNCH" : `PERIOD ${slot.id.replace("slot", "")}`}</span>
+                      <span className="text-[9px] font-bold opacity-80 mt-0.5">{slot.time}</span>
+                    </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TIME_SLOTS.map((slot) => (
-                <tr key={slot.id}>
-                  <td className="p-2 border-b border-r border-slate-200 text-center bg-slate-50 text-[10px] font-bold text-slate-600 whitespace-nowrap">
-                    {slot.time}
+              {WEEK_DAYS.map(day => (
+                <tr key={day}>
+                  <td className="p-2.5 border-b border-r border-slate-200 text-center bg-slate-50 text-xs font-bold text-slate-650 uppercase">
+                    {day}
                   </td>
-                  {WEEK_DAYS.map(day => {
+                  {TIME_SLOTS.map(slot => {
                     if (slot.isBreak) {
                       return (
-                        <td key={day} className="p-2 border-b border-r border-slate-200 text-center bg-slate-100/50">
-                          <span className="text-[11px] font-semibold text-slate-500 tracking-widest uppercase">Lunch</span>
+                        <td key={slot.id} className="p-2 border-b border-r border-slate-200 text-center bg-slate-100/50">
+                          <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Lunch Break</span>
                         </td>
                       );
                     }
 
-                    const currentCell = editedTimetable[day][slot.id];
+                    const currentCell = editedTimetable[day]?.[slot.id];
                     const isCustom = currentCell?.isCustom || (currentCell?.faculty === "Custom");
-                    const currentValue = currentCell?.name === "Free Period" ? "FREE" 
+                    const currentValue = currentCell?.name === "Free Period" || !currentCell?.name ? "FREE" 
                                        : isCustom ? "CUSTOM"
                                        : courses.find((c: any) => c.title === currentCell?.name)?.id || "FREE";
 
                     return (
-                      <td key={day} className="p-1.5 border-b border-r border-slate-200 align-top hover:bg-slate-50 transition-colors">
+                      <td key={slot.id} className="p-1 border-b border-r border-slate-200 align-top hover:bg-slate-50 transition-colors">
                         <select 
                           className={cn(
-                            "w-full p-1.5 rounded-md border text-[11px] font-medium transition-colors focus:ring-1 focus:ring-slate-900 focus:outline-none",
-                            currentValue === "FREE" ? "bg-slate-50 text-slate-500 border-dashed border-slate-300" : 
+                            "w-full p-1 rounded-md border text-[11px] font-medium transition-colors focus:ring-1 focus:ring-slate-900 focus:outline-none",
+                            currentValue === "FREE" ? "bg-slate-50 text-slate-450 border-dashed border-slate-200" : 
                             currentValue === "CUSTOM" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                            "bg-white text-slate-900 border-slate-200"
+                            "bg-white text-slate-800 border-slate-200"
                           )}
                           value={currentValue}
                           onChange={(e) => handleCellChange(day, slot.id, e.target.value)}
@@ -260,14 +263,14 @@ export default function AdminTimetablePage() {
                           <input
                             type="text"
                             placeholder="e.g. Interaction Session"
-                            className="w-full mt-1.5 p-1.5 border border-purple-200 rounded-sm text-[10px] focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
+                            className="w-full mt-1 p-1 border border-purple-200 rounded-sm text-[10px] focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
                             value={currentCell?.name !== "Custom Event" ? currentCell?.name : ""}
                             onChange={(e) => handleCustomTextChange(day, slot.id, e.target.value)}
                           />
                         )}
 
                         {currentValue !== "FREE" && currentValue !== "CUSTOM" && currentCell?.faculty && (
-                          <div className="mt-1.5 text-[9px] font-semibold text-slate-500 text-center bg-slate-100 py-0.5 rounded-sm overflow-hidden text-ellipsis whitespace-nowrap px-1">
+                          <div className="mt-1 text-[9px] font-semibold text-slate-500 text-center bg-slate-100 py-0.5 rounded-sm overflow-hidden text-ellipsis whitespace-nowrap px-1">
                             {currentCell.faculty}
                           </div>
                         )}
