@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
