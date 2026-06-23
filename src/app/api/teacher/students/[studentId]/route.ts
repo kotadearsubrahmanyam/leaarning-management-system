@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, enrollments, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -44,7 +44,31 @@ export async function GET(req: Request, { params }: { params: { studentId: strin
       return errorResponse("Student not found", 404);
     }
 
-    return successResponse({ student }, "Fetched student details successfully");
+    // Get the courses taught by this teacher that this student has opted for
+    const teacherSections = await db
+      .select({ courseId: enrollments.courseId })
+      .from(enrollments)
+      .innerJoin(courseFaculty, eq(enrollments.courseFacultyId, courseFaculty.id))
+      .where(
+        and(
+          eq(enrollments.studentId, studentId),
+          eq(courseFaculty.teacherId, payload.id as string)
+        )
+      );
+    const teacherCourseIds = new Set(teacherSections.map(s => s.courseId));
+
+    // Enrich results with canGeneratePathway property
+    const enrichedResults = student.results.map((r: any) => ({
+      ...r,
+      canGeneratePathway: r.status === "FAIL" && r.courseId && teacherCourseIds.has(r.courseId),
+    }));
+
+    const enrichedStudent = {
+      ...student,
+      results: enrichedResults
+    };
+
+    return successResponse({ student: enrichedStudent }, "Fetched student details successfully");
   } catch (error) {
     console.error("Fetch student details error:", error);
     return errorResponse("Internal server error", 500);

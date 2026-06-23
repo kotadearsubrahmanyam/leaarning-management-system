@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Search, ChevronRight, User, Award, BookOpen, Activity, AlertCircle } from "lucide-react";
+import { Users, Search, ChevronRight, User, Award, BookOpen } from "lucide-react";
 import { AnimatedInput } from "@/components/ui/animated-input";
 import { Button } from "@/components/ui/button";
 
 export default function TeacherStudentsPage() {
   const [search, setSearch] = useState("");
+  const [filterFailedOnly, setFilterFailedOnly] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   const { data: studentsData, isLoading } = useQuery({
@@ -21,10 +22,12 @@ export default function TeacherStudentsPage() {
   });
 
   const students = studentsData?.data?.students || [];
-  const filteredStudents = students.filter((s: any) => 
-    s.name.toLowerCase().includes(search.toLowerCase()) || 
-    (s.rollNumber || "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredStudents = students.filter((s: any) => {
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || 
+      (s.rollNumber || "").toLowerCase().includes(search.toLowerCase());
+    const matchesFailed = !filterFailedOnly || s.hasFailedSubject;
+    return matchesSearch && matchesFailed;
+  });
 
   return (
     <div className="max-w-7xl mx-auto pb-12 relative z-10 flex flex-col h-[85vh]">
@@ -40,15 +43,29 @@ export default function TeacherStudentsPage() {
       <div className="flex-1 flex gap-6 min-h-0">
         {/* Left Panel: Student List */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="w-1/3 flex flex-col min-h-0 glass rounded-3xl border border-white/10 overflow-hidden">
-          <div className="p-6 border-b border-white/10 shrink-0 flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-purple-200 text-slate-400 shadow-[0_4px_10px_rgba(124,58,237,0.04)]">
-              <Search size={18} />
+          <div className="p-6 border-b border-white/10 shrink-0 flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white border border-purple-200 text-slate-400 shadow-[0_4px_10px_rgba(124,58,237,0.04)]">
+                <Search size={18} />
+              </div>
+              <AnimatedInput
+                placeholder="Search by name or roll number..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
-            <AnimatedInput
-              placeholder="Search by name or roll number..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="flex items-center gap-2 px-1">
+              <input
+                type="checkbox"
+                id="failedFilter"
+                checked={filterFailedOnly}
+                onChange={(e) => setFilterFailedOnly(e.target.checked)}
+                className="rounded border-white/20 bg-white/5 text-primary focus:ring-primary/30 h-4 w-4 accent-purple-600 cursor-pointer"
+              />
+              <label htmlFor="failedFilter" className="text-xs font-semibold text-foreground/80 cursor-pointer select-none">
+                Show failed students for my subjects only
+              </label>
+            </div>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
@@ -67,11 +84,16 @@ export default function TeacherStudentsPage() {
                       : "bg-white/5 border-transparent hover:bg-white/10"
                   }`}
                 >
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-foreground truncate">{student.name}</h3>
+                  <div className="min-w-0 flex-1 mr-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-foreground truncate">{student.name}</h3>
+                      {student.hasFailedSubject && (
+                        <span className="h-2 w-2 rounded-full bg-red-500 shrink-0 animate-pulse" title="Has failed subject(s)" />
+                      )}
+                    </div>
                     <p className="text-xs text-foreground/60">{student.rollNumber || "N/A"}</p>
                   </div>
-                  <ChevronRight size={18} className={`transition-transform ${selectedStudentId === student.id ? "text-primary translate-x-1" : "text-foreground/30 group-hover:text-foreground/60"}`} />
+                  <ChevronRight size={18} className={`transition-transform shrink-0 ${selectedStudentId === student.id ? "text-primary translate-x-1" : "text-foreground/30 group-hover:text-foreground/60"}`} />
                 </button>
               ))
             )}
@@ -98,7 +120,7 @@ export default function TeacherStudentsPage() {
 }
 
 function StudentDetailView({ studentId }: { studentId: string }) {
-  const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [generatingPlanId, setGeneratingPlanId] = useState<string | null>(null);
   
   const { data, isLoading } = useQuery({
     queryKey: ["teacherStudentDetail", studentId],
@@ -120,24 +142,24 @@ function StudentDetailView({ studentId }: { studentId: string }) {
   const presentCount = student.attendance?.filter((a: any) => a.status === 'PRESENT').length || 0;
   const attPercent = totalAtt === 0 ? 0 : Math.round((presentCount / totalAtt) * 100);
 
-  const generateMentoringPlan = async () => {
-    setGeneratingPlan(true);
+  const generateMentoringPlan = async (courseId: string) => {
+    setGeneratingPlanId(courseId);
     try {
       const res = await fetch("/api/teacher/mentoring/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId })
+        body: JSON.stringify({ studentId, courseId })
       });
       const resData = await res.json();
       if (resData.success) {
-        alert("Mentoring Plan Generated successfully! The student can now view it in their dashboard.");
+        alert("Recovery Learning Pathway generated successfully! The student can now view it in their dashboard.");
       } else {
         alert("Error: " + resData.message);
       }
     } catch (err) {
       alert("Failed to generate plan.");
     } finally {
-      setGeneratingPlan(false);
+      setGeneratingPlanId(null);
     }
   };
 
@@ -163,17 +185,6 @@ function StudentDetailView({ studentId }: { studentId: string }) {
             </div>
           </div>
         </div>
-        
-        <div className="mt-6 flex justify-end gap-3 relative z-10">
-          <Button 
-            onClick={generateMentoringPlan} 
-            disabled={generatingPlan}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg"
-          >
-            {generatingPlan ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div> : <span className="mr-2">✨</span>}
-            Generate Mentoring Plan
-          </Button>
-        </div>
       </div>
 
       {/* Scrollable Details */}
@@ -193,6 +204,52 @@ function StudentDetailView({ studentId }: { studentId: string }) {
             <div className="text-foreground/50 text-sm mb-1">Activities Logged</div>
             <div className="text-3xl font-black text-primary">{student.activities?.length || 0}</div>
           </div>
+        </div>
+
+        {/* Results & Backlogs Section */}
+        <div>
+          <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+            <Award size={20} className="text-primary" /> Academic Results & Backlogs
+          </h3>
+          {!student.results || student.results.length === 0 ? (
+            <div className="p-6 bg-white/5 rounded-2xl text-center text-foreground/50 text-sm border border-white/5">
+              No academic results recorded yet.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {student.results.map((res: any) => (
+                <div key={res.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 gap-3 hover:bg-white/10 transition-colors">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm">{res.course?.title || res.subjectName || "Unknown Course"}</span>
+                      {res.status === 'FAIL' && (
+                        <span className="px-2 py-0.5 text-[9px] font-bold bg-red-500/20 text-red-500 rounded-full border border-red-500/30 uppercase tracking-wider">
+                          Failed
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-foreground/60 mt-1.5">
+                      Grade: <span className="font-bold text-foreground/80">{res.grade}</span> | Marks: {res.marks} | Semester {res.semester}
+                    </p>
+                  </div>
+                  {res.canGeneratePathway && (
+                    <Button
+                      onClick={() => generateMentoringPlan(res.courseId)}
+                      disabled={generatingPlanId !== null}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md text-xs py-1.5 px-3 h-auto shrink-0 transition-all font-bold"
+                    >
+                      {generatingPlanId === res.courseId ? (
+                        <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white mr-1.5"></div>
+                      ) : (
+                        <span className="mr-1.5">✨</span>
+                      )}
+                      Generate Pathway
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Activities Section */}

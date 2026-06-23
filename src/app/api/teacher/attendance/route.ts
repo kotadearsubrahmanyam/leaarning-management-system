@@ -53,7 +53,13 @@ export async function GET(req: Request) {
     })
     .from(enrollments)
     .innerJoin(users, eq(enrollments.studentId, users.id))
-    .where(eq(enrollments.courseId, courseId));
+    .innerJoin(courseFaculty, eq(enrollments.courseFacultyId, courseFaculty.id))
+    .where(
+      and(
+        eq(enrollments.courseId, courseId),
+        eq(courseFaculty.teacherId, payload.id as string)
+      )
+    );
 
     // Get existing attendance for this session
     const attendanceRecords = await db.select()

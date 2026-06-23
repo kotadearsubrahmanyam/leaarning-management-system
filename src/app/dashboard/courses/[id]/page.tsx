@@ -755,7 +755,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
       }
     });
 
-    if (dbMaterials.length > 0) {
+    const hasDbMaterialsInThisFolder = matchedDbMaterials.length > 0;
+    if (hasDbMaterialsInThisFolder) {
       return files.filter(f => f.fileUrl !== "#");
     }
     return files;
@@ -854,7 +855,8 @@ export default function CourseDetailPage({ params }: { params: { id: string } })
       }
     });
 
-    if (dbMaterials.length > 0) {
+    const hasDbMatch = mergedFiles.some(f => f.fileUrl !== "#" && f.title.toLowerCase().includes(q));
+    if (hasDbMatch) {
       return mergedFiles.filter(f => f.fileUrl !== "#").filter(f => f.title.toLowerCase().includes(q));
     }
     return mergedFiles.filter(f => f.title.toLowerCase().includes(q));

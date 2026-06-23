@@ -2,11 +2,12 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { mentoringPlans, results, courses, users } from "@/db/schema";
+import { mentoringPlans, results, courses, users, enrollments, courseFaculty } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { eq, and } from "drizzle-orm";
+import { assignLearningPathOnFail } from "@/lib/gpa";
 
 export async function POST(req: Request) {
   try {
@@ -18,42 +19,68 @@ export async function POST(req: Request) {
     if (!payload || payload.role !== "TEACHER") return errorResponse("Forbidden", 403);
 
     const body = await req.json();
-    const { studentId } = body;
+    const { studentId, courseId } = body;
 
-    if (!studentId) return errorResponse("studentId is required", 400);
+    if (!studentId || !courseId) {
+      return errorResponse("studentId and courseId are required", 400);
+    }
 
     const student = await db.query.users.findFirst({ where: eq(users.id, studentId) });
     if (!student) return errorResponse("Student not found", 404);
 
-    // Get student's failed courses
-    const failedResults = await db.select({
+    // 1. Validate that the student is enrolled in the course under this teacher's section
+    const enrollment = await db
+      .select({ id: enrollments.id })
+      .from(enrollments)
+      .innerJoin(courseFaculty, eq(enrollments.courseFacultyId, courseFaculty.id))
+      .where(
+        and(
+          eq(enrollments.studentId, studentId),
+          eq(enrollments.courseId, courseId),
+          eq(courseFaculty.teacherId, payload.id as string)
+        )
+      )
+      .limit(1);
+
+    if (enrollment.length === 0) {
+      return errorResponse("This student is not registered in your section for this course.", 403);
+    }
+
+    // 2. Get student's failed course result
+    const failedResult = await db.select({
       subjectName: courses.title,
       internalMarks: results.internalMarks,
       externalMarks: results.externalMarks,
       totalMarks: results.marks
     })
     .from(results)
-    .leftJoin(courses, eq(results.courseId, courses.id))
-    .where(and(eq(results.userId, studentId), eq(results.status, "FAIL"), eq(results.published, true)));
+    .innerJoin(courses, eq(results.courseId, courses.id))
+    .where(
+      and(
+        eq(results.userId, studentId),
+        eq(results.courseId, courseId),
+        eq(results.status, "FAIL")
+      )
+    )
+    .limit(1);
 
-    if (failedResults.length === 0) {
-      return errorResponse("This student has no backlogs. A mentoring plan is not necessary.", 400);
+    if (failedResult.length === 0) {
+      return errorResponse("This student has not failed this course.", 400);
     }
+
+    const courseInfo = failedResult[0];
 
     if (!process.env.GROQ_API_KEY) {
       return errorResponse("AI is not configured on the server", 500);
     }
 
-    const failedSubjectsList = failedResults.map(r => `${r.subjectName} (Scored: ${r.totalMarks})`).join(", ");
-
     const systemInstruction = `You are an expert academic mentor and professor.
-You are tasked with writing a structured, 4-week recovery study plan for a student who has failed the following subjects:
-${failedSubjectsList}
+You are tasked with writing a structured, 4-week recovery study plan for a student who has failed the subject: ${courseInfo.subjectName} (Scored: ${courseInfo.totalMarks}).
 
 Requirements:
 1. Output ONLY valid Markdown format.
 2. Provide an encouraging but firm opening paragraph.
-3. Include a weekly breakdown (Week 1 to Week 4) detailing what they should study and how they should approach passing these specific subjects.
+3. Include a weekly breakdown (Week 1 to Week 4) detailing what they should study and how they should approach passing this specific subject.
 4. Add a final section with 3 actionable tips for time management and exam preparation.
 5. Do NOT include any markdown code blocks (e.g. \`\`\`markdown). Just output the raw markdown text directly.`;
 
@@ -85,6 +112,9 @@ Requirements:
       teacherId: payload.id as string,
       planContent
     }).returning();
+
+    // Assign interactive recovery learning path in parallel
+    await assignLearningPathOnFail(studentId, courseId);
 
     return successResponse({ planId: newPlan.id }, "Mentoring Plan Generated successfully", 200);
 

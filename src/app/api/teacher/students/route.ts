@@ -2,11 +2,11 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, enrollments, courseFaculty } from "@/db/schema";
+import { users, enrollments, courseFaculty, results } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -43,6 +43,38 @@ export async function GET() {
       },
     });
 
+    // Fetch failed courses for these students in this teacher's courses
+    const failedResults = await db
+      .select({
+        studentId: results.userId,
+        courseId: results.courseId,
+        subjectName: results.subjectName,
+        subjectCode: results.subjectCode,
+      })
+      .from(results)
+      .innerJoin(enrollments, and(
+        eq(results.userId, enrollments.studentId),
+        eq(results.courseId, enrollments.courseId)
+      ))
+      .innerJoin(courseFaculty, eq(enrollments.courseFacultyId, courseFaculty.id))
+      .where(
+        and(
+          eq(results.status, "FAIL"),
+          eq(courseFaculty.teacherId, payload.id as string)
+        )
+      );
+
+    // Group failed courses by student ID
+    const studentFailedCoursesMap: Record<string, typeof failedResults> = {};
+    for (const r of failedResults) {
+      if (r.studentId) {
+        if (!studentFailedCoursesMap[r.studentId]) {
+          studentFailedCoursesMap[r.studentId] = [];
+        }
+        studentFailedCoursesMap[r.studentId].push(r);
+      }
+    }
+
     // Map to aggregated format
     const students = studentsData.map(student => {
       const totalAttendance = student.attendance.length;
@@ -51,6 +83,9 @@ export async function GET() {
       
       const enrolledCourses = student.enrollments.map(e => e.course.title);
       const enrolledCourseIds = student.enrollments.map(e => e.course.id);
+      
+      const failedCourses = studentFailedCoursesMap[student.id] || [];
+      const hasFailedSubject = failedCourses.length > 0;
       
       return {
         id: student.id,
@@ -62,6 +97,8 @@ export async function GET() {
         activitiesCount: student.activities.length,
         enrolledCourses,
         enrolledCourseIds,
+        failedCourses,
+        hasFailedSubject,
       };
     });
 
