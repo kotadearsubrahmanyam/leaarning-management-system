@@ -14,28 +14,6 @@ import { AdminDashboardView } from "./admin-overview";
 
 const COLORS = ["#7C3AED", "#A855F7", "#E2E8F0"];
 
-const assignmentCompletionData = [
-  { name: "Graded", value: 65 },
-  { name: "Pending", value: 20 },
-  { name: "Unsubmitted", value: 15 },
-];
-
-const quizPerformanceData = [
-  { name: "DBMS Quiz", score: 82 },
-  { name: "Web Tech Quiz", score: 75 },
-  { name: "Cloud Quiz", score: 90 },
-  { name: "Dist. Systems", score: 85 },
-];
-
-const attendanceTrendsData = [
-  { week: "Wk 1", attendance: 88 },
-  { week: "Wk 2", attendance: 91 },
-  { week: "Wk 3", attendance: 85 },
-  { week: "Wk 4", attendance: 92 },
-  { week: "Wk 5", attendance: 95 },
-  { week: "Wk 6", attendance: 89 },
-];
-
 const ChartTooltip = ({ active, payload, label, unit }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -213,34 +191,28 @@ export default function DashboardPage() {
 
   // Dynamic datasets for Teacher Dashboard
   const hasRealAssignmentData = stats.assignmentCompletionData && stats.assignmentCompletionData.some((d: any) => d.value > 0);
-  const displayAssignmentData = hasRealAssignmentData ? stats.assignmentCompletionData : assignmentCompletionData;
+  const displayAssignmentData = hasRealAssignmentData ? stats.assignmentCompletionData : [];
   const totalSubmissionsVal = displayAssignmentData.reduce((sum: number, d: any) => sum + d.value, 0);
   const gradedVal = displayAssignmentData.find((d: any) => d.name === "Graded")?.value || 0;
   const realCompletionRate = totalSubmissionsVal > 0 ? Math.round((gradedVal / totalSubmissionsVal) * 100) : 0;
 
-  const displayQuizData = stats.quizPerformanceData?.length ? stats.quizPerformanceData : quizPerformanceData;
-  const displayAttendanceData = stats.attendanceTrendsData?.length ? stats.attendanceTrendsData : attendanceTrendsData;
+  const displayQuizData = stats.quizPerformanceData || [];
+  const displayAttendanceData = stats.attendanceTrendsData || [];
 
   // Fallback empty array if no data exists
-  const emptyData = [{ name: "No Data", value: 0 }];
+  const emptyData: any[] = [];
 
-  // Find schedules for today or default to mock (moved to top-level for performance and compiler safety)
+  // Find schedules for today or default to empty array
   const todayStr = new Date().toLocaleDateString();
   const todaySchedules = (schedulesData?.data?.schedules || []).filter((s: any) => {
     return new Date(s.date).toLocaleDateString() === todayStr;
   });
 
-  const displaySchedules = todaySchedules.length > 0 
-    ? todaySchedules.map((s: any) => ({
-        time: s.time,
-        subject: s.courseName,
-        room: s.teacherName ? `Prof. ${s.teacherName}` : "Lecture Hall"
-      }))
-    : [
-        { time: "09:00 AM - 10:30 AM", subject: "Cryptography & Security", room: "Lecture Hall 102" },
-        { time: "11:30 AM - 01:00 PM", subject: "Blockchain & Applications", room: "Lab Room 3" },
-        { time: "02:00 PM - 03:30 PM", subject: "Database Systems", room: "Lecture Hall 105" }
-      ];
+  const displaySchedules = todaySchedules.map((s: any) => ({
+    time: s.time,
+    subject: s.courseName,
+    room: s.teacherName ? `Prof. ${s.teacherName}` : "Lecture Hall"
+  }));
 
   const backlogResults = (studentResultsData?.data?.results || []).filter((r: any) => r.status === "FAIL");
   const backlogCount = backlogResults.length;
@@ -346,63 +318,81 @@ export default function DashboardPage() {
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Assignment Completion</h3>
                 <span className="text-[10px] bg-purple-50 text-[#7C3AED] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple-100">Grading</span>
               </div>
-              <div className="h-[220px] flex items-center justify-center relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={displayAssignmentData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={75}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {displayAssignmentData.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<ChartTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-[#111827]">{realCompletionRate}%</span>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rate</span>
+              {totalSubmissionsVal === 0 ? (
+                <div className="flex flex-col items-center justify-center flex-1 text-slate-400 py-8">
+                  <CheckSquare size={36} className="text-slate-300 mb-2" />
+                  <p className="text-xs font-bold uppercase tracking-wider">No Submissions</p>
+                  <p className="text-[10px] text-slate-400 text-center mt-1 px-4">Assignments or submissions have not been recorded yet.</p>
                 </div>
-              </div>
-              <div className="flex justify-center gap-4 text-[10px] font-bold text-[#6B7280]">
-                {displayAssignmentData.map((item: any, index: number) => (
-                  <div key={index} className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index] }} />
-                    <span>{item.name} ({totalSubmissionsVal > 0 ? Math.round((item.value / totalSubmissionsVal) * 100) : 0}%)</span>
+              ) : (
+                <>
+                  <div className="h-[220px] flex items-center justify-center relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={displayAssignmentData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={75}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {displayAssignmentData.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<ChartTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black text-[#111827]">{realCompletionRate}%</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rate</span>
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <div className="flex justify-center gap-4 text-[10px] font-bold text-[#6B7280]">
+                    {displayAssignmentData.map((item: any, index: number) => (
+                      <div key={index} className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index] }} />
+                        <span>{item.name} ({totalSubmissionsVal > 0 ? Math.round((item.value / totalSubmissionsVal) * 100) : 0}%)</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Chart 2: Quiz Average Scores */}
+            {/* Chart 2: Quiz Performance */}
             <div className="bg-white p-5 rounded-3xl border border-[#E5E7EB] shadow-sm flex flex-col justify-between h-[360px]">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Quiz Performance</h3>
                 <span className="text-[10px] bg-purple-50 text-[#7C3AED] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple-100">Class Averages</span>
               </div>
-              <div className="h-[260px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={displayQuizData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="purpleBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#7C3AED" />
-                        <stop offset="100%" stopColor="#A855F7" />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis dataKey="name" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} unit="%" />
-                    <Tooltip content={<ChartTooltip unit="%" />} />
-                    <Bar dataKey="score" fill="url(#purpleBarGrad)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {displayQuizData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center flex-1 text-slate-400 py-8">
+                  <Award size={36} className="text-slate-300 mb-2" />
+                  <p className="text-xs font-bold uppercase tracking-wider">No Quizzes</p>
+                  <p className="text-[10px] text-slate-400 text-center mt-1 px-4">No quiz results found for your courses.</p>
+                </div>
+              ) : (
+                <div className="h-[260px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={displayQuizData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="purpleBarGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#7C3AED" />
+                          <stop offset="100%" stopColor="#A855F7" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                      <XAxis dataKey="name" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} unit="%" />
+                      <Tooltip content={<ChartTooltip unit="%" />} />
+                      <Bar dataKey="score" fill="url(#purpleBarGrad)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
 
             {/* Chart 3: Student Attendance Trends */}
@@ -411,23 +401,31 @@ export default function DashboardPage() {
                 <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Attendance Overview</h3>
                 <span className="text-[10px] bg-purple-50 text-[#7C3AED] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border border-purple-100">Weekly Avg</span>
               </div>
-              <div className="h-[260px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={displayAttendanceData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#7C3AED" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis dataKey="week" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} unit="%" />
-                    <Tooltip content={<ChartTooltip unit="%" />} />
-                    <Area type="monotone" dataKey="attendance" stroke="#7C3AED" strokeWidth={2.5} fill="url(#purpleAreaGrad)" dot={{ r: 3, fill: "#7C3AED", strokeWidth: 1.5, stroke: "#fff" }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              {displayAttendanceData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center flex-1 text-slate-400 py-8">
+                  <Clock size={36} className="text-slate-300 mb-2" />
+                  <p className="text-xs font-bold uppercase tracking-wider">No Attendance Records</p>
+                  <p className="text-[10px] text-slate-400 text-center mt-1 px-4">Start daily attendance session to view trends.</p>
+                </div>
+              ) : (
+                <div className="h-[260px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={displayAttendanceData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#7C3AED" stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                      <XAxis dataKey="week" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} unit="%" />
+                      <Tooltip content={<ChartTooltip unit="%" />} />
+                      <Area type="monotone" dataKey="attendance" stroke="#7C3AED" strokeWidth={2.5} fill="url(#purpleAreaGrad)" dot={{ r: 3, fill: "#7C3AED", strokeWidth: 1.5, stroke: "#fff" }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
           </div>
 
@@ -635,19 +633,27 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 
-                <div className="space-y-3">
-                  {displaySchedules.map((lecture: any, i: number) => (
-                    <div key={i} className="flex gap-4 items-start p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all duration-250">
-                      <div className="text-xs font-black text-primary shrink-0 bg-primary/10 px-2.5 py-1.5 rounded-lg border border-primary/20">
-                        {lecture.time.split(" - ")[0]}
+                {displaySchedules.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+                    <Calendar className="text-slate-300 mb-2" size={32} />
+                    <p className="text-xs font-bold uppercase tracking-wider">No Lectures Today</p>
+                    <p className="text-[10px] text-slate-400 text-center mt-1">You are free for the day!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {displaySchedules.map((lecture: any, i: number) => (
+                      <div key={i} className="flex gap-4 items-start p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all duration-250">
+                        <div className="text-xs font-black text-primary shrink-0 bg-primary/10 px-2.5 py-1.5 rounded-lg border border-primary/20">
+                          {lecture.time.split(" - ")[0]}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-extrabold text-sm text-foreground truncate">{lecture.subject}</h4>
+                          <p className="text-xs text-foreground/60 mt-0.5">{lecture.room}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-extrabold text-sm text-foreground truncate">{lecture.subject}</h4>
-                        <p className="text-xs text-foreground/60 mt-0.5">{lecture.room}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -664,34 +670,38 @@ export default function DashboardPage() {
                   </span>
                 </div>
 
-                <div className="space-y-3">
-                  {(assignmentsData?.data?.assignments?.length ? assignmentsData.data.assignments.slice(0, 3) : [
-                    { title: "Smart Contract Vulnerability Assessment", courseName: "Blockchain Tech", daysLeft: 2 },
-                    { title: "Symmetric Encryption Lab Report", courseName: "Cryptography", daysLeft: 4 },
-                    { title: "DBMS SQL Joins & Schema Design", courseName: "Database Systems", daysLeft: 7 }
-                  ]).map((task: any, i: number) => {
-                    const daysLeft = task.daysLeft ?? Math.max(1, Math.ceil((new Date(task.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
-                    return (
-                      <div 
-                        key={i} 
-                        className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all duration-250 cursor-pointer" 
-                        onClick={() => router.push("/dashboard/assignments")}
-                      >
-                        <div className="min-w-0 pr-4">
-                          <h4 className="font-extrabold text-sm text-foreground truncate">{task.title}</h4>
-                          <p className="text-xs text-foreground/60 mt-0.5">{task.courseName || "Assignments"}</p>
+                {(!assignmentsData?.data?.assignments || assignmentsData.data.assignments.length === 0) ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+                    <CheckSquare className="text-slate-300 mb-2" size={32} />
+                    <p className="text-xs font-bold uppercase tracking-wider">No Deadlines</p>
+                    <p className="text-[10px] text-slate-400 text-center mt-1">All caught up! No pending assignments.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {assignmentsData.data.assignments.slice(0, 3).map((task: any, i: number) => {
+                      const daysLeft = task.daysLeft ?? Math.max(1, Math.ceil((new Date(task.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+                      return (
+                        <div 
+                          key={i} 
+                          className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-purple-200 hover:border-purple-400 hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(124,58,237,0.06)] transition-all duration-250 cursor-pointer" 
+                          onClick={() => router.push("/dashboard/assignments")}
+                        >
+                          <div className="min-w-0 pr-4">
+                            <h4 className="font-extrabold text-sm text-foreground truncate">{task.title}</h4>
+                            <p className="text-xs text-foreground/60 mt-0.5">{task.courseName || "Assignments"}</p>
+                          </div>
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-xl border shrink-0 ${
+                            daysLeft <= 2 
+                              ? "bg-red-500/10 text-red-500 border-red-500/20" 
+                              : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          }`}>
+                            {daysLeft} days left
+                          </span>
                         </div>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-xl border shrink-0 ${
-                          daysLeft <= 2 
-                            ? "bg-red-500/10 text-red-500 border-red-500/20" 
-                            : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                        }`}>
-                          {daysLeft} days left
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -704,14 +714,30 @@ export default function DashboardPage() {
                   <TrendingUp className="text-primary" size={24} />
                   Weekly Progress (mins)
                 </h3>
-                <AnimatedChart data={stats.activityHistory?.length ? stats.activityHistory : emptyData} dataKey="value" type="line" delay={0.5} unit=" mins" />
+                {(!stats.activityHistory || stats.activityHistory.length === 0) ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-400 bg-white border border-slate-200 rounded-3xl">
+                    <TrendingUp size={48} className="text-slate-300 mb-2" />
+                    <p className="text-sm font-bold uppercase tracking-wider">No Activity Data</p>
+                    <p className="text-xs text-slate-400 text-center mt-1">Start reviewing learning materials to track progress.</p>
+                  </div>
+                ) : (
+                  <AnimatedChart data={stats.activityHistory} dataKey="value" type="line" delay={0.5} unit=" mins" />
+                )}
               </div>
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
                   <GraduationCap className="text-primary" size={24} />
                   Academic Performance (Grades)
                 </h3>
-                <AnimatedChart data={stats.subjectMarks?.length ? stats.subjectMarks : emptyData} dataKey="value" type="bar" delay={0.6} unit="/100" />
+                {(!stats.subjectMarks || stats.subjectMarks.length === 0) ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-400 bg-white border border-slate-200 rounded-3xl">
+                    <GraduationCap size={48} className="text-slate-300 mb-2" />
+                    <p className="text-sm font-bold uppercase tracking-wider">No Grades Recorded</p>
+                    <p className="text-xs text-slate-400 text-center mt-1">Semester results have not been posted yet.</p>
+                  </div>
+                ) : (
+                  <AnimatedChart data={stats.subjectMarks} dataKey="value" type="bar" delay={0.6} unit="/100" />
+                )}
               </div>
             </div>
 
