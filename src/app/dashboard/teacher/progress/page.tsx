@@ -27,7 +27,7 @@ export default function CourseAttendanceAnalyticsPage() {
   const queryClient = useQueryClient();
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "GOOD" | "WARNING" | "CRITICAL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "GOOD" | "WARNING" | "CRITICAL" | "FAILED">("ALL");
   const [sortOrder, setSortOrder] = useState<"none" | "asc" | "desc">("none");
 
   // Modals state
@@ -35,6 +35,49 @@ export default function CourseAttendanceAnalyticsPage() {
   const [warningStudent, setWarningStudent] = useState<any>(null);
   const [warningTitle, setWarningTitle] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
+
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [isGeneratingPath, setIsGeneratingPath] = useState<string | null>(null);
+
+  const { data: studentDetailsData, isLoading: isStudentDetailsLoading, refetch: refetchStudentDetails } = useQuery({
+    queryKey: ["studentDetails", selectedStudentId],
+    queryFn: async () => {
+      if (!selectedStudentId) return null;
+      const res = await fetch(`/api/teacher/students/${selectedStudentId}`);
+      if (!res.ok) throw new Error("Failed to fetch student details");
+      return res.json();
+    },
+    enabled: !!selectedStudentId,
+  });
+
+  const studentDetails = studentDetailsData?.data?.student;
+
+  const handleGeneratePathway = async (courseId: string) => {
+    if (!selectedStudentId) return;
+    setIsGeneratingPath(courseId);
+    try {
+      const res = await fetch("/api/teacher/mentoring/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          courseId,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.message || "Failed to generate learning pathway");
+        return;
+      }
+      alert("Mentoring plan and recovery learning path generated successfully!");
+      refetchStudentDetails();
+    } catch (e) {
+      console.error(e);
+      alert("An error occurred while generating learning pathway.");
+    } finally {
+      setIsGeneratingPath(null);
+    }
+  };
 
   const { data: coursesData } = useQuery({
     queryKey: ["teacherCourses"],
@@ -146,6 +189,7 @@ export default function CourseAttendanceAnalyticsPage() {
       list = list.filter((s: any) => {
         if (statusFilter === "GOOD") return s.attendancePct >= 75;
         if (statusFilter === "WARNING") return s.attendancePct >= 65 && s.attendancePct < 75;
+        if (statusFilter === "FAILED") return !!s.hasFailedThisSubject;
         return s.attendancePct < 65;
       });
     }
@@ -306,6 +350,7 @@ export default function CourseAttendanceAnalyticsPage() {
                   <option value="GOOD">Good (≥75%)</option>
                   <option value="WARNING">Warning (65% - 74%)</option>
                   <option value="CRITICAL">Critical (&lt;65%)</option>
+                  <option value="FAILED">Failed Students</option>
                 </select>
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 pointer-events-none" />
               </div>
@@ -383,7 +428,14 @@ export default function CourseAttendanceAnalyticsPage() {
                                 {student.name.charAt(0).toUpperCase()}
                               </div>
                               <div className="flex flex-col min-w-0">
-                                <span className="font-bold text-slate-800 truncate">{student.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-800 truncate">{student.name}</span>
+                                  {student.hasFailedThisSubject && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 border border-rose-100 text-[10px] font-black uppercase tracking-wider shrink-0">
+                                      Failed
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
                                   <Mail size={12} /> {student.email}
                                 </span>
@@ -433,6 +485,13 @@ export default function CourseAttendanceAnalyticsPage() {
                           {/* Actions */}
                           <td className="py-4 px-6 text-right">
                             <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setSelectedStudentId(student.id)}
+                                className="px-3.5 py-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition-all"
+                              >
+                                View Profile
+                              </button>
+                              
                               <button
                                 onClick={() => setHistoryStudent(student)}
                                 className="px-3.5 py-2 border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition-all"
@@ -635,6 +694,191 @@ export default function CourseAttendanceAnalyticsPage() {
                   className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {sendWarningMutation.isPending ? "Sending..." : "Dispatch Warning"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Student Profile Modal */}
+      <AnimatePresence>
+        {selectedStudentId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedStudentId(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              className="bg-white/95 border border-slate-200 w-full max-w-3xl rounded-3xl shadow-2xl relative z-10 flex flex-col max-h-[85vh] overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div>
+                  <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                    <GraduationCap className="text-emerald-500" size={24} /> Student Profile & Performance
+                  </h3>
+                  <p className="text-xs text-slate-500 font-semibold mt-1">
+                    Detailed academic, attendance, and activity records.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setSelectedStudentId(null)}
+                  className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:bg-slate-100 text-slate-500 transition-colors text-sm font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                {isStudentDetailsLoading ? (
+                  <div className="py-12 space-y-4">
+                    <div className="h-20 bg-slate-100 animate-pulse rounded-2xl" />
+                    <div className="h-32 bg-slate-100 animate-pulse rounded-2xl" />
+                    <div className="h-32 bg-slate-100 animate-pulse rounded-2xl" />
+                  </div>
+                ) : !studentDetails ? (
+                  <div className="p-12 text-center text-slate-500">Student details not found.</div>
+                ) : (
+                  <>
+                    {/* Header Card */}
+                    <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/10 border-2 border-emerald-500/20 flex items-center justify-center font-black text-2xl text-emerald-600 shadow-sm shrink-0">
+                        {studentDetails.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 text-center sm:text-left min-w-0">
+                        <h4 className="text-xl font-bold text-slate-800 truncate">{studentDetails.name}</h4>
+                        <p className="text-sm font-semibold text-slate-500 mt-1 flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1">
+                          <span>Roll Number: <span className="font-bold text-slate-700">{studentDetails.rollNumber || "N/A"}</span></span>
+                          <span className="text-slate-300">•</span>
+                          <span>Dept: <span className="font-bold text-slate-700">{studentDetails.department?.name || "N/A"}</span></span>
+                          <span className="text-slate-300">•</span>
+                          <span>Semester: <span className="font-bold text-slate-700">{studentDetails.semester || "N/A"}</span></span>
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 font-semibold flex items-center justify-center sm:justify-start gap-1">
+                          <Mail size={12} /> {studentDetails.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* KPI Section */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Attendance Records</span>
+                        <div className="flex items-baseline gap-2 mt-2">
+                          <span className="text-2xl font-black text-slate-800">
+                            {studentDetails.attendance?.length || 0}
+                          </span>
+                          <span className="text-xs text-slate-400 font-bold">Sessions Logged</span>
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Co-Curricular Activities</span>
+                        <div className="flex items-baseline gap-2 mt-2">
+                          <span className="text-2xl font-black text-slate-800">
+                            {studentDetails.activities?.length || 0}
+                          </span>
+                          <span className="text-xs text-slate-400 font-bold">Events Approved</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Enrolled Courses */}
+                    <div className="space-y-3">
+                      <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Registered Courses</h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {studentDetails.enrollments?.map((e: any) => (
+                          <div key={e.id} className="p-3.5 bg-white border border-slate-100 rounded-xl shadow-sm flex items-center justify-between">
+                            <span className="font-bold text-slate-700 text-xs truncate max-w-[200px]">{e.course.title}</span>
+                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                              Sem {e.course.semester}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Academic Results & Path Generation */}
+                    <div className="space-y-3">
+                      <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Course Results & Mentoring</h5>
+                      <div className="border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-100 bg-white">
+                        {studentDetails.results?.length === 0 ? (
+                          <div className="p-6 text-center text-xs text-slate-400 font-semibold">No exam results declared.</div>
+                        ) : (
+                          studentDetails.results.map((r: any) => (
+                            <div key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-800 text-xs">{r.subjectName || r.course?.title || "Unknown Subject"}</span>
+                                  <span className="text-[10px] font-mono text-slate-400 font-bold">({r.subjectCode || "N/A"})</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold mt-1.5">
+                                  <span>Marks: {r.marks}</span>
+                                  <span>•</span>
+                                  <span>Grade: {r.grade}</span>
+                                  <span>•</span>
+                                  <span className={r.status === "FAIL" ? "text-rose-500 font-black" : "text-emerald-500 font-black"}>
+                                    {r.status}
+                                  </span>
+                                </div>
+                              </div>
+                              {r.canGeneratePathway && (
+                                <button
+                                  onClick={() => handleGeneratePathway(r.courseId)}
+                                  disabled={isGeneratingPath === r.courseId}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                >
+                                  <Sparkles size={11} className={isGeneratingPath === r.courseId ? "animate-spin" : ""} />
+                                  {isGeneratingPath === r.courseId ? "Generating Pathway..." : "Generate Pathway"}
+                                </button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Co-curricular Activities */}
+                    <div className="space-y-3">
+                      <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Approved Activities & Achievements</h5>
+                      <div className="border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-100 bg-white">
+                        {studentDetails.activities?.length === 0 ? (
+                          <div className="p-6 text-center text-xs text-slate-400 font-semibold">No activities recorded.</div>
+                        ) : (
+                          studentDetails.activities.map((act: any) => (
+                            <div key={act.id} className="p-4 flex justify-between items-center">
+                              <div>
+                                <span className="font-bold text-slate-700 text-xs">{act.title}</span>
+                                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold mt-1">
+                                  <span>Type: {act.type}</span>
+                                  <span>•</span>
+                                  <span>Date: {new Date(act.date).toLocaleDateString()}</span>
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase tracking-wide">
+                                {act.status}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => setSelectedStudentId(null)}
+                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl transition-colors shadow-sm"
+                >
+                  Close Profile
                 </button>
               </div>
             </motion.div>

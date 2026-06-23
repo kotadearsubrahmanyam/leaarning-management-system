@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, enrollments, attendance, classSessions, notifications } from "@/db/schema";
+import { users, enrollments, attendance, classSessions, notifications, courseFaculty, results } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
     if (!courseId) return errorResponse("Missing courseId", 400);
 
-    // Get all enrolled students with their roll numbers
+    // Get enrolled students scoped to this teacher's section
     const enrolledStudents = await db.select({
       id: users.id,
       name: users.name,
@@ -31,7 +31,13 @@ export async function GET(req: Request) {
     })
     .from(enrollments)
     .innerJoin(users, eq(enrollments.studentId, users.id))
-    .where(eq(enrollments.courseId, courseId));
+    .innerJoin(courseFaculty, eq(enrollments.courseFacultyId, courseFaculty.id))
+    .where(
+      and(
+        eq(enrollments.courseId, courseId),
+        eq(courseFaculty.teacherId, payload.id as string)
+      )
+    );
 
     // Get progress and attendance for each student
     const progressData = await Promise.all(enrolledStudents.map(async (student) => {
@@ -63,12 +69,25 @@ export async function GET(req: Request) {
         return b.startTime.localeCompare(a.startTime);
       });
 
+      // Check if student failed this specific course
+      const failedRecord = await db.select()
+        .from(results)
+        .where(and(
+          eq(results.userId, student.id),
+          eq(results.courseId, courseId),
+          eq(results.status, "FAIL")
+        ))
+        .limit(1);
+
+      const hasFailedThisSubject = failedRecord.length > 0;
+
       return {
         ...student,
         attendancePct,
         totalClasses,
         attendedClasses,
         history,
+        hasFailedThisSubject,
       };
     }));
 
