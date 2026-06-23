@@ -4,6 +4,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { 
   Users, 
   GraduationCap, 
@@ -26,13 +27,15 @@ function GlassMetricCard({
   value, 
   icon: Icon, 
   delay = 0, 
-  gradient 
+  gradient,
+  className
 }: { 
   title: string; 
   value: string | number; 
   icon: any; 
   delay?: number; 
-  gradient: string 
+  gradient: string;
+  className?: string;
 }) {
   return (
     <motion.div
@@ -40,7 +43,10 @@ function GlassMetricCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: "easeOut" }}
       whileHover={{ scale: 1.03, y: -2 }}
-      className="relative overflow-hidden bg-white/70 dark:bg-slate-900/40 backdrop-blur-md border border-white/40 dark:border-slate-800/40 shadow-lg rounded-3xl p-5 flex flex-col justify-between h-32 transition-all hover:shadow-[0_15px_30px_rgba(124,58,237,0.1)] group"
+      className={cn(
+        "relative overflow-hidden bg-white/70 dark:bg-slate-900/40 backdrop-blur-md border border-white/40 dark:border-slate-800/40 shadow-lg rounded-3xl p-5 flex flex-col justify-between h-32 transition-all hover:shadow-[0_15px_30px_rgba(124,58,237,0.1)] group",
+        className
+      )}
     >
       {/* Background glow path */}
       <div className={`absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-2xl opacity-20 bg-gradient-to-tr ${gradient}`} />
@@ -189,7 +195,7 @@ export default function AdminDashboardPage() {
       </motion.div>
 
       {/* Glassmorphic Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
         <GlassMetricCard 
           title="Departments" 
           value={stats.totalDepartments} 
@@ -224,6 +230,7 @@ export default function AdminDashboardPage() {
           icon={FileCheck} 
           gradient="from-emerald-500 to-amber-500"
           delay={0.25} 
+          className="col-span-2 md:col-span-1"
         />
         <GlassMetricCard 
           title="Total Revenue" 
@@ -231,6 +238,7 @@ export default function AdminDashboardPage() {
           icon={DollarSign} 
           gradient="from-amber-500 to-orange-500"
           delay={0.3} 
+          className="col-span-2 md:col-span-1 lg:col-span-2"
         />
       </div>
 
