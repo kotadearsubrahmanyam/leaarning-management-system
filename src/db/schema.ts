@@ -776,3 +776,29 @@ export const importHistory = pgTable("ImportHistory", {
   roleType: text("roleType").notNull(),
 });
 
+export const passwordResetRequests = pgTable("PasswordResetRequest", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role").notNull(), // STUDENT, TEACHER
+  status: text("status").notNull().default("PENDING"), // PENDING, RESOLVED, REJECTED
+  tempPassword: text("tempPassword"),
+  resetToken: text("resetToken"),
+  tokenExpiry: timestamp("tokenExpiry", { precision: 3, mode: "date" }),
+  createdAt: timestamp("createdAt", { precision: 3, mode: "date" }).defaultNow().notNull(),
+  resolvedAt: timestamp("resolvedAt", { precision: 3, mode: "date" }),
+  resolvedBy: text("resolvedBy").references(() => users.id, { onDelete: "set null" }),
+});
+
+export const passwordResetRequestsRelations = relations(passwordResetRequests, ({ one }) => ({
+  user: one(users, {
+    fields: [passwordResetRequests.userId],
+    references: [users.id],
+  }),
+  resolver: one(users, {
+    fields: [passwordResetRequests.resolvedBy],
+    references: [users.id],
+  }),
+}));
+
+

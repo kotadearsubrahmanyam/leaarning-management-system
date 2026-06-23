@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
 import { AdminDashboardView } from "./admin-overview";
+import { PasswordResetRequests } from "@/components/dashboard/password-reset-requests";
 
 const COLORS = ["#7C3AED", "#A855F7", "#E2E8F0"];
 
@@ -429,7 +430,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-
+          <div className="mt-8">
+            <PasswordResetRequests role="TEACHER" />
+          </div>
         </>
       )}
 

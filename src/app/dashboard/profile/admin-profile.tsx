@@ -19,6 +19,7 @@ import {
   ArrowUpRight,
   TrendingUp,
 } from "lucide-react";
+import { ChangePassword } from "@/components/profile/change-password";
 
 interface AdminProfileProps {
   user: {
@@ -294,6 +295,10 @@ export function AdminProfileView({ user }: AdminProfileProps) {
             </div>
           </motion.div>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <ChangePassword />
       </div>
     </div>
   );

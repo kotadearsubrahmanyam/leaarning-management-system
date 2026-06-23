@@ -7,13 +7,13 @@ import * as z from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail, Sparkles, BookOpen } from "lucide-react";
+import { Eye, EyeOff, Mail, Sparkles, BookOpen, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AnimatedBackgroundPattern } from "@/components/ui/animated-background-pattern";
 
@@ -195,6 +195,40 @@ export default function LoginPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [isLookingAtEachOther, setIsLookingAtEachOther] = useState(false);
   const [isTallPeeking, setIsTallPeeking] = useState(false);
+
+  // Forgot password states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotRole, setForgotRole] = useState<"STUDENT" | "TEACHER" | "ADMIN">("STUDENT");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccessMessage, setForgotSuccessMessage] = useState("");
+  const [forgotErrorMessage, setForgotErrorMessage] = useState("");
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+
+    setForgotLoading(true);
+    setForgotErrorMessage("");
+    setForgotSuccessMessage("");
+
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: forgotEmail, role: forgotRole }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Something went wrong");
+      }
+      setForgotSuccessMessage(data.data?.message || "Reset link requested successfully.");
+    } catch (err: any) {
+      setForgotErrorMessage(err.message || "Failed to submit request.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
   
   const tallRef = useRef<HTMLDivElement>(null);
   const darkRef = useRef<HTMLDivElement>(null);
@@ -601,9 +635,19 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-end py-1">
-              <Link href="#" className="text-xs lg:text-sm text-primary hover:underline font-semibold">
+              <button 
+                type="button"
+                onClick={() => {
+                  setForgotEmail("");
+                  setForgotSuccessMessage("");
+                  setForgotErrorMessage("");
+                  setForgotRole(selectedRole);
+                  setShowForgotModal(true);
+                }}
+                className="text-xs lg:text-sm text-primary hover:underline font-semibold"
+              >
                 Forgot password?
-              </Link>
+              </button>
             </div>
 
             <Button 
@@ -625,6 +669,97 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showForgotModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 w-full max-w-md relative"
+            >
+              <button 
+                type="button"
+                onClick={() => setShowForgotModal(false)}
+                className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="size-5" />
+              </button>
+              
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Reset Password</h2>
+              <p className="text-sm text-slate-500 mb-4">
+                Enter your email and select your role to request a password reset.
+              </p>
+              
+              {forgotErrorMessage && (
+                <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
+                  {forgotErrorMessage}
+                </div>
+              )}
+
+              {forgotSuccessMessage ? (
+                <div className="space-y-4">
+                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+                    {forgotSuccessMessage}
+                  </div>
+                  <Button 
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="w-full h-10 font-semibold"
+                  >
+                    Close
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="forgot-email" className="text-xs font-semibold text-slate-700">Email Address</Label>
+                    <Input 
+                      id="forgot-email"
+                      type="email"
+                      required
+                      placeholder="you@example.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="h-10 border-slate-200 text-slate-800 focus:border-primary text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700">Your Role</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["STUDENT", "TEACHER", "ADMIN"] as const).map((role) => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => setForgotRole(role)}
+                          className={cn(
+                            "py-2 text-xs font-semibold rounded-lg border transition-all",
+                            forgotRole === role 
+                              ? "bg-primary text-white border-primary shadow-sm" 
+                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                          )}
+                        >
+                          {role.charAt(0) + role.slice(1).toLowerCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full h-10 font-semibold shadow-md shadow-primary/10 mt-2"
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? "Sending request..." : "Send Reset Link"}
+                  </Button>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

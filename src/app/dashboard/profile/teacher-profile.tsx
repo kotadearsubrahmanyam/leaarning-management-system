@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { User, BookOpen, Users, MapPin, Mail, Phone, Calendar, Building, Award, ShieldCheck, Sparkles, GraduationCap, Briefcase, BookMarked } from "lucide-react";
+import { ChangePassword } from "@/components/profile/change-password";
 
 interface UserProfileProps {
   user: {
@@ -203,6 +204,10 @@ export function TeacherProfileView({ user }: UserProfileProps) {
           </div>
         </motion.div>
 
+      </div>
+
+      <div className="mt-8">
+        <ChangePassword />
       </div>
     </div>
   );

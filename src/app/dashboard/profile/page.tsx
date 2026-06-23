@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/student-portal-cards";
 import { TeacherProfileView } from "./teacher-profile";
 import { AdminProfileView } from "./admin-profile";
+import { ChangePassword } from "@/components/profile/change-password";
 
 const TABS = ["Overview", "Courses", "Results", "Fees", "Documents"];
 
@@ -1131,6 +1132,10 @@ export default function ProfilePage() {
           )}
         </motion.div>
       </AnimatePresence>
+
+      <div className="mt-8">
+        <ChangePassword />
+      </div>
 
       {/* DOCUMENT PREVIEW MODAL */}
       <AnimatePresence>

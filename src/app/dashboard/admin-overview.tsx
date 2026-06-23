@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { PasswordResetRequests } from "@/components/dashboard/password-reset-requests";
 import {
   ResponsiveContainer,
   BarChart,
@@ -389,6 +390,10 @@ export function AdminDashboardView({ adminStats = {} }: AdminDashboardViewProps)
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <PasswordResetRequests role="ADMIN" />
       </div>
     </div>
   );
