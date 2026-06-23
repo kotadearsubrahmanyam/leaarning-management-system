@@ -169,6 +169,7 @@
   }
   
   .glass::before {
+    display: none !important;
     content: "";
     position: absolute;
     top: 0;
