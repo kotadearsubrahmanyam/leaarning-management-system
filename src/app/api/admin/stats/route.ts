@@ -33,7 +33,7 @@ export async function GET() {
     const [{ totalRevenue }] = await db
       .select({ totalRevenue: sql<number>`COALESCE(sum(${payments.amount}), 0)` })
       .from(payments)
-      .where(eq(payments.status, "PAID"));
+      .where(sql`${payments.status} IN ('COMPLETED', 'VERIFIED')`);
 
     const [{ departmentCount }] = await db
       .select({ departmentCount: sql<number>`count(*)` })
