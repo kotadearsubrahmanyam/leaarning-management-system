@@ -68,11 +68,11 @@ export default function TimetablePage() {
           <table className="w-full text-left border-separate border-spacing-2">
             <thead>
               <tr>
-                <th className="p-3 bg-slate-200 text-slate-700 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase w-32 border border-slate-300">
+                <th className="p-3 bg-slate-200 !text-slate-900 font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase w-32 border border-slate-300">
                   Time / Day
                 </th>
                 {WEEK_DAYS.map(day => (
-                  <th key={day} className="p-3 bg-[#7C3AED] text-white font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase border border-purple-700">
+                  <th key={day} className="p-3 bg-[#7C3AED] !text-white font-bold text-xs text-center rounded-xl shadow-sm tracking-wider uppercase border border-purple-700" style={{ color: "white" }}>
                     {day}
                   </th>
                 ))}

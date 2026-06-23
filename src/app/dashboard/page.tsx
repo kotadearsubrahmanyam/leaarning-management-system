@@ -211,6 +211,16 @@ export default function DashboardPage() {
   const stats = statsData?.data.stats || {};
   const name = authData.data.user.name;
 
+  // Dynamic datasets for Teacher Dashboard
+  const hasRealAssignmentData = stats.assignmentCompletionData && stats.assignmentCompletionData.some((d: any) => d.value > 0);
+  const displayAssignmentData = hasRealAssignmentData ? stats.assignmentCompletionData : assignmentCompletionData;
+  const totalSubmissionsVal = displayAssignmentData.reduce((sum: number, d: any) => sum + d.value, 0);
+  const gradedVal = displayAssignmentData.find((d: any) => d.name === "Graded")?.value || 0;
+  const realCompletionRate = totalSubmissionsVal > 0 ? Math.round((gradedVal / totalSubmissionsVal) * 100) : 0;
+
+  const displayQuizData = stats.quizPerformanceData?.length ? stats.quizPerformanceData : quizPerformanceData;
+  const displayAttendanceData = stats.attendanceTrendsData?.length ? stats.attendanceTrendsData : attendanceTrendsData;
+
   // Fallback empty array if no data exists
   const emptyData = [{ name: "No Data", value: 0 }];
 
@@ -340,7 +350,7 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={assignmentCompletionData}
+                      data={displayAssignmentData}
                       cx="50%"
                       cy="50%"
                       innerRadius={55}
@@ -348,7 +358,7 @@ export default function DashboardPage() {
                       paddingAngle={5}
                       dataKey="value"
                     >
-                      {assignmentCompletionData.map((entry, index) => (
+                      {displayAssignmentData.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -356,15 +366,15 @@ export default function DashboardPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute flex flex-col items-center justify-center">
-                  <span className="text-2xl font-black text-[#111827]">85%</span>
+                  <span className="text-2xl font-black text-[#111827]">{realCompletionRate}%</span>
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rate</span>
                 </div>
               </div>
               <div className="flex justify-center gap-4 text-[10px] font-bold text-[#6B7280]">
-                {assignmentCompletionData.map((item, index) => (
+                {displayAssignmentData.map((item: any, index: number) => (
                   <div key={index} className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index] }} />
-                    <span>{item.name} ({item.value}%)</span>
+                    <span>{item.name} ({totalSubmissionsVal > 0 ? Math.round((item.value / totalSubmissionsVal) * 100) : 0}%)</span>
                   </div>
                 ))}
               </div>
@@ -378,7 +388,7 @@ export default function DashboardPage() {
               </div>
               <div className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={quizPerformanceData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <BarChart data={displayQuizData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="purpleBarGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#7C3AED" />
@@ -403,7 +413,7 @@ export default function DashboardPage() {
               </div>
               <div className="h-[260px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={attendanceTrendsData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <AreaChart data={displayAttendanceData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                     <defs>
                       <linearGradient id="purpleAreaGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.2} />
@@ -421,83 +431,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Managed Courses Grid & Feeds Split Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8 items-start">
-            
-            {/* Left Part: Managed Courses Card Grid (8 cols) */}
-            <div className="lg:col-span-8 space-y-6">
-              <h3 className="text-lg font-black text-[#111827] flex items-center gap-2">
-                <BookOpen className="text-[#7C3AED]" size={22} /> Managed Courses Overview
-              </h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {stats.coursesOverview?.map((course: any) => (
-                  <div 
-                    key={course.id} 
-                    className="bg-white border border-[#E5E7EB] rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between h-52 cursor-pointer"
-                    onClick={() => router.push(`/dashboard/teacher/my-courses`)}
-                  >
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-black text-[#7C3AED] uppercase tracking-wider bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
-                          {course.id.substring(0, 6).toUpperCase()}
-                        </span>
-                        <span className="text-xs text-[#6B7280] font-bold">Sem {course.semester}</span>
-                      </div>
-                      <h4 className="text-base font-black text-[#111827] line-clamp-1">{course.title}</h4>
-                      <p className="text-xs text-[#6B7280] font-semibold mt-1">Level: {course.level}</p>
-                    </div>
 
-                    <div className="space-y-4 border-t border-slate-100 pt-3">
-                      <div className="flex justify-between items-center text-xs text-[#6B7280] font-bold">
-                        <span className="flex items-center gap-1"><Users size={14} /> {course.studentCount} Students Enrolled</span>
-                        <span>{course.completionRate || 85}% Syllabus Done</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-100">
-                        <div className="bg-[#7C3AED] h-full rounded-full transition-all duration-500" style={{ width: `${course.completionRate || 85}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {(!stats.coursesOverview || stats.coursesOverview.length === 0) && (
-                  <div className="col-span-2 p-12 text-center border border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold">
-                    No courses assigned under your management yet.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right Part: Feeds Column (4 cols) */}
-            <div className="lg:col-span-4 space-y-6">
-              {/* Recent Activity Feed */}
-              <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 shadow-sm">
-                <h3 className="text-base font-black text-[#111827] flex items-center gap-2 mb-4 border-b border-slate-50 pb-2">
-                  <Activity className="text-[#7C3AED]" size={18} />
-                  Recent Activity Feed
-                </h3>
-                <div className="space-y-4">
-                  <ActivityItem emoji="📝" text="Amit Kumar submitted Assignment 2 for DBMS" time="10m ago" />
-                  <ActivityItem emoji="❓" text="New Quiz 'Mid-Term Review' published" time="2h ago" />
-                  <ActivityItem emoji="📚" text="Syllabus unit 4 materials uploaded" time="1d ago" />
-                  <ActivityItem emoji="🎓" text="Preethi Reddy registered for Distributed Systems" time="2d ago" />
-                </div>
-              </div>
-
-              {/* Upcoming Tasks Feed */}
-              <div className="bg-white border border-[#E5E7EB] rounded-3xl p-5 shadow-sm">
-                <h3 className="text-base font-black text-[#111827] flex items-center gap-2 mb-4 border-b border-slate-50 pb-2">
-                  <CheckSquare className="text-[#7C3AED]" size={18} />
-                  Upcoming Tasks
-                </h3>
-                <div className="space-y-3">
-                  <TaskItem type="eval" text="Grade 14 pending submissions for Web Tech" time="Due tomorrow" />
-                  <TaskItem type="lecture" text="Lecture: DBMS - Schema Refinement" time="Today, 02:00 PM" />
-                  <TaskItem type="exam" text="Practical Exam: Advanced Web Lab" time="Friday, 10:00 AM" />
-                </div>
-              </div>
-            </div>
-
-          </div>
         </>
       )}
 

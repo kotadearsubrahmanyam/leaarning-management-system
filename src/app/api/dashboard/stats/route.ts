@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, courses, enrollments, materials, materialProgress, assignments, submissions, courseFaculty, quizzes } from "@/db/schema";
+import { users, courses, enrollments, materials, materialProgress, assignments, submissions, courseFaculty, quizzes, quizSubmissions, classSessions, attendance, results } from "@/db/schema";
 import { verifyJwt } from "@/lib/jwt";
 import { cookies } from "next/headers";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { eq, sql, inArray, and, isNull } from "drizzle-orm";
+import { eq, sql, inArray, and, isNull, desc } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -77,6 +77,9 @@ export async function GET() {
           coursePopularity: [],
           totalAssignments: 0,
           pendingEvaluations: 0,
+          assignmentCompletionData: [],
+          quizPerformanceData: [],
+          attendanceTrendsData: [],
         };
       } else {
         stats.coursesCreated = courseIds.length;
@@ -175,6 +178,161 @@ export async function GET() {
           .groupBy(courses.id, courses.title)
           .orderBy(sql`count(${enrollments.id}) DESC`)
           .limit(5);
+
+        // --- NEW REAL DATA CALCULATIONS FOR GRAPHS ---
+
+        // 1. Assignment Completion (Pie Chart)
+        const teacherAssignments = await db
+          .select({
+            id: assignments.id,
+            courseId: assignments.courseId
+          })
+          .from(assignments)
+          .where(inArray(assignments.courseId, courseIds));
+
+        const courseEnrollments = await db
+          .select({
+            courseId: courseFaculty.courseId,
+            studentId: enrollments.studentId,
+          })
+          .from(enrollments)
+          .innerJoin(courseFaculty, eq(enrollments.courseFacultyId, courseFaculty.id))
+          .where(inArray(courseFaculty.id, cfIds));
+
+        const courseStudentCounts: Record<string, number> = {};
+        for (const row of courseEnrollments) {
+          courseStudentCounts[row.courseId] = (courseStudentCounts[row.courseId] || 0) + 1;
+        }
+
+        let expectedSubmissions = 0;
+        for (const assign of teacherAssignments) {
+          expectedSubmissions += courseStudentCounts[assign.courseId] || 0;
+        }
+
+        const assignmentIds = teacherAssignments.map(a => a.id);
+        let gradedCount = 0;
+        let pendingCount = 0;
+
+        if (assignmentIds.length > 0) {
+          const subs = await db
+            .select({
+              marks: submissions.marks,
+              status: submissions.status
+            })
+            .from(submissions)
+            .where(inArray(submissions.assignmentId, assignmentIds));
+            
+          for (const sub of subs) {
+            if (sub.marks !== null) {
+              gradedCount++;
+            } else {
+              pendingCount++;
+            }
+          }
+        }
+
+        const submittedCount = gradedCount + pendingCount;
+        const unsubmittedCount = Math.max(0, expectedSubmissions - submittedCount);
+
+        stats.assignmentCompletionData = [
+          { name: "Graded", value: gradedCount },
+          { name: "Pending", value: pendingCount },
+          { name: "Unsubmitted", value: unsubmittedCount },
+        ];
+
+        // 2. Quiz Performance (Bar Chart)
+        const teacherQuizzes = await db
+          .select({
+            id: quizzes.id,
+            title: quizzes.title
+          })
+          .from(quizzes)
+          .where(and(eq(quizzes.teacherId, id as string), isNull(quizzes.studentId)));
+
+        const quizIds = teacherQuizzes.map(q => q.id);
+        const quizPerformanceData = [];
+
+        if (quizIds.length > 0) {
+          const subs = await db
+            .select({
+              quizId: quizSubmissions.quizId,
+              score: quizSubmissions.score,
+              totalPoints: quizSubmissions.totalPoints,
+            })
+            .from(quizSubmissions)
+            .where(inArray(quizSubmissions.quizId, quizIds));
+
+          const quizScores: Record<string, { sum: number; count: number }> = {};
+          for (const sub of subs) {
+            const pct = sub.totalPoints > 0 ? (sub.score / sub.totalPoints) * 100 : 0;
+            if (!quizScores[sub.quizId]) {
+              quizScores[sub.quizId] = { sum: 0, count: 0 };
+            }
+            quizScores[sub.quizId].sum += pct;
+            quizScores[sub.quizId].count += 1;
+          }
+
+          for (const quiz of teacherQuizzes) {
+            const statsEntry = quizScores[quiz.id];
+            const avgScore = statsEntry ? Math.round(statsEntry.sum / statsEntry.count) : 0;
+            quizPerformanceData.push({
+              name: quiz.title,
+              score: avgScore,
+            });
+          }
+        }
+        stats.quizPerformanceData = quizPerformanceData.slice(0, 5);
+
+        // 3. Attendance Trends (Area Chart)
+        const teacherSessions = await db
+          .select({
+            id: classSessions.id,
+            date: classSessions.date
+          })
+          .from(classSessions)
+          .where(eq(classSessions.facultyId, id as string))
+          .orderBy(desc(classSessions.date))
+          .limit(30);
+
+        const sessionIds = teacherSessions.map(s => s.id);
+        const attendanceTrendsData = [];
+
+        if (sessionIds.length > 0) {
+          const records = await db
+            .select({
+              sessionId: attendance.sessionId,
+              status: attendance.status
+            })
+            .from(attendance)
+            .where(inArray(attendance.sessionId, sessionIds));
+
+          const sessionStats: Record<string, { present: number; total: number }> = {};
+          for (const rec of records) {
+            if (!sessionStats[rec.sessionId]) {
+              sessionStats[rec.sessionId] = { present: 0, total: 0 };
+            }
+            sessionStats[rec.sessionId].total += 1;
+            if (rec.status === "PRESENT" || rec.status === "LATE") {
+              sessionStats[rec.sessionId].present += 1;
+            }
+          }
+
+          const lastSessions = teacherSessions.slice(0, 6).reverse();
+          for (let i = 0; i < lastSessions.length; i++) {
+            const sess = lastSessions[i];
+            const statsEntry = sessionStats[sess.id];
+            const rate = statsEntry && statsEntry.total > 0 
+              ? Math.round((statsEntry.present / statsEntry.total) * 100) 
+              : 100;
+            
+            const dateLabel = new Date(sess.date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+            attendanceTrendsData.push({
+              week: dateLabel,
+              attendance: rate
+            });
+          }
+        }
+        stats.attendanceTrendsData = attendanceTrendsData;
       }
     } else {
       // STUDENT
@@ -235,13 +393,24 @@ export async function GET() {
       const ongoingCourses = totalCourses - completedCourses;
       const learningTime = completedCourses * 12 + ongoingCourses * 4;
 
+      // Query the student's actual grades from the Result table
+      const subjectMarks = await db
+        .select({
+          name: results.subjectCode,
+          value: results.marks,
+        })
+        .from(results)
+        .where(eq(results.userId, id as string))
+        .orderBy(results.createdAt);
+
       stats = {
         totalCourses,
         completedCourses,
         ongoingCourses,
         learningTime,
         courseProgress,
-        activityHistory
+        activityHistory,
+        subjectMarks: subjectMarks.map(m => ({ name: m.name || "Course", value: m.value })),
       };
     }
 
